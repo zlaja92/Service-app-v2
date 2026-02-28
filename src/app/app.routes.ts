@@ -22,20 +22,20 @@ export const routes: Routes = [
       {
         path: 'search-by-device',
         loadComponent: () =>
-          import('./features/search/search-by-device/search-by-device.page').then((m) => m.SearchByDevicePage),
-        canMatch: [featureGuard('searchByDevice')],
+          import('./features/device-catalog/search/device-search.page').then((m) => m.DeviceSearchPage),
+        canMatch: [featureGuard('deviceCatalog')],
       },
       {
         path: 'device/:code/device-groups',
         loadComponent: () =>
-          import('./features/device/device-groups/device-groups.page').then((m) => m.DeviceGroupsPage),
-        canMatch: [featureGuard('searchByDevice')],
+          import('./features/device-catalog/device-groups/device-groups.page').then((m) => m.DeviceGroupsPage),
+        canMatch: [featureGuard('deviceCatalog')],
       },
       {
         path: 'device/:code/device-groups/:groupId/device-parts',
         loadComponent: () =>
-          import('./features/device/device-parts/device-parts.page').then((m) => m.DevicePartsPage),
-        canMatch: [featureGuard('searchByDevice')],
+          import('./features/device-catalog/device-parts/device-parts.page').then((m) => m.DevicePartsPage),
+        canMatch: [featureGuard('deviceCatalog')],
       },
       {
         path: '',

@@ -5,20 +5,20 @@ import {
   IonSearchbar, IonList, IonItem, IonLabel, IonButton,
   IonSkeletonText, IonMenuButton, ViewWillEnter,
 } from '@ionic/angular/standalone';
-import { SearchByDeviceService } from '../services/search-by-device.service';
+import { DeviceSearchService } from '../services/device-search.service';
 
 @Component({
-  selector: 'app-search-by-device',
-  templateUrl: './search-by-device.page.html',
-  styleUrls: ['./search-by-device.page.scss'],
+  selector: 'app-device-search',
+  templateUrl: './device-search.page.html',
+  styleUrls: ['./device-search.page.scss'],
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonSearchbar, IonList, IonItem, IonLabel, IonButton,
     IonSkeletonText, IonMenuButton,
   ],
 })
-export class SearchByDevicePage implements ViewWillEnter {
-  protected searchService = inject(SearchByDeviceService);
+export class DeviceSearchPage implements ViewWillEnter {
+  protected searchService = inject(DeviceSearchService);
   private router = inject(Router);
 
   ionViewWillEnter(): void {

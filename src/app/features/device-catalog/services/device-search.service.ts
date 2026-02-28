@@ -15,7 +15,7 @@ interface DeviceDoc {
 }
 
 @Injectable({ providedIn: 'root' })
-export class SearchByDeviceService {
+export class DeviceSearchService {
   private firestoreService = inject(FirestoreService);
   private logger = inject(LoggerService);
 

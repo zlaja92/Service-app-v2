@@ -15,7 +15,7 @@ export interface FeatureFlags {
   cart: boolean;
   documentation: boolean;
   searchByUser: boolean;
-  searchByDevice: boolean;
+  deviceCatalog: boolean;
   servicerHistory: boolean;
   bugReport: boolean;
   barcodeScan: boolean;
@@ -53,7 +53,7 @@ export function getDefaultFeatures(): FeatureFlags {
     cart: false,
     documentation: false,
     searchByUser: true,
-    searchByDevice: true,
+    deviceCatalog: true,
     servicerHistory: false,
     bugReport: false,
     barcodeScan: true,
