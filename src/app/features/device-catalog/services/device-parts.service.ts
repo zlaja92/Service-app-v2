@@ -5,10 +5,12 @@ import { LoggerService } from '../../../core/logger/logger.service';
 
 export interface Part {
   id: string;
+  code: string;
   name: string;
 }
 
 interface PartDoc {
+  Code: string;
   'Part name': string;
   [key: string]: unknown;
 }
@@ -41,6 +43,7 @@ export class DevicePartsService {
 
       this.parts = result.documents.map((doc) => ({
         id: doc.id,
+        code: (doc.data as PartDoc).Code ?? doc.id,
         name: (doc.data as PartDoc)['Part name'] ?? '',
       }));
 

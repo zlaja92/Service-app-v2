@@ -1,0 +1,44 @@
+<div class="dialog">
+  <div class="dialog-header">
+    <h2>{{ partName }}</h2>
+  </div>
+
+  @if (isLoading) {
+    <div class="dialog-body">
+      <div class="detail-row">
+        <span class="label">Kod</span>
+        <ion-skeleton-text [animated]="true" style="width: 40%; height: 18px" />
+      </div>
+      <div class="detail-row">
+        <span class="label">Cena</span>
+        <ion-skeleton-text [animated]="true" style="width: 30%; height: 18px" />
+      </div>
+    </div>
+  } @else if (detail) {
+    <div class="dialog-body">
+      <div class="detail-row">
+        <span class="label">Kod</span>
+        <span class="value">{{ detail.partCode }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Cena</span>
+        @if (detail.price !== null) {
+          <span class="value">{{ detail.price }} {{ detail.currency }}</span>
+        } @else {
+          <span class="value muted">Cena nije dostupna</span>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="dialog-footer">
+    @if (configStore.isFeatureEnabled('cart')) {
+      <ion-button expand="block" fill="solid" color="primary" (click)="addToCart()">
+        Dodaj u korpu
+      </ion-button>
+    }
+    <ion-button expand="block" fill="clear" (click)="dismiss()">
+      Zatvori
+    </ion-button>
+  </div>
+</div>

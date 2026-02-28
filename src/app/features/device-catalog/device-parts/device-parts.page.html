@@ -5,7 +5,16 @@
     </ion-buttons>
     <ion-title>Rezervni delovi</ion-title>
     <ion-buttons slot="end">
-      <ion-menu-button />
+      @if (configStore.isFeatureEnabled('cart')) {
+        <ion-button (click)="navigateTo('/cart')">
+          <ion-icon slot="start" name="cart-outline" />
+          @if (cartService.itemCount() > 0) {
+            <span>{{ cartService.itemCount() }}</span>
+          }
+        </ion-button>
+      } @else {
+        <ion-menu-button />
+      }
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -36,7 +45,7 @@
     @if (partsService.parts.length > 0) {
       <ion-list>
         @for (part of partsService.parts; track part.id) {
-          <ion-item lines="full">
+          <ion-item lines="full" button (click)="onPartClick(part)">
             <ion-label class="ion-text-wrap">
               {{ part.id }} - {{ part.name }}
             </ion-label>

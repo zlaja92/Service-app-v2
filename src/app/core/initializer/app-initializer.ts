@@ -40,6 +40,9 @@ export async function appInitializer() {
   // Step 1: Initialize Firebase
   firebaseInit.initialize();
 
+  // Step 1.5: Apply dark mode preference early (before auth, so login page is themed)
+  await themeService.initDarkMode();
+
   // Step 2: Wait for Firebase to restore auth session from persistence
   // (On web this is IndexedDB, on native it's Keychain/EncryptedPrefs)
   try {

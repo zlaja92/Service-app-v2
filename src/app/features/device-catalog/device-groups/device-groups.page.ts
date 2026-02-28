@@ -5,6 +5,7 @@ import {
   IonList, IonItem, IonLabel, IonSkeletonText, IonMenuButton, ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { DeviceGroupsService } from '../services/device-groups.service';
+import { CartService } from '../../cart/cart.service';
 import { Group } from '../../../shared/models/group.model';
 
 @Component({
@@ -18,17 +19,28 @@ import { Group } from '../../../shared/models/group.model';
 })
 export class DeviceGroupsPage implements ViewWillEnter {
   protected groupsService = inject(DeviceGroupsService);
+  private cartService = inject(CartService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   private deviceCode = '';
+  // Tracks if user navigated forward to parts page.
+  // When returning from parts, cart is preserved.
+  // When entering fresh from search, cart is cleared.
+  private hasNavigatedToParts = false;
 
   ionViewWillEnter(): void {
     this.deviceCode = this.route.snapshot.paramMap.get('code') ?? '';
     this.groupsService.load(this.deviceCode);
+
+    if (!this.hasNavigatedToParts) {
+      this.cartService.clear();
+    }
+    this.hasNavigatedToParts = false;
   }
 
   onGroupClick(group: Group): void {
+    this.hasNavigatedToParts = true;
     this.router.navigate(['/device', this.deviceCode, 'device-groups', group.id, 'device-parts']);
   }
 }

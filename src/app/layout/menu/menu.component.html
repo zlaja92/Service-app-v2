@@ -1,0 +1,53 @@
+<ion-menu contentId="main-content" type="overlay">
+  <ion-header>
+    <ion-toolbar [style.--background]="configStore.theme().menuHeaderBackground" color="primary">
+      <ion-title>{{ configStore.appTitle() }}</ion-title>
+    </ion-toolbar>
+  </ion-header>
+  <ion-content>
+    <ion-list>
+      <ion-menu-toggle auto-hide="false">
+        <ion-item button (click)="navigateTo('/home')">
+          <ion-icon name="home-outline" slot="start" />
+          <ion-label>Početna</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+
+      <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerHistory'">
+        <ion-item button (click)="navigateTo('/servicer-history')">
+          <ion-icon name="time-outline" slot="start" />
+          <ion-label>Moje intervencije</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+
+      <ion-menu-toggle auto-hide="false" *appFeatureFlag="'bugReport'">
+        <ion-item button (click)="navigateTo('/bugs')">
+          <ion-icon name="bug-outline" slot="start" />
+          <ion-label>Prijavi grešku</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+
+      <ion-menu-toggle auto-hide="false">
+        <ion-item button (click)="logout()" lines="none">
+          <ion-icon name="log-out-outline" slot="start" />
+          <ion-label>Odjavi se</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+    </ion-list>
+
+    <ion-list class="theme-section">
+      <ion-item lines="none">
+        <ion-icon name="moon-outline" slot="start" />
+        <ion-label>Tamni režim</ion-label>
+        <ion-toggle [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
+      </ion-item>
+    </ion-list>
+
+    <div class="menu-footer">
+      @if (tenantStore.tenantId(); as tid) {
+        <p>Tenant: {{ tid }}</p>
+      }
+      <p>{{ authStore.userEmail() }}</p>
+    </div>
+  </ion-content>
+</ion-menu>

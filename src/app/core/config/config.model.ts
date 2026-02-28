@@ -21,6 +21,7 @@ export interface FeatureFlags {
   barcodeScan: boolean;
   pdfReports: boolean;
   emailOrders: boolean;
+  partPhoto: boolean;
 }
 
 export interface ThemeConfig {
@@ -41,6 +42,7 @@ export interface BusinessConfig {
   warrantyPeriodMonths: number;
   serviceIntervalMonths: number;
   maxPartsPerIntervention: number;
+  currency: string;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -59,6 +61,7 @@ export function getDefaultFeatures(): FeatureFlags {
     barcodeScan: true,
     pdfReports: false,
     emailOrders: false,
+    partPhoto: false,
   };
 }
 
@@ -86,6 +89,7 @@ export function getDefaultConfig(): AppConfig {
       warrantyPeriodMonths: 60,
       serviceIntervalMonths: 19,
       maxPartsPerIntervention: 4,
+      currency: 'EUR',
     },
   };
 }

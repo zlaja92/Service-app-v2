@@ -1,35 +1,79 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Preferences } from '@capacitor/preferences';
 import { ThemeConfig } from '../config/config.model';
 import { LoggerService } from '../logger/logger.service';
+
+const DARK_MODE_KEY = 'dark_mode_preference';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private logger = inject(LoggerService);
+  private currentTheme: ThemeConfig | null = null;
+
+  readonly isDarkMode = signal(false);
+
+  async initDarkMode(): Promise<void> {
+    const isDark = await this.getStoredDarkMode();
+    this.applyDarkClass(isDark);
+  }
+
+  async setDarkMode(isDark: boolean): Promise<void> {
+    this.applyDarkClass(isDark);
+    await Preferences.set({ key: DARK_MODE_KEY, value: isDark ? 'true' : 'false' });
+    this.logger.info('Dark mode saved', { isDark });
+  }
 
   applyTheme(theme: ThemeConfig): void {
-    const root = document.documentElement;
+    this.currentTheme = theme;
+    this.setThemeProperties(theme);
+  }
 
-    root.style.setProperty('--ion-color-primary', theme.primaryColor);
-    root.style.setProperty('--ion-color-primary-rgb', this.hexToRgb(theme.primaryColor));
-    root.style.setProperty('--ion-color-primary-contrast', this.getContrast(theme.primaryColor));
-    root.style.setProperty('--ion-color-primary-shade', this.shade(theme.primaryColor, -15));
-    root.style.setProperty('--ion-color-primary-tint', this.tint(theme.primaryColor, 15));
+  private applyDarkClass(isDark: boolean): void {
+    this.isDarkMode.set(isDark);
+    // Class must be on <html> because dark.class.css uses .ion-palette-dark.md / .ion-palette-dark.ios
+    // and Ionic puts .md/.ios on <html>
+    document.documentElement.classList.toggle('ion-palette-dark', isDark);
 
-    root.style.setProperty('--ion-color-secondary', theme.secondaryColor);
-    root.style.setProperty('--ion-color-secondary-rgb', this.hexToRgb(theme.secondaryColor));
-    root.style.setProperty('--ion-color-secondary-contrast', this.getContrast(theme.secondaryColor));
-    root.style.setProperty('--ion-color-secondary-shade', this.shade(theme.secondaryColor, -15));
-    root.style.setProperty('--ion-color-secondary-tint', this.tint(theme.secondaryColor, 15));
+    // Re-apply custom theme colors so they override the dark palette defaults
+    if (this.currentTheme) {
+      this.setThemeProperties(this.currentTheme);
+    }
+  }
 
-    root.style.setProperty('--ion-color-tertiary', theme.accentColor);
-    root.style.setProperty('--ion-color-tertiary-rgb', this.hexToRgb(theme.accentColor));
-    root.style.setProperty('--ion-color-tertiary-contrast', this.getContrast(theme.accentColor));
-    root.style.setProperty('--ion-color-tertiary-shade', this.shade(theme.accentColor, -15));
-    root.style.setProperty('--ion-color-tertiary-tint', this.tint(theme.accentColor, 15));
+  private setThemeProperties(theme: ThemeConfig): void {
+    // Inline styles on <html> override .ion-palette-dark class styles on same element
+    const el = document.documentElement;
 
-    root.style.setProperty('--app-menu-header-bg', theme.menuHeaderBackground);
+    el.style.setProperty('--ion-color-primary', theme.primaryColor);
+    el.style.setProperty('--ion-color-primary-rgb', this.hexToRgb(theme.primaryColor));
+    el.style.setProperty('--ion-color-primary-contrast', this.getContrast(theme.primaryColor));
+    el.style.setProperty('--ion-color-primary-shade', this.shade(theme.primaryColor, -15));
+    el.style.setProperty('--ion-color-primary-tint', this.tint(theme.primaryColor, 15));
+
+    el.style.setProperty('--ion-color-secondary', theme.secondaryColor);
+    el.style.setProperty('--ion-color-secondary-rgb', this.hexToRgb(theme.secondaryColor));
+    el.style.setProperty('--ion-color-secondary-contrast', this.getContrast(theme.secondaryColor));
+    el.style.setProperty('--ion-color-secondary-shade', this.shade(theme.secondaryColor, -15));
+    el.style.setProperty('--ion-color-secondary-tint', this.tint(theme.secondaryColor, 15));
+
+    el.style.setProperty('--ion-color-tertiary', theme.accentColor);
+    el.style.setProperty('--ion-color-tertiary-rgb', this.hexToRgb(theme.accentColor));
+    el.style.setProperty('--ion-color-tertiary-contrast', this.getContrast(theme.accentColor));
+    el.style.setProperty('--ion-color-tertiary-shade', this.shade(theme.accentColor, -15));
+    el.style.setProperty('--ion-color-tertiary-tint', this.tint(theme.accentColor, 15));
+
+    el.style.setProperty('--app-menu-header-bg', theme.menuHeaderBackground);
 
     this.logger.info('Theme applied', { primary: theme.primaryColor, secondary: theme.secondaryColor });
+  }
+
+  private async getStoredDarkMode(): Promise<boolean> {
+    try {
+      const { value } = await Preferences.get({ key: DARK_MODE_KEY });
+      return value === 'true';
+    } catch {
+      return false;
+    }
   }
 
   private hexToRgb(hex: string): string {

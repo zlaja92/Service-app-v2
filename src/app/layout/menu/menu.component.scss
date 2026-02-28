@@ -1,0 +1,16 @@
+.theme-section {
+  margin-top: 8px;
+}
+
+.menu-footer {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+
+  p {
+    margin: 2px 0;
+  }
+}

@@ -34,4 +34,19 @@
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+@import '@ionic/angular/css/palettes/dark.class.css';
+
+ion-modal.card-dialog {
+  --width: 85%;
+  --max-width: 400px;
+  --height: auto;
+  --border-radius: 16px;
+  --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  --background: var(--ion-color-step-50, #f2f2f2);
+  --backdrop-opacity: 0.5;
+}
+
+.ion-palette-dark ion-modal.card-dialog {
+  --background: var(--ion-color-step-150, #2a2a2a);
+  --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
