@@ -61,4 +61,23 @@ export class FirestoreService {
 
     return { documents, lastDocumentPath };
   }
+
+  async querySubcollection<T = Record<string, unknown>>(
+    parentDocReference: string,
+    subcollection: string,
+  ): Promise<CollectionQueryResult<T>> {
+    const reference = `${parentDocReference}/${subcollection}`;
+
+    this.logger.debug('Firestore querySubcollection', { reference });
+
+    const result = await FirebaseFirestore.getCollection({ reference });
+
+    const documents = (result.snapshots ?? []).map((snapshot) => ({
+      id: snapshot.id,
+      path: snapshot.path,
+      data: snapshot.data as T,
+    }));
+
+    return { documents, lastDocumentPath: null };
+  }
 }

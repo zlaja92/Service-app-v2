@@ -22,6 +22,10 @@ export class SearchByDevicePage implements ViewWillEnter {
   private router = inject(Router);
 
   ionViewWillEnter(): void {
+    if (this.searchService.keepState) {
+      this.searchService.keepState = false;
+      return;
+    }
     this.searchService.reset();
   }
 
@@ -41,6 +45,7 @@ export class SearchByDevicePage implements ViewWillEnter {
   }
 
   onDeviceClick(deviceCode: string): void {
-    this.router.navigate(['/device-info', deviceCode]);
+    this.searchService.keepState = true;
+    this.router.navigate(['/device', deviceCode, 'device-groups']);
   }
 }

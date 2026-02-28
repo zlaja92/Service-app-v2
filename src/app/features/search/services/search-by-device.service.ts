@@ -22,6 +22,7 @@ export class SearchByDeviceService {
   devices: Device[] = [];
   isLoading = false;
   hasMore = false;
+  keepState = false;
 
   private searchTerm = '';
   private currentSearchId = 0;

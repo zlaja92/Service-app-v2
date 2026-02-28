@@ -1,0 +1,45 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/search-by-device" />
+    </ion-buttons>
+    <ion-title>Sklopovi</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (groupsService.isLoading) {
+    <ion-list>
+      @for (i of [1,2,3,4,5]; track i) {
+        <ion-item>
+          <ion-label>
+            <h3><ion-skeleton-text [animated]="true" style="width: 50%" /></h3>
+            <p><ion-skeleton-text [animated]="true" style="width: 70%" /></p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (!groupsService.isLoading && groupsService.groups.length > 0) {
+    <ion-list>
+      @for (group of groupsService.groups; track group.id) {
+        <ion-item button (click)="onGroupClick(group)" detail lines="full">
+          <ion-label class="ion-text-wrap">
+            <strong>{{ group.id }}</strong>
+            <p class="group-name">{{ group.name }}</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (!groupsService.isLoading && groupsService.groups.length === 0) {
+    <div class="empty-state">
+      <p>Nema pronađenih sklopova za ovaj uređaj.</p>
+    </div>
+  }
+</ion-content>

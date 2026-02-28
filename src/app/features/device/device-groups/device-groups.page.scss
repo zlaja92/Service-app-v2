@@ -1,0 +1,11 @@
+.group-name {
+  color: var(--ion-color-medium);
+  font-size: 0.9em;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
+}

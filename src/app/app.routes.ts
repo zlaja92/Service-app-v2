@@ -26,6 +26,18 @@ export const routes: Routes = [
         canMatch: [featureGuard('searchByDevice')],
       },
       {
+        path: 'device/:code/device-groups',
+        loadComponent: () =>
+          import('./features/device/device-groups/device-groups.page').then((m) => m.DeviceGroupsPage),
+        canMatch: [featureGuard('searchByDevice')],
+      },
+      {
+        path: 'device/:code/device-groups/:groupId/device-parts',
+        loadComponent: () =>
+          import('./features/device/device-parts/device-parts.page').then((m) => m.DevicePartsPage),
+        canMatch: [featureGuard('searchByDevice')],
+      },
+      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full',

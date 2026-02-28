@@ -1,0 +1,26 @@
+.group-photo {
+  width: 100%;
+  padding: 16px;
+  text-align: center;
+
+  img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+}
+
+.group-photo-skeleton {
+  padding: 16px;
+}
+
+.part-name {
+  color: var(--ion-color-medium);
+  font-size: 0.9em;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
+}
