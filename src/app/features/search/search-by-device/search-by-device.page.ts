@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonSearchbar, IonList, IonItem, IonLabel, IonButton,
-  IonSkeletonText, IonMenuButton,
+  IonSkeletonText, IonMenuButton, ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { SearchByDeviceService } from '../services/search-by-device.service';
 
@@ -17,9 +17,13 @@ import { SearchByDeviceService } from '../services/search-by-device.service';
     IonSkeletonText, IonMenuButton,
   ],
 })
-export class SearchByDevicePage {
+export class SearchByDevicePage implements ViewWillEnter {
   protected searchService = inject(SearchByDeviceService);
   private router = inject(Router);
+
+  ionViewWillEnter(): void {
+    this.searchService.reset();
+  }
 
   onSearchInput(event: CustomEvent): void {
     const value = (event.detail.value as string) ?? '';
