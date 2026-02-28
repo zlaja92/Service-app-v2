@@ -1,0 +1,91 @@
+export interface AppConfig {
+  version: number;
+  features: FeatureFlags;
+  theme: ThemeConfig;
+  localization: LocalizationConfig;
+  business: BusinessConfig;
+}
+
+export interface FeatureFlags {
+  commissioning: boolean;
+  warrantyExtension: boolean;
+  interventionInWarranty: boolean;
+  interventionOutWarranty: boolean;
+  spareParts: boolean;
+  cart: boolean;
+  documentation: boolean;
+  searchByUser: boolean;
+  searchByDevice: boolean;
+  servicerHistory: boolean;
+  bugReport: boolean;
+  barcodeScan: boolean;
+  pdfReports: boolean;
+  emailOrders: boolean;
+}
+
+export interface ThemeConfig {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  logoUrl: string;
+  appTitle: string;
+  menuHeaderBackground: string;
+}
+
+export interface LocalizationConfig {
+  defaultLanguage: string;
+  supportedLanguages: string[];
+}
+
+export interface BusinessConfig {
+  warrantyPeriodMonths: number;
+  serviceIntervalMonths: number;
+  maxPartsPerIntervention: number;
+}
+
+export function getDefaultFeatures(): FeatureFlags {
+  return {
+    commissioning: false,
+    warrantyExtension: false,
+    interventionInWarranty: false,
+    interventionOutWarranty: false,
+    spareParts: false,
+    cart: false,
+    documentation: false,
+    searchByUser: true,
+    searchByDevice: true,
+    servicerHistory: false,
+    bugReport: false,
+    barcodeScan: true,
+    pdfReports: false,
+    emailOrders: false,
+  };
+}
+
+export function getDefaultTheme(): ThemeConfig {
+  return {
+    primaryColor: '#B71C1C',
+    secondaryColor: '#1565C0',
+    accentColor: '#FFC107',
+    logoUrl: '',
+    appTitle: 'Ariston Service',
+    menuHeaderBackground: '#B71C1C',
+  };
+}
+
+export function getDefaultConfig(): AppConfig {
+  return {
+    version: 0,
+    features: getDefaultFeatures(),
+    theme: getDefaultTheme(),
+    localization: {
+      defaultLanguage: 'sr',
+      supportedLanguages: ['sr', 'en', 'mk'],
+    },
+    business: {
+      warrantyPeriodMonths: 60,
+      serviceIntervalMonths: 19,
+      maxPartsPerIntervention: 4,
+    },
+  };
+}

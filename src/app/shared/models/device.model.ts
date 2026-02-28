@@ -1,0 +1,15 @@
+export enum DeviceType {
+  HEAT_PUMP = 'heat_pump',
+  GAS_BOILER = 'Gas_boiler',
+  BOILER = 'Boiler',
+  AIR_CONDITION = 'air_condition',
+}
+
+export interface Device {
+  code: string;
+  name: string;
+  type: DeviceType;
+  subType: string;
+  unitCount: number;
+  exists: boolean;
+}

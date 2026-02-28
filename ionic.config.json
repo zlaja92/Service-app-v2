@@ -1,0 +1,7 @@
+{
+  "name": "aristonv3",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

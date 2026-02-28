@@ -1,0 +1,40 @@
+<ion-header>
+  <ion-toolbar>
+      <!-- menu code is in app.component.html -->
+      <ion-buttons slot="end">
+         <ion-menu-button></ion-menu-button>
+      </ion-buttons>
+      <ion-title>Početna strana</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <img class="img-class" src="assets/icon/ariston-logo.jpg" />
+
+  <ion-item lines="full" class="input-item">
+      <ion-label position="floating">Barkod broj</ion-label>
+      <ion-input clearInput maxlength="21" minlength="21" required="true" [(ngModel)]="barcodeCode" placeholder="Skeniraj ili ručno unesi barkod"></ion-input>
+  </ion-item>
+  <ion-button expand="block" fill="solid" color="danger" (click)="search()" class="search-button">
+      <ion-icon size="large" name="search-outline" slot="start"></ion-icon>  
+      Pretraži
+  </ion-button>
+  <ion-button expand="block" fill="outline" color="danger" class="scan-barcode-button" (click)="scan()">
+      <ion-icon size="large" name="barcode-outline" slot="start"></ion-icon>  
+      Skeniraj barkod  
+  </ion-button>
+  <ion-button expand="block" fill="outline" color="danger" class="doc-button" (click)="documents()">
+    <ion-icon size="large" name="document-text-outline"></ion-icon>
+    Dokumentacija
+  </ion-button>
+  <ion-button expand="block" fill="outline" color="danger" class="name-button" (click)="searchByDevice()">
+    <ion-icon size="large" name="hardware-chip-outline" slot="start"></ion-icon>
+
+    Pretraži po nazivu uređaja
+  </ion-button>
+  <ion-button expand="block" fill="outline" color="danger" class="name-button" (click)="searchByUser()">
+    <ion-icon size="large" name="person-outline" slot="start"></ion-icon>
+
+    Pretraži po korisniku
+  </ion-button>
+</ion-content>

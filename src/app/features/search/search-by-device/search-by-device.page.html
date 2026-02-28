@@ -1,0 +1,63 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" />
+    </ion-buttons>
+    <ion-title>Pretraži po uređaju</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-searchbar placeholder="Unesite naziv ili kod uređaja"
+                 (ionInput)="onSearchInput($event)"
+                 [debounce]="300" />
+
+  @if (searchService.isLoading && searchService.devices.length === 0) {
+    <ion-list>
+      @for (i of [1,2,3,4,5]; track i) {
+        <ion-item>
+          <ion-label>
+            <h3><ion-skeleton-text [animated]="true" style="width: 60%" /></h3>
+            <p><ion-skeleton-text [animated]="true" style="width: 40%" /></p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (searchService.devices.length > 0) {
+    <ion-list>
+      @for (device of searchService.devices; track device.code) {
+        <ion-item button (click)="onDeviceClick(device.code)" detail lines="full">
+          <ion-label class="ion-text-wrap">
+            {{ device.name }}
+            <p class="device-code">Code: {{ device.code }}</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+
+    @if (searchService.isLoading) {
+      <ion-list>
+        @for (i of [1,2,3]; track i) {
+          <ion-item>
+            <ion-label>
+              <h3><ion-skeleton-text [animated]="true" style="width: 60%" /></h3>
+              <p><ion-skeleton-text [animated]="true" style="width: 40%" /></p>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+
+    @if (searchService.hasMore && !searchService.isLoading) {
+      <ion-button expand="block" fill="outline" color="primary"
+                  class="load-more-button" (click)="loadMore()">
+        Učitaj još
+      </ion-button>
+    }
+  }
+</ion-content>

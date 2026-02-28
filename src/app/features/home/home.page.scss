@@ -1,0 +1,25 @@
+.logo-section {
+  width: 100%;
+  padding: 16px 0 0;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+.actions-section {
+  padding-top: 16px;
+
+  ion-button {
+    margin-top: 8px;
+    height: 40px;
+    font-size: 0.95rem;
+
+    ion-icon {
+      font-size: 1.4rem;
+    }
+  }
+}

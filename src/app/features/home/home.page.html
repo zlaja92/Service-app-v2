@@ -1,0 +1,58 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-menu-button />
+    </ion-buttons>
+    <ion-title>{{ configStore.appTitle() }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (configStore.logoDataUrl(); as logo) {
+    <div class="logo-section">
+      <img [src]="logo" [alt]="configStore.appTitle()" />
+    </div>
+  }
+
+  <div class="actions-section">
+    <ion-item *appFeatureFlag="'barcodeScan'">
+      <ion-input label="Barkod broj" labelPlacement="floating"
+                 placeholder="Skeniraj ili ručno unesi barkod"
+                 [(ngModel)]="barcodeInput"
+                 maxlength="21"
+                 inputmode="numeric"
+                 [clearInput]="true" />
+    </ion-item>
+
+    <ion-button expand="block" fill="solid" color="primary"
+                (click)="searchByBarcode()" [disabled]="!barcodeInput"
+                *appFeatureFlag="'barcodeScan'">
+      <ion-icon name="search-outline" slot="start" />
+      Pretraži
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" color="primary"
+                (click)="scanBarcode()" *appFeatureFlag="'barcodeScan'">
+      <ion-icon name="barcode-outline" slot="start" />
+      Skeniraj barkod
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" color="primary"
+                (click)="navigateTo('/docs')" *appFeatureFlag="'documentation'">
+      <ion-icon name="document-text-outline" slot="start" />
+      Dokumentacija
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" color="primary"
+                (click)="navigateTo('/search-by-device')" *appFeatureFlag="'searchByDevice'">
+      <ion-icon name="hardware-chip-outline" slot="start" />
+      Pretraži po nazivu uređaja
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" color="primary"
+                (click)="navigateTo('/search-by-user')" *appFeatureFlag="'searchByUser'">
+      <ion-icon name="person-outline" slot="start" />
+      Pretraži po korisniku
+    </ion-button>
+  </div>
+</ion-content>

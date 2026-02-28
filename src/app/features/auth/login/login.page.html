@@ -1,0 +1,59 @@
+<ion-content class="login-content">
+  <div class="login-container">
+    <div class="login-header">
+      <h1>{{ configStore.appTitle() }}</h1>
+      <p>Prijavite se na vaš nalog</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+      <ion-item>
+        <ion-input
+          formControlName="email"
+          type="email"
+          label="Email"
+          labelPlacement="floating"
+          placeholder="email@example.com"
+        />
+      </ion-item>
+      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['required']) {
+        <div class="error-text">Email je obavezan</div>
+      }
+      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['email']) {
+        <div class="error-text">Unesite validan email</div>
+      }
+
+      <ion-item>
+        <ion-input
+          formControlName="password"
+          type="password"
+          label="Lozinka"
+          labelPlacement="floating"
+          placeholder="Unesite lozinku"
+        />
+      </ion-item>
+      @if (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['required']) {
+        <div class="error-text">Lozinka je obavezna</div>
+      }
+
+      <ion-button
+        expand="block"
+        type="submit"
+        [disabled]="loginForm.invalid || authStore.isLoading()"
+        class="login-button"
+      >
+        @if (authStore.isLoading()) {
+          <ion-spinner name="crescent" />
+        } @else {
+          Prijavi se
+        }
+      </ion-button>
+    </form>
+
+    @if (authStore.error(); as error) {
+      <div class="error-message">
+        <ion-icon name="alert-circle-outline" />
+        {{ error }}
+      </div>
+    }
+  </div>
+</ion-content>
