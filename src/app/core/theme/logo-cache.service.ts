@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { LoggerService } from '../logger/logger.service';
 
 const LOGO_CACHE_KEY = 'logo_cache';
@@ -61,6 +61,15 @@ export class LogoCacheService {
   }
 
   private async downloadAsBase64(url: string): Promise<string> {
+    if (Capacitor.isNativePlatform()) {
+      const response = await CapacitorHttp.get({
+        url,
+        responseType: 'arraybuffer',
+      });
+      const contentType = response.headers['Content-Type'] ?? 'image/png';
+      return `data:${contentType};base64,${response.data}`;
+    }
+
     const response = await fetch(url);
 
     if (!response.ok) {

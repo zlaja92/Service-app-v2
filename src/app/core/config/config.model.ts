@@ -22,6 +22,7 @@ export interface FeatureFlags {
   pdfReports: boolean;
   emailOrders: boolean;
   partPhoto: boolean;
+  cartNote: boolean;
 }
 
 export interface ThemeConfig {
@@ -64,6 +65,7 @@ export function getDefaultFeatures(): FeatureFlags {
     pdfReports: false,
     emailOrders: false,
     partPhoto: false,
+    cartNote: false,
   };
 }
 

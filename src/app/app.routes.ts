@@ -38,6 +38,18 @@ export const routes: Routes = [
         canMatch: [featureGuard('deviceCatalog')],
       },
       {
+        path: 'docs',
+        loadComponent: () =>
+          import('./features/docs/list/docs-list.page').then((m) => m.DocsListPage),
+        canMatch: [featureGuard('documentation')],
+      },
+      {
+        path: 'cart',
+        loadComponent: () =>
+          import('./features/cart/cart.page').then((m) => m.CartPage),
+        canMatch: [featureGuard('cart')],
+      },
+      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full',

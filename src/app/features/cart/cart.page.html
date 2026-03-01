@@ -1,0 +1,80 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" />
+    </ion-buttons>
+    <ion-title>{{ 'cart_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (cartService.cartItems().length === 0) {
+    <div class="empty-state">
+      <ion-icon name="cart-outline" class="empty-icon" />
+      <p>{{ 'cart_empty' | transloco }}</p>
+    </div>
+  }
+
+  @if (cartService.cartItems().length > 0) {
+    <ion-list>
+      @for (item of cartService.cartItems(); track item.partCode; let idx = $index) {
+        <ion-item lines="full" class="cart-item">
+          <ion-label class="ion-text-wrap">
+            <h2>{{ item.name }}</h2>
+            <p class="item-code">{{ item.partCode }}</p>
+            @if (item.price !== null) {
+              <p class="item-price">{{ item.price }} {{ item.currency }}</p>
+            } @else {
+              <p class="item-price price-unavailable">{{ 'cart_price_unavailable' | transloco }}</p>
+            }
+          </ion-label>
+
+          <!-- Style 1: Stepper pill -->
+          <div class="stepper-pill" slot="end">
+            <button class="stepper-btn" (click)="cartService.decreaseQuantity(item.partCode)"><ion-icon name="remove" /></button>
+            <span class="stepper-qty">{{ item.quantity }}</span>
+            <button class="stepper-btn stepper-btn-plus" (click)="cartService.increaseQuantity(item.partCode)"><ion-icon name="add" /></button>
+          </div>
+
+          <!-- Style 2: Outline rounded squares (alternative) -->
+          <!-- <div class="outline-controls" slot="end">
+            <button class="circle-btn" (click)="cartService.decreaseQuantity(item.partCode)"><ion-icon name="remove" /></button>
+            <span class="circle-qty">{{ item.quantity }}</span>
+            <button class="circle-btn circle-btn-plus" (click)="cartService.increaseQuantity(item.partCode)"><ion-icon name="add" /></button>
+          </div> -->
+        </ion-item>
+      }
+    </ion-list>
+
+    @if (configStore.isFeatureEnabled('cartNote')) {
+      <div class="note-section">
+        <ion-textarea
+          [placeholder]="'cart_note_placeholder' | transloco"
+          [autoGrow]="false"
+          rows="4"
+          class="note-input"
+          (ionInput)="onNoteChange($event)"
+        />
+      </div>
+    }
+  }
+</ion-content>
+
+@if (cartService.cartItems().length > 0) {
+  <ion-footer>
+    <ion-toolbar>
+      <div class="footer-content">
+        <div class="total-section">
+          <span class="total-label">{{ 'cart_total' | transloco }}</span>
+          <span class="total-price">{{ cartService.totalPrice() | number:'1.2-2' }} {{ cartService.currency() }}</span>
+        </div>
+        <ion-button expand="block" (click)="onOrder()">
+          {{ 'cart_order' | transloco }}
+        </ion-button>
+      </div>
+    </ion-toolbar>
+  </ion-footer>
+}

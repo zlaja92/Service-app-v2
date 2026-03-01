@@ -39,9 +39,20 @@ export const sr: Translation = {
   device_parts_title: 'Rezervni delovi',
   device_parts_empty: 'Nema pronađenih rezervnih delova za ovaj sklop.',
 
+  docs_title: 'Dokumentacija',
+  docs_empty: 'Nema dostupnih dokumenata.',
+
   part_detail_code: 'Kod',
   part_detail_price: 'Cena',
   part_detail_price_unavailable: 'Cena nije dostupna',
   part_detail_add_to_cart: 'Dodaj u korpu',
   part_detail_close: 'Zatvori',
+
+  cart_title: 'Korpa',
+  cart_empty: 'Vaša korpa je prazna.',
+  cart_price_unavailable: 'Cena nije dostupna',
+  cart_note_label: 'Napomena za porudžbinu',
+  cart_note_placeholder: 'Dodajte napomenu za vašu porudžbinu...',
+  cart_total: 'Ukupno',
+  cart_order: 'Poruči',
 };

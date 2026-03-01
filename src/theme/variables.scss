@@ -1,2 +1,15 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+
+:root {
+  --ion-font-size: 1.1rem;
+}
+
+ion-item {
+  --min-height: 50px;
+  font-size: 1.1rem;
+}
+
+ion-label {
+  font-size: 1.1rem !important;
+}

@@ -1,0 +1,151 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--ion-color-medium);
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+}
+
+.item-code {
+  color: var(--ion-color-medium);
+  font-size: 0.85em;
+}
+
+.item-price {
+  font-weight: 500;
+  color: var(--ion-color-primary);
+
+  &.price-unavailable {
+    color: var(--ion-color-medium);
+    font-style: italic;
+  }
+}
+
+// ─── Style 1: Stepper pill ───
+.stepper-pill {
+  display: flex;
+  align-items: center;
+  background: var(--ion-color-light, #f4f5f8);
+  border-radius: 50px;
+  overflow: hidden;
+  border: 1px solid var(--ion-color-medium-tint, #d7d8da);
+
+  .stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--ion-color-medium);
+    cursor: pointer;
+    transition: background 0.15s;
+
+    ion-icon { font-size: 1.4rem; }
+
+    &:active {
+      background: var(--ion-color-medium-tint, #d7d8da);
+    }
+
+    &-plus {
+      color: var(--ion-color-primary);
+    }
+  }
+
+  .stepper-qty {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--ion-text-color);
+  }
+}
+
+// ─── Style 2: Outline circles ───
+.outline-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .circle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px solid var(--ion-color-medium);
+    background: transparent;
+    padding: 0;
+    color: var(--ion-color-medium);
+    cursor: pointer;
+    transition: all 0.15s;
+
+    ion-icon { font-size: 1.3rem; }
+
+    &:active {
+      background: var(--ion-color-light, #f4f5f8);
+    }
+
+    &-plus {
+      border-color: var(--ion-color-primary);
+      color: var(--ion-color-primary);
+    }
+  }
+
+  .circle-qty {
+    min-width: 28px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--ion-text-color);
+  }
+}
+
+// ─── Note section ───
+.note-section {
+  padding: 16px;
+
+  .note-input {
+    border: 1px solid var(--ion-color-medium);
+    border-radius: 8px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --padding-top: 8px;
+    --padding-bottom: 8px;
+    min-height: 100px;
+  }
+}
+
+// ─── Footer ───
+.footer-content {
+  padding: 12px 16px 30px;
+
+  .total-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    .total-label {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .total-price {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+    }
+  }
+}

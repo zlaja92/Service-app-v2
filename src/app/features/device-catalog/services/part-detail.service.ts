@@ -31,7 +31,8 @@ export class PartDetailService {
     this.isLoading = true;
 
     try {
-      const doc = await this.firestoreService.getTenantDocument<PriceDoc>('priceList', partCode);
+      // TODO: revert to getTenantDocument for production
+      const doc = await this.firestoreService.getDocument<PriceDoc>(`priceList/${partCode}`);
       const currency = this.configStore.config()?.business?.currency ?? 'EUR';
       const showPhoto = this.configStore.isFeatureEnabled('partPhoto');
 

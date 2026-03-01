@@ -39,9 +39,20 @@ export const en: Translation = {
   device_parts_title: 'Spare Parts',
   device_parts_empty: 'No spare parts found for this assembly.',
 
+  docs_title: 'Documentation',
+  docs_empty: 'No documents available.',
+
   part_detail_code: 'Code',
   part_detail_price: 'Price',
   part_detail_price_unavailable: 'Price not available',
   part_detail_add_to_cart: 'Add to Cart',
   part_detail_close: 'Close',
+
+  cart_title: 'Cart',
+  cart_empty: 'Your cart is empty.',
+  cart_price_unavailable: 'Price not available',
+  cart_note_label: 'Order note',
+  cart_note_placeholder: 'Add a note for your order...',
+  cart_total: 'Total',
+  cart_order: 'Place Order',
 };

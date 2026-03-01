@@ -18,7 +18,7 @@
       @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['required']) {
         <div class="error-text">{{ 'login_email_required' | transloco }}</div>
       }
-      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['email']) {
+      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['pattern']) {
         <div class="error-text">{{ 'login_email_invalid' | transloco }}</div>
       }
 

@@ -37,8 +37,10 @@ export class LoginPage implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private menuCtrl = inject(MenuController);
 
+  private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   loginForm: FormGroup = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.pattern(LoginPage.EMAIL_PATTERN)]],
     password: ['', [Validators.required]],
   });
 

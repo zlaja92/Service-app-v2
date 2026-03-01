@@ -1,0 +1,49 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      @if (docsService.isRoot) {
+        <ion-back-button defaultHref="/home" />
+      } @else {
+        <ion-button (click)="goBack()">
+          <ion-icon name="arrow-back-outline" slot="icon-only" />
+        </ion-button>
+      }
+    </ion-buttons>
+    <ion-title>{{ docsService.isRoot ? ('docs_title' | transloco) : docsService.currentFolderName }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (docsService.isLoading) {
+    <ion-list>
+      @for (i of [1,2,3,4,5]; track i) {
+        <ion-item>
+          <ion-icon name="document-outline" slot="start" />
+          <ion-label>
+            <ion-skeleton-text [animated]="true" style="width: 70%" />
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (!docsService.isLoading && docsService.entries.length > 0) {
+    <ion-list>
+      @for (entry of docsService.entries; track entry.fullPath) {
+        <ion-item button (click)="onEntryClick(entry)" [detail]="entry.isFolder" lines="full">
+          <ion-icon [name]="entry.isFolder ? 'folder-outline' : 'document-outline'" slot="start" />
+          <ion-label>{{ entry.name }}</ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (!docsService.isLoading && docsService.entries.length === 0) {
+    <div class="empty-state">
+      <p>{{ 'docs_empty' | transloco }}</p>
+    </div>
+  }
+</ion-content>
