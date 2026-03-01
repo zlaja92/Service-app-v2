@@ -7,7 +7,7 @@ import {
   MenuController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, languageOutline } from 'ionicons/icons';
+import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 import { AuthService } from '../../core/auth/auth.service';
@@ -40,7 +40,7 @@ export class MenuComponent {
   private menuCtrl = inject(MenuController);
 
   constructor() {
-    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, languageOutline });
+    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline });
   }
 
   navigateTo(path: string): void {

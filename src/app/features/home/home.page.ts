@@ -14,10 +14,9 @@ import { TenantStore } from '../../core/tenant/tenant.store';
 import { ConfigStore } from '../../core/config/config.store';
 import { TranslocoModule } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
-import { FirestoreService } from '../../core/firebase/firestore.service';
-import { sr } from '../../core/i18n/translations/sr';
-import { en } from '../../core/i18n/translations/en';
-import { LANGUAGE_LABELS } from '../../core/i18n/i18n.model';
+import { FirestoreService } from '../../core/firebase/firestore.service'; // [TEMP:translation-upload] remove this import
+import { LANGUAGE_LABELS, TranslationVersionDoc } from '../../core/i18n/i18n.model'; // [TEMP:translation-upload] remove this import
+import { BUNDLED_TRANSLATIONS } from '../../core/i18n/translations'; // [TEMP:translation-upload] remove this import
 
 @Component({
   selector: 'app-home',
@@ -36,10 +35,10 @@ export class HomePage {
   protected tenantStore = inject(TenantStore);
   protected configStore = inject(ConfigStore);
   private router = inject(Router);
-  private firestoreService = inject(FirestoreService);
+  private firestoreService = inject(FirestoreService); // [TEMP:translation-upload] remove this line
 
   barcodeInput = '';
-  uploadStatus = '';
+  uploadStatus = ''; // [TEMP:translation-upload] remove this line
 
   constructor() {
     addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline });
@@ -57,20 +56,37 @@ export class HomePage {
     this.router.navigate([path]);
   }
 
-  // TODO: Remove after initial upload
+  // [TEMP:translation-upload] remove entire method
   async uploadTranslations(): Promise<void> {
     this.uploadStatus = 'Uploading...';
     try {
-      await this.firestoreService.setTenantDocument('translations', 'sr', sr as Record<string, unknown>);
-      await this.firestoreService.setTenantDocument('translations', 'en', en as Record<string, unknown>);
+      // Read current version doc from Firestore
+      const currentVersions = await this.firestoreService.getTenantDocument<TranslationVersionDoc>(
+        'translations',
+        'version',
+      );
 
-      const versionDoc: Record<string, unknown> = {};
-      for (const [lang, label] of Object.entries(LANGUAGE_LABELS)) {
-        versionDoc[lang] = { version: 1, label };
+      const newVersionDoc: Record<string, unknown> = {};
+
+      // Upload each bundled language
+      for (const [lang, translations] of Object.entries(BUNDLED_TRANSLATIONS)) {
+        this.uploadStatus = `Uploading ${lang}...`;
+        await this.firestoreService.setTenantDocument(
+          'translations',
+          lang,
+          translations as Record<string, unknown>,
+        );
+
+        const currentVersion = currentVersions?.[lang]?.version ?? 0;
+        const label = LANGUAGE_LABELS[lang] ?? lang;
+        newVersionDoc[lang] = { version: currentVersion + 1, label };
       }
-      await this.firestoreService.setTenantDocument('translations', 'version', versionDoc);
 
-      this.uploadStatus = 'Upload complete!';
+      // Upload version doc
+      await this.firestoreService.setTenantDocument('translations', 'version', newVersionDoc);
+
+      const langs = Object.keys(BUNDLED_TRANSLATIONS);
+      this.uploadStatus = `Upload complete! (${langs.join(', ')})`;
     } catch (error) {
       this.uploadStatus = `Error: ${String(error)}`;
     }

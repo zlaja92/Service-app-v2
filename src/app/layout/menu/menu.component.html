@@ -1,18 +1,11 @@
-<ion-menu contentId="main-content" type="overlay">
+<ion-menu contentId="main-content" type="overlay" side="end">
   <ion-header>
     <ion-toolbar [style.--background]="configStore.theme().menuHeaderBackground" color="primary">
-      <ion-title>{{ configStore.appTitle() }}</ion-title>
+      <ion-title class="ion-text-center">{{ 'menu_title' | transloco }}</ion-title>
     </ion-toolbar>
   </ion-header>
   <ion-content>
-    <ion-list>
-      <ion-menu-toggle auto-hide="false">
-        <ion-item button (click)="navigateTo('/home')">
-          <ion-icon name="home-outline" slot="start" />
-          <ion-label>{{ 'menu_home' | transloco }}</ion-label>
-        </ion-item>
-      </ion-menu-toggle>
-
+    <ion-list lines="full">
       <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerHistory'">
         <ion-item button (click)="navigateTo('/servicer-history')">
           <ion-icon name="time-outline" slot="start" />
@@ -27,25 +20,14 @@
         </ion-item>
       </ion-menu-toggle>
 
-      <ion-menu-toggle auto-hide="false">
-        <ion-item button (click)="logout()" lines="none">
-          <ion-icon name="log-out-outline" slot="start" />
-          <ion-label>{{ 'menu_logout' | transloco }}</ion-label>
-        </ion-item>
-      </ion-menu-toggle>
-    </ion-list>
-
-    <ion-list class="theme-section">
-      <ion-item lines="none">
+      <ion-item>
         <ion-icon name="moon-outline" slot="start" />
         <ion-label>{{ 'menu_dark_mode' | transloco }}</ion-label>
-        <ion-toggle [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
+        <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
       </ion-item>
-    </ion-list>
 
-    <ion-list class="language-section">
-      <ion-item lines="none">
-        <ion-icon name="language-outline" slot="start" />
+      <ion-item>
+        <ion-icon name="globe-outline" slot="start" />
         <ion-select [value]="translationService.currentLanguage()"
                     (ionChange)="onLanguageChange($event)"
                     interface="popover">
@@ -54,6 +36,13 @@
           }
         </ion-select>
       </ion-item>
+
+      <ion-menu-toggle auto-hide="false">
+        <ion-item button (click)="logout()" lines="none">
+          <ion-icon name="log-out-outline" slot="start" />
+          <ion-label>{{ 'menu_logout' | transloco }}</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
     </ion-list>
 
     <div class="menu-footer">

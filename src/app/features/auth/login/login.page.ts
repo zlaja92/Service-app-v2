@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   IonContent, IonItem, IonInput, IonButton, IonSpinner, IonIcon,
+  MenuController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline } from 'ionicons/icons';
@@ -24,7 +25,7 @@ import { LoggerService } from '../../../core/logger/logger.service';
     IonContent, IonItem, IonInput, IonButton, IonSpinner, IonIcon,
   ],
 })
-export class LoginPage {
+export class LoginPage implements OnInit, OnDestroy {
   protected authStore = inject(AuthStore);
   protected configStore = inject(ConfigStore);
   private translocoService = inject(TranslocoService);
@@ -34,6 +35,7 @@ export class LoginPage {
   private logger = inject(LoggerService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private menuCtrl = inject(MenuController);
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -42,6 +44,14 @@ export class LoginPage {
 
   constructor() {
     addIcons({ alertCircleOutline });
+  }
+
+  ngOnInit(): void {
+    this.menuCtrl.enable(false);
+  }
+
+  ngOnDestroy(): void {
+    this.menuCtrl.enable(true);
   }
 
   async onLogin(): Promise<void> {

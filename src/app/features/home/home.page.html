@@ -1,9 +1,9 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-buttons slot="start">
+    <ion-title>{{ configStore.appTitle() }}</ion-title>
+    <ion-buttons slot="end">
       <ion-menu-button />
     </ion-buttons>
-    <ion-title>{{ configStore.appTitle() }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -56,7 +56,7 @@
     </ion-button>
   </div>
 
-  <!-- TODO: Remove after initial upload -->
+  <!-- [TEMP:translation-upload] remove entire block below -->
   <div class="dev-section" style="margin-top: 40px; padding: 16px; border: 2px dashed var(--ion-color-warning); border-radius: 8px;">
     <ion-button expand="block" fill="outline" color="warning" (click)="uploadTranslations()">
       Upload Translations to Firestore
@@ -65,4 +65,5 @@
       <p style="text-align: center; margin-top: 8px;">{{ uploadStatus }}</p>
     }
   </div>
+  <!-- [/TEMP:translation-upload] -->
 </ion-content>

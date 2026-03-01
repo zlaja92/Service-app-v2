@@ -1,6 +1,7 @@
 import { Translation } from '@jsverse/transloco';
 
 export const en: Translation = {
+  menu_title: 'Menu',
   menu_home: 'Home',
   menu_interventions: 'My Interventions',
   menu_report_bug: 'Report Bug',

@@ -1,6 +1,7 @@
 import { Translation } from '@jsverse/transloco';
 
 export const sr: Translation = {
+  menu_title: 'Meni',
   menu_home: 'Početna',
   menu_interventions: 'Moje intervencije',
   menu_report_bug: 'Prijavi grešku',
