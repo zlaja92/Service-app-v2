@@ -12,6 +12,7 @@ import { DeviceGroupsService } from '../services/device-groups.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { CartService } from '../../cart/cart.service';
 import { PartDetailModalComponent } from '../components/part-detail-modal/part-detail-modal.component';
+import { TranslocoModule } from '@jsverse/transloco';
 import { PartDetail } from '../services/part-detail.service';
 
 @Component({
@@ -21,6 +22,7 @@ import { PartDetail } from '../services/part-detail.service';
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonList, IonItem, IonLabel, IonSkeletonText, IonMenuButton, IonButton, IonIcon,
+    TranslocoModule,
   ],
 })
 export class DevicePartsPage implements ViewWillEnter {

@@ -6,39 +6,49 @@
   @if (isLoading) {
     <div class="dialog-body">
       <div class="detail-row">
-        <span class="label">Kod</span>
+        <span class="label">{{ 'part_detail_code' | transloco }}</span>
         <ion-skeleton-text [animated]="true" style="width: 40%; height: 18px" />
       </div>
       <div class="detail-row">
-        <span class="label">Cena</span>
+        <span class="label">{{ 'part_detail_price' | transloco }}</span>
         <ion-skeleton-text [animated]="true" style="width: 30%; height: 18px" />
       </div>
     </div>
   } @else if (detail) {
+    @if (configStore.isFeatureEnabled('partPhoto') && detail.photoUrl) {
+      <div class="part-photo">
+        <img [src]="detail.photoUrl" [alt]="partName" />
+      </div>
+    }
+
     <div class="dialog-body">
       <div class="detail-row">
-        <span class="label">Kod</span>
+        <span class="label">{{ 'part_detail_code' | transloco }}</span>
         <span class="value">{{ detail.partCode }}</span>
       </div>
       <div class="detail-row">
-        <span class="label">Cena</span>
+        <span class="label">{{ 'part_detail_price' | transloco }}</span>
         @if (detail.price !== null) {
           <span class="value">{{ detail.price }} {{ detail.currency }}</span>
         } @else {
-          <span class="value muted">Cena nije dostupna</span>
+          <span class="value muted">{{ 'part_detail_price_unavailable' | transloco }}</span>
         }
       </div>
     </div>
+
+    @if (configStore.business()?.partNote) {
+      <p class="part-note">{{ configStore.business()?.partNote }}</p>
+    }
   }
 
   <div class="dialog-footer">
     @if (configStore.isFeatureEnabled('cart')) {
       <ion-button expand="block" fill="solid" color="primary" (click)="addToCart()">
-        Dodaj u korpu
+        {{ 'part_detail_add_to_cart' | transloco }}
       </ion-button>
     }
     <ion-button expand="block" fill="clear" (click)="dismiss()">
-      Zatvori
+      {{ 'part_detail_close' | transloco }}
     </ion-button>
   </div>
 </div>

@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/search-by-device" />
     </ion-buttons>
-    <ion-title>Rezervni delovi</ion-title>
+    <ion-title>{{ 'device_parts_title' | transloco }}</ion-title>
     <ion-buttons slot="end">
       @if (configStore.isFeatureEnabled('cart')) {
         <ion-button (click)="navigateTo('/cart')">
@@ -56,7 +56,7 @@
 
     @if (partsService.parts.length === 0) {
       <div class="empty-state">
-        <p>Nema pronađenih rezervnih delova za ovaj sklop.</p>
+        <p>{{ 'device_parts_empty' | transloco }}</p>
       </div>
     }
   }

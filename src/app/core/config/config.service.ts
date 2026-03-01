@@ -34,7 +34,8 @@ export class ConfigService {
         this.logger.debug('Config version matches, using local cache', {
           version: localConfig.version,
         });
-        //return localConfig;
+        // Ovo je uradjeno da bi se uvek vukao config fajl iz baze tokom razvoja. Kasnije kada se zavrsi otkomentarisati ovo
+        return localConfig;
       }
 
       this.logger.info('New config version detected, fetching full config', {

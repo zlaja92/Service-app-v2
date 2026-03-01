@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/search-by-device" />
     </ion-buttons>
-    <ion-title>Sklopovi</ion-title>
+    <ion-title>{{ 'device_groups_title' | transloco }}</ion-title>
     <ion-buttons slot="end">
       <ion-menu-button />
     </ion-buttons>
@@ -39,7 +39,7 @@
 
   @if (!groupsService.isLoading && groupsService.groups.length === 0) {
     <div class="empty-state">
-      <p>Nema pronađenih sklopova za ovaj uređaj.</p>
+      <p>{{ 'device_groups_empty' | transloco }}</p>
     </div>
   }
 </ion-content>

@@ -43,6 +43,8 @@ export interface BusinessConfig {
   serviceIntervalMonths: number;
   maxPartsPerIntervention: number;
   currency: string;
+  partNote: string;
+  partPhotoFolder: string;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -90,6 +92,8 @@ export function getDefaultConfig(): AppConfig {
       serviceIntervalMonths: 19,
       maxPartsPerIntervention: 4,
       currency: 'EUR',
+      partNote: '',
+      partPhotoFolder: '',
     },
   };
 }

@@ -4,6 +4,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonList, IonItem, IonLabel, IonSkeletonText, IonMenuButton, ViewWillEnter,
 } from '@ionic/angular/standalone';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DeviceGroupsService } from '../services/device-groups.service';
 import { CartService } from '../../cart/cart.service';
 import { Group } from '../../../shared/models/group.model';
@@ -15,6 +16,7 @@ import { Group } from '../../../shared/models/group.model';
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonList, IonItem, IonLabel, IonSkeletonText, IonMenuButton,
+    TranslocoModule,
   ],
 })
 export class DeviceGroupsPage implements ViewWillEnter {

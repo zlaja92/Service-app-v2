@@ -9,28 +9,28 @@
       <ion-menu-toggle auto-hide="false">
         <ion-item button (click)="navigateTo('/home')">
           <ion-icon name="home-outline" slot="start" />
-          <ion-label>Početna</ion-label>
+          <ion-label>{{ 'menu_home' | transloco }}</ion-label>
         </ion-item>
       </ion-menu-toggle>
 
       <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerHistory'">
         <ion-item button (click)="navigateTo('/servicer-history')">
           <ion-icon name="time-outline" slot="start" />
-          <ion-label>Moje intervencije</ion-label>
+          <ion-label>{{ 'menu_interventions' | transloco }}</ion-label>
         </ion-item>
       </ion-menu-toggle>
 
       <ion-menu-toggle auto-hide="false" *appFeatureFlag="'bugReport'">
         <ion-item button (click)="navigateTo('/bugs')">
           <ion-icon name="bug-outline" slot="start" />
-          <ion-label>Prijavi grešku</ion-label>
+          <ion-label>{{ 'menu_report_bug' | transloco }}</ion-label>
         </ion-item>
       </ion-menu-toggle>
 
       <ion-menu-toggle auto-hide="false">
         <ion-item button (click)="logout()" lines="none">
           <ion-icon name="log-out-outline" slot="start" />
-          <ion-label>Odjavi se</ion-label>
+          <ion-label>{{ 'menu_logout' | transloco }}</ion-label>
         </ion-item>
       </ion-menu-toggle>
     </ion-list>
@@ -38,8 +38,21 @@
     <ion-list class="theme-section">
       <ion-item lines="none">
         <ion-icon name="moon-outline" slot="start" />
-        <ion-label>Tamni režim</ion-label>
+        <ion-label>{{ 'menu_dark_mode' | transloco }}</ion-label>
         <ion-toggle [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
+      </ion-item>
+    </ion-list>
+
+    <ion-list class="language-section">
+      <ion-item lines="none">
+        <ion-icon name="language-outline" slot="start" />
+        <ion-select [value]="translationService.currentLanguage()"
+                    (ionChange)="onLanguageChange($event)"
+                    interface="popover">
+          @for (lang of translationService.availableLanguages(); track lang) {
+            <ion-select-option [value]="lang">{{ translationService.getLanguageLabel(lang) }}</ion-select-option>
+          }
+        </ion-select>
       </ion-item>
     </ion-list>
 

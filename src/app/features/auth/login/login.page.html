@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-header">
       <h1>{{ configStore.appTitle() }}</h1>
-      <p>Prijavite se na vaš nalog</p>
+      <p>{{ 'login_subtitle' | transloco }}</p>
     </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
@@ -16,23 +16,23 @@
         />
       </ion-item>
       @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['required']) {
-        <div class="error-text">Email je obavezan</div>
+        <div class="error-text">{{ 'login_email_required' | transloco }}</div>
       }
       @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['email']) {
-        <div class="error-text">Unesite validan email</div>
+        <div class="error-text">{{ 'login_email_invalid' | transloco }}</div>
       }
 
       <ion-item>
         <ion-input
           formControlName="password"
           type="password"
-          label="Lozinka"
+          [label]="'login_password_label' | transloco"
           labelPlacement="floating"
-          placeholder="Unesite lozinku"
+          [placeholder]="'login_password_placeholder' | transloco"
         />
       </ion-item>
       @if (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['required']) {
-        <div class="error-text">Lozinka je obavezna</div>
+        <div class="error-text">{{ 'login_password_required' | transloco }}</div>
       }
 
       <ion-button
@@ -44,7 +44,7 @@
         @if (authStore.isLoading()) {
           <ion-spinner name="crescent" />
         } @else {
-          Prijavi se
+          {{ 'login_submit' | transloco }}
         }
       </ion-button>
     </form>

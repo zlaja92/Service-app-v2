@@ -1,13 +1,14 @@
 import { Component, Input, OnInit, inject } from '@angular/core';
 import { IonButton, IonSkeletonText, ModalController } from '@ionic/angular/standalone';
 import { PartDetailService, PartDetail } from '../../services/part-detail.service';
+import { TranslocoModule } from '@jsverse/transloco';
 import { ConfigStore } from '../../../../core/config/config.store';
 
 @Component({
   selector: 'app-part-detail-modal',
   templateUrl: './part-detail-modal.component.html',
   styleUrls: ['./part-detail-modal.component.scss'],
-  imports: [IonButton, IonSkeletonText],
+  imports: [IonButton, IonSkeletonText, TranslocoModule],
 })
 export class PartDetailModalComponent implements OnInit {
   @Input() partName = '';

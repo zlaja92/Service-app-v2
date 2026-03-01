@@ -16,8 +16,8 @@
 
   <div class="actions-section">
     <ion-item *appFeatureFlag="'barcodeScan'">
-      <ion-input label="Barkod broj" labelPlacement="floating"
-                 placeholder="Skeniraj ili ručno unesi barkod"
+      <ion-input [label]="'home_barcode_label' | transloco" labelPlacement="floating"
+                 [placeholder]="'home_barcode_placeholder' | transloco"
                  [(ngModel)]="barcodeInput"
                  maxlength="21"
                  inputmode="numeric"
@@ -28,31 +28,41 @@
                 (click)="searchByBarcode()" [disabled]="!barcodeInput"
                 *appFeatureFlag="'barcodeScan'">
       <ion-icon name="search-outline" slot="start" />
-      Pretraži
+      {{ 'home_search' | transloco }}
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
                 (click)="scanBarcode()" *appFeatureFlag="'barcodeScan'">
       <ion-icon name="barcode-outline" slot="start" />
-      Skeniraj barkod
+      {{ 'home_scan_barcode' | transloco }}
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
                 (click)="navigateTo('/docs')" *appFeatureFlag="'documentation'">
       <ion-icon name="document-text-outline" slot="start" />
-      Dokumentacija
+      {{ 'home_documentation' | transloco }}
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
                 (click)="navigateTo('/search-by-device')" *appFeatureFlag="'deviceCatalog'">
       <ion-icon name="hardware-chip-outline" slot="start" />
-      Pretraži po nazivu uređaja
+      {{ 'home_search_by_device' | transloco }}
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
                 (click)="navigateTo('/search-by-user')" *appFeatureFlag="'searchByUser'">
       <ion-icon name="person-outline" slot="start" />
-      Pretraži po korisniku
+      {{ 'home_search_by_user' | transloco }}
     </ion-button>
+  </div>
+
+  <!-- TODO: Remove after initial upload -->
+  <div class="dev-section" style="margin-top: 40px; padding: 16px; border: 2px dashed var(--ion-color-warning); border-radius: 8px;">
+    <ion-button expand="block" fill="outline" color="warning" (click)="uploadTranslations()">
+      Upload Translations to Firestore
+    </ion-button>
+    @if (uploadStatus) {
+      <p style="text-align: center; margin-top: 8px;">{{ uploadStatus }}</p>
+    }
   </div>
 </ion-content>

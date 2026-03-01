@@ -6,6 +6,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline } from 'ionicons/icons';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { TenantService } from '../../../core/tenant/tenant.service';
@@ -19,12 +20,14 @@ import { LoggerService } from '../../../core/logger/logger.service';
   styleUrls: ['./login.page.scss'],
   imports: [
     ReactiveFormsModule,
+    TranslocoModule,
     IonContent, IonItem, IonInput, IonButton, IonSpinner, IonIcon,
   ],
 })
 export class LoginPage {
   protected authStore = inject(AuthStore);
   protected configStore = inject(ConfigStore);
+  private translocoService = inject(TranslocoService);
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);
   private themeService = inject(ThemeService);
@@ -70,17 +73,17 @@ export class LoginPage {
   private getErrorMessage(error: unknown): string {
     const errorStr = String(error);
     if (errorStr.includes('auth/user-not-found') || errorStr.includes('auth/wrong-password')) {
-      return 'Pogrešan email ili lozinka';
+      return this.translocoService.translate('login_error_wrong_credentials');
     }
     if (errorStr.includes('auth/invalid-credential')) {
-      return 'Pogrešan email ili lozinka';
+      return this.translocoService.translate('login_error_wrong_credentials');
     }
     if (errorStr.includes('auth/too-many-requests')) {
-      return 'Previše pokušaja. Pokušajte ponovo kasnije.';
+      return this.translocoService.translate('login_error_too_many_attempts');
     }
     if (errorStr.includes('auth/network-request-failed')) {
-      return 'Nema internet konekcije';
+      return this.translocoService.translate('login_error_no_internet');
     }
-    return 'Greška prilikom prijave. Pokušajte ponovo.';
+    return this.translocoService.translate('login_error_generic');
   }
 }

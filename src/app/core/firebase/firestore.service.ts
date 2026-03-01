@@ -62,6 +62,20 @@ export class FirestoreService {
     return { documents, lastDocumentPath };
   }
 
+  async setDocument(reference: string, data: Record<string, unknown>): Promise<void> {
+    this.logger.debug('Firestore setDocument', { reference });
+    await FirebaseFirestore.setDocument({ reference, data });
+  }
+
+  async setTenantDocument(
+    collection: string,
+    docId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const reference = `${this.tenantService.getCollectionPath(collection)}/${docId}`;
+    await this.setDocument(reference, data);
+  }
+
   async querySubcollection<T = Record<string, unknown>>(
     parentDocReference: string,
     subcollection: string,

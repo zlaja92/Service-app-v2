@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
+import { StorageService } from '../../../core/firebase/storage.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 export interface Part {
@@ -18,6 +18,7 @@ interface PartDoc {
 @Injectable({ providedIn: 'root' })
 export class DevicePartsService {
   private firestoreService = inject(FirestoreService);
+  private storageService = inject(StorageService);
   private logger = inject(LoggerService);
 
   parts: Part[] = [];
@@ -31,9 +32,7 @@ export class DevicePartsService {
 
     try {
       if (groupPhoto) {
-        const storage = getStorage();
-        const photoRef = ref(storage, `Photos/${groupPhoto}.PNG`);
-        this.groupPhoto = await getDownloadURL(photoRef);
+        this.groupPhoto = await this.storageService.resolveFileUrl('Photos', groupPhoto, ['PNG', 'png', 'jpg', 'jpeg']);
       }
 
       const result = await this.firestoreService.querySubcollection(

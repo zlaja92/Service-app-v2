@@ -5,6 +5,7 @@ import {
   IonSearchbar, IonList, IonItem, IonLabel, IonButton,
   IonSkeletonText, IonMenuButton, ViewWillEnter,
 } from '@ionic/angular/standalone';
+import { TranslocoModule } from '@jsverse/transloco';
 import { DeviceSearchService } from '../services/device-search.service';
 
 @Component({
@@ -15,6 +16,7 @@ import { DeviceSearchService } from '../services/device-search.service';
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonSearchbar, IonList, IonItem, IonLabel, IonButton,
     IonSkeletonText, IonMenuButton,
+    TranslocoModule,
   ],
 })
 export class DeviceSearchPage implements ViewWillEnter {

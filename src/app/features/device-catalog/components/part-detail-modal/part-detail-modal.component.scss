@@ -17,11 +17,21 @@
   }
 }
 
+.part-photo {
+  margin-bottom: 16px;
+  text-align: center;
+
+  img {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+}
+
 .dialog-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .detail-row {
@@ -53,6 +63,14 @@
   ion-skeleton-text {
     border-radius: 8px;
   }
+}
+
+.part-note {
+  margin: 0 0 20px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  line-height: 1.4;
 }
 
 .dialog-footer {

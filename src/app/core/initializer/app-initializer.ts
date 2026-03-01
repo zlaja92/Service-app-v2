@@ -8,6 +8,7 @@ import { ConfigService } from '../config/config.service';
 import { ConfigStore } from '../config/config.store';
 import { ThemeService } from '../theme/theme.service';
 import { LogoCacheService } from '../theme/logo-cache.service';
+import { TranslationService } from '../i18n/translation.service';
 import { LoggerService } from '../logger/logger.service';
 
 async function loadAndCacheLogo(
@@ -32,6 +33,7 @@ export async function appInitializer() {
   const configStore = inject(ConfigStore);
   const themeService = inject(ThemeService);
   const logoCacheService = inject(LogoCacheService);
+  const translationService = inject(TranslationService);
   const logger = inject(LoggerService);
   const router = inject(Router);
 
@@ -42,6 +44,9 @@ export async function appInitializer() {
 
   // Step 1.5: Apply dark mode preference early (before auth, so login page is themed)
   await themeService.initDarkMode();
+
+  // Step 1.6: Load language preference (before auth, so login page is translated)
+  await translationService.init();
 
   // Step 2: Wait for Firebase to restore auth session from persistence
   // (On web this is IndexedDB, on native it's Keychain/EncryptedPrefs)
@@ -64,6 +69,9 @@ export async function appInitializer() {
         logger.warn('No tenantId resolved, using default config');
         configStore.loadDefaults();
       }
+      // Step 4.5: Sync translations with Firestore (per-language versioning)
+      await translationService.sync();
+
       // Step 5: Apply theme
       const theme = configStore.theme();
       themeService.applyTheme(theme);
@@ -93,6 +101,7 @@ export async function appInitializer() {
       if (tenantService.getCurrentTenantId()) {
         const config = await configService.loadConfig();
         configStore.setConfig(config);
+        await translationService.sync();
         themeService.applyTheme(configStore.theme());
         loadAndCacheLogo(configStore, logoCacheService);
       }

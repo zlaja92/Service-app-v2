@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/home" />
     </ion-buttons>
-    <ion-title>Pretraži po uređaju</ion-title>
+    <ion-title>{{ 'device_search_title' | transloco }}</ion-title>
     <ion-buttons slot="end">
       <ion-menu-button />
     </ion-buttons>
@@ -11,7 +11,7 @@
 </ion-header>
 
 <ion-content>
-  <ion-searchbar placeholder="Unesite naziv ili kod uređaja"
+  <ion-searchbar [placeholder]="'device_search_placeholder' | transloco"
                  (ionInput)="onSearchInput($event)"
                  [debounce]="300" />
 
@@ -56,7 +56,7 @@
     @if (searchService.hasMore && !searchService.isLoading) {
       <ion-button expand="block" fill="outline" color="primary"
                   class="load-more-button" (click)="loadMore()">
-        Učitaj još
+        {{ 'device_search_load_more' | transloco }}
       </ion-button>
     }
   }

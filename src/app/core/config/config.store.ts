@@ -27,6 +27,7 @@ export const ConfigStore = signalStore(
     theme: computed(() => state.config()?.theme ?? getDefaultTheme()),
     localization: computed(() => state.config()?.localization),
     appTitle: computed(() => state.config()?.theme?.appTitle ?? 'Ariston Service'),
+    business: computed(() => state.config()?.business),
   })),
 
   withMethods((store) => ({
