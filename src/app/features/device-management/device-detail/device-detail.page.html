@@ -1,0 +1,77 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" />
+    </ion-buttons>
+    <ion-title>{{ 'device_info_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (lookupService.isLoading) {
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          <ion-skeleton-text [animated]="true" style="width: 60%" />
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-skeleton-text [animated]="true" style="width: 40%" />
+        <ion-skeleton-text [animated]="true" style="width: 50%" />
+      </ion-card-content>
+    </ion-card>
+  }
+
+  @if (!lookupService.isLoading && lookupService.device; as device) {
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>{{ device.name }}</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p><strong>{{ 'device_info_code' | transloco }}:</strong> {{ device.code }}</p>
+        <p><strong>{{ 'device_info_type' | transloco }}:</strong> {{ device.type }}</p>
+        <p><strong>{{ 'device_info_sn' | transloco }}:</strong> {{ sn }}</p>
+      </ion-card-content>
+    </ion-card>
+
+    <div class="action-buttons">
+      @if (device.commissioning) {
+        <ion-button expand="block" fill="outline" (click)="onCommissioning()"
+                    *appFeatureFlag="'deviceManagement'">
+          <ion-icon name="build-outline" slot="start" />
+          {{ 'device_info_commissioning' | transloco }}
+        </ion-button>
+      }
+
+      @if (device.annualService) {
+        <ion-button expand="block" fill="outline" (click)="onAnnualService()"
+                    *appFeatureFlag="'deviceManagement'">
+          <ion-icon name="construct-outline" slot="start" />
+          {{ 'device_info_annual_service' | transloco }}
+        </ion-button>
+      }
+
+      @if (device.intervention) {
+        <ion-button expand="block" fill="outline" (click)="onIntervention()"
+                    *appFeatureFlag="'deviceManagement'">
+          <ion-icon name="hammer-outline" slot="start" />
+          {{ 'device_info_intervention' | transloco }}
+        </ion-button>
+      }
+
+      <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()">
+        <ion-icon name="time-outline" slot="start" />
+        {{ 'device_info_history' | transloco }}
+      </ion-button>
+    </div>
+  }
+
+  @if (!lookupService.isLoading && !lookupService.device) {
+    <div class="empty-state">
+      <p>{{ 'device_info_not_found' | transloco }}</p>
+    </div>
+  }
+</ion-content>

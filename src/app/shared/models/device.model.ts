@@ -12,4 +12,7 @@ export interface Device {
   subType: string;
   unitCount: number;
   exists: boolean;
+  commissioning?: boolean;
+  annualService?: boolean;
+  intervention?: boolean;
 }

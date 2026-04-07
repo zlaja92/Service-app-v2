@@ -23,8 +23,10 @@ export const sr: Translation = {
 
   home_barcode_label: 'Barkod broj',
   home_barcode_placeholder: 'Skeniraj ili ručno unesi barkod',
+  home_sn_placeholder: 'Unesite serijski broj uređaja',
   home_search: 'Pretraži',
   home_scan_barcode: 'Skeniraj barkod',
+  home_device_not_found: 'Uređaj nije pronađen u bazi',
   home_documentation: 'Dokumentacija',
   home_search_by_device: 'Pretraži po nazivu uređaja',
   home_search_by_user: 'Pretraži po korisniku',
@@ -47,6 +49,16 @@ export const sr: Translation = {
   part_detail_price_unavailable: 'Cena nije dostupna',
   part_detail_add_to_cart: 'Dodaj u korpu',
   part_detail_close: 'Zatvori',
+
+  device_info_title: 'Detalji uređaja',
+  device_info_code: 'Kod modela',
+  device_info_type: 'Tip uređaja',
+  device_info_sn: 'Serijski broj',
+  device_info_commissioning: 'Puštanje u rad',
+  device_info_annual_service: 'Godišnji servis',
+  device_info_intervention: 'Intervencija',
+  device_info_history: 'Istorija',
+  device_info_not_found: 'Uređaj nije pronađen.',
 
   cart_title: 'Korpa',
   cart_empty: 'Vaša korpa je prazna.',

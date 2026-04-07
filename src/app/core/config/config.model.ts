@@ -23,6 +23,7 @@ export interface FeatureFlags {
   emailOrders: boolean;
   partPhoto: boolean;
   cartNote: boolean;
+  deviceManagement: boolean;
 }
 
 export interface ThemeConfig {
@@ -46,6 +47,8 @@ export interface BusinessConfig {
   currency: string;
   partNote: string;
   partPhotoFolder: string;
+  snModelStart: number;
+  snModelLength: number;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -66,6 +69,7 @@ export function getDefaultFeatures(): FeatureFlags {
     emailOrders: false,
     partPhoto: false,
     cartNote: false,
+    deviceManagement: true,
   };
 }
 
@@ -96,6 +100,8 @@ export function getDefaultConfig(): AppConfig {
       currency: 'EUR',
       partNote: '',
       partPhotoFolder: '',
+      snModelStart: 0,
+      snModelLength: 7,
     },
   };
 }

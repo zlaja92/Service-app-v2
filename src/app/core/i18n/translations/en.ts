@@ -23,8 +23,10 @@ export const en: Translation = {
 
   home_barcode_label: 'Barcode number',
   home_barcode_placeholder: 'Scan or manually enter barcode',
+  home_sn_placeholder: 'Enter device serial number',
   home_search: 'Search',
   home_scan_barcode: 'Scan barcode',
+  home_device_not_found: 'Device not found in database',
   home_documentation: 'Documentation',
   home_search_by_device: 'Search by device name',
   home_search_by_user: 'Search by user',
@@ -47,6 +49,16 @@ export const en: Translation = {
   part_detail_price_unavailable: 'Price not available',
   part_detail_add_to_cart: 'Add to Cart',
   part_detail_close: 'Close',
+
+  device_info_title: 'Device Details',
+  device_info_code: 'Model Code',
+  device_info_type: 'Device Type',
+  device_info_sn: 'Serial Number',
+  device_info_commissioning: 'Commissioning',
+  device_info_annual_service: 'Annual Service',
+  device_info_intervention: 'Intervention',
+  device_info_history: 'History',
+  device_info_not_found: 'Device not found.',
 
   cart_title: 'Cart',
   cart_empty: 'Your cart is empty.',

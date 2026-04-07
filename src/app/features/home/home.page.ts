@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonMenuButton,
   IonButton, IonIcon, IonItem, IonInput,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -14,6 +15,8 @@ import { TenantStore } from '../../core/tenant/tenant.store';
 import { ConfigStore } from '../../core/config/config.store';
 import { TranslocoModule } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
+import { DeviceLookupService } from '../device-management/services/device-lookup.service';
+import { TranslocoService } from '@jsverse/transloco';
 import { FirestoreService } from '../../core/firebase/firestore.service'; // [TEMP:translation-upload] remove this import
 import { LANGUAGE_LABELS, TranslationVersionDoc } from '../../core/i18n/i18n.model'; // [TEMP:translation-upload] remove this import
 import { BUNDLED_TRANSLATIONS } from '../../core/i18n/translations'; // [TEMP:translation-upload] remove this import
@@ -35,17 +38,35 @@ export class HomePage {
   protected tenantStore = inject(TenantStore);
   protected configStore = inject(ConfigStore);
   private router = inject(Router);
+  private lookupService = inject(DeviceLookupService);
+  private toastCtrl = inject(ToastController);
+  private translocoService = inject(TranslocoService);
   private firestoreService = inject(FirestoreService); // [TEMP:translation-upload] remove this line
 
-  barcodeInput = '';
+  snInput = '';
   uploadStatus = ''; // [TEMP:translation-upload] remove this line
 
   constructor() {
     addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline });
   }
 
-  searchByBarcode(): void {
-    // TODO: Implement barcode search (manual input)
+  async searchBySn(): Promise<void> {
+    const sn = this.snInput.trim();
+    if (!sn) return;
+
+    const device = await this.lookupService.lookup(sn);
+
+    if (device) {
+      this.router.navigate(['/device-management', sn]);
+    } else {
+      const toast = await this.toastCtrl.create({
+        message: this.translocoService.translate('home_device_not_found'),
+        duration: 3000,
+        color: 'warning',
+        position: 'bottom',
+      });
+      await toast.present();
+    }
   }
 
   scanBarcode(): void {
