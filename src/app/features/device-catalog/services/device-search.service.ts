@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { Clearable } from '../../../core/session/clearable';
 import { Device } from '../../../shared/models/device.model';
 import { QueryNonFilterConstraint } from '@capacitor-firebase/firestore';
 
@@ -15,7 +16,7 @@ interface DeviceDoc {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DeviceSearchService {
+export class DeviceSearchService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private logger = inject(LoggerService);
 
@@ -46,6 +47,10 @@ export class DeviceSearchService {
   async loadMore(): Promise<void> {
     if (this.isLoading || !this.hasMore) return;
     await this.loadPage(this.currentSearchId);
+  }
+
+  clear(): void {
+    this.reset();
   }
 
   reset(): void {

@@ -13,12 +13,21 @@ export const DEFAULT_LANGUAGE = 'sr';
 export const BUNDLED_LANGUAGES = ['sr', 'en'];
 
 export const LANGUAGE_PREF_KEY = 'app_language';
-export const TRANSLATIONS_VERSION_KEY = 'translations_version';
-export const TRANSLATIONS_LANGUAGES_KEY = 'translations_languages';
-export const TRANSLATIONS_LABELS_KEY = 'translations_labels';
 
-export function translationCacheKey(lang: string): string {
-  return `translations_${lang}`;
+export function translationsVersionKey(tenantId: string): string {
+  return `translations_version_${tenantId}`;
+}
+
+export function translationsLanguagesKey(tenantId: string): string {
+  return `translations_languages_${tenantId}`;
+}
+
+export function translationsLabelsKey(tenantId: string): string {
+  return `translations_labels_${tenantId}`;
+}
+
+export function translationCacheKey(lang: string, tenantId: string): string {
+  return `translations_${lang}_${tenantId}`;
 }
 
 export const LANGUAGE_LABELS: Record<string, string> = {

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(echo $CLAUDE_TOOL_INPUT | jq -r '.file_path // .filePath // empty') && if [ -n \"$file\" ] && echo \"$file\" | grep -q '\\.ts$'; then npx prettier --write \"$file\" 2>/dev/null; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

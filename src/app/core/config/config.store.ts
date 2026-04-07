@@ -55,5 +55,9 @@ export const ConfigStore = signalStore(
     setError(error: string): void {
       patchState(store, { error, isLoading: false });
     },
+
+    clear(): void {
+      patchState(store, initialState);
+    },
   })),
 );

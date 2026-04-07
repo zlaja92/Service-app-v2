@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { Clearable } from '../../../core/session/clearable';
 import { Group } from '../../../shared/models/group.model';
 
 interface GroupDoc {
@@ -10,7 +11,7 @@ interface GroupDoc {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DeviceGroupsService {
+export class DeviceGroupsService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private logger = inject(LoggerService);
 
@@ -29,7 +30,7 @@ export class DeviceGroupsService {
     this.loadedDeviceCode = deviceCode;
 
     try {
-      const result = await this.firestoreService.querySubcollection<GroupDoc>(
+      const result = await this.firestoreService.queryTenantSubcollection<GroupDoc>(
         `devices/${deviceCode}`,
         'Sklopovi',
       );
@@ -49,6 +50,10 @@ export class DeviceGroupsService {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  clear(): void {
+    this.reset();
   }
 
   reset(): void {

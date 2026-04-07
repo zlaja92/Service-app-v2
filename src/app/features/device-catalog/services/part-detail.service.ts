@@ -3,6 +3,7 @@ import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { Clearable } from '../../../core/session/clearable';
 
 interface PriceDoc {
   Price: number;
@@ -19,7 +20,7 @@ export interface PartDetail {
 }
 
 @Injectable({ providedIn: 'root' })
-export class PartDetailService {
+export class PartDetailService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private storageService = inject(StorageService);
   private configStore = inject(ConfigStore);
@@ -27,12 +28,15 @@ export class PartDetailService {
 
   isLoading = false;
 
+  clear(): void {
+    this.isLoading = false;
+  }
+
   async loadPartDetail(partCode: string, partName: string): Promise<PartDetail> {
     this.isLoading = true;
 
     try {
-      // TODO: revert to getTenantDocument for production
-      const doc = await this.firestoreService.getDocument<PriceDoc>(`priceList/${partCode}`);
+      const doc = await this.firestoreService.getTenantDocument<PriceDoc>('priceList', partCode);
       const currency = this.configStore.config()?.business?.currency ?? 'EUR';
       const showPhoto = this.configStore.isFeatureEnabled('partPhoto');
 

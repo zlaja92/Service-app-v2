@@ -38,8 +38,7 @@ export class FirestoreService {
       queryConstraints?: QueryNonFilterConstraint[];
     },
   ): Promise<CollectionQueryResult<T>> {
-    //const reference = this.tenantService.getCollectionPath(collection);
-    const reference = 'devices'
+    const reference = this.tenantService.getCollectionPath(collection);
 
     this.logger.debug('Firestore queryTenantCollection', { reference });
 
@@ -74,6 +73,14 @@ export class FirestoreService {
   ): Promise<void> {
     const reference = `${this.tenantService.getCollectionPath(collection)}/${docId}`;
     await this.setDocument(reference, data);
+  }
+
+  async queryTenantSubcollection<T = Record<string, unknown>>(
+    parentDocReference: string,
+    subcollection: string,
+  ): Promise<CollectionQueryResult<T>> {
+    const tenantPath = this.tenantService.getTenantDocPath();
+    return this.querySubcollection<T>(`${tenantPath}/${parentDocReference}`, subcollection);
   }
 
   async querySubcollection<T = Record<string, unknown>>(

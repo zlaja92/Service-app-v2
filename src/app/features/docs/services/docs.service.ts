@@ -2,12 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { Browser } from '@capacitor/browser';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { Clearable } from '../../../core/session/clearable';
 import { DocEntry } from '../models/doc.model';
 
 const ROOT_FOLDER = 'Documents';
 
 @Injectable({ providedIn: 'root' })
-export class DocsService {
+export class DocsService implements Clearable {
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
 
@@ -76,6 +77,10 @@ export class DocsService {
       parts.pop();
       this.loadFolder(parts.join('/'));
     }
+  }
+
+  clear(): void {
+    this.reset();
   }
 
   reset(): void {

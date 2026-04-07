@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { Clearable } from '../../core/session/clearable';
 
 export interface CartItem {
   partCode: string;
@@ -9,7 +10,7 @@ export interface CartItem {
 }
 
 @Injectable({ providedIn: 'root' })
-export class CartService {
+export class CartService implements Clearable {
   private items = signal<CartItem[]>([]);
 
   readonly cartItems = this.items.asReadonly();

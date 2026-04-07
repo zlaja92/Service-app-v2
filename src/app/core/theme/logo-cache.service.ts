@@ -2,8 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { LoggerService } from '../logger/logger.service';
-
-const LOGO_CACHE_KEY = 'logo_cache';
+import { TenantService } from '../tenant/tenant.service';
 
 interface LogoCache {
   configVersion: number;
@@ -14,6 +13,12 @@ interface LogoCache {
 @Injectable({ providedIn: 'root' })
 export class LogoCacheService {
   private logger = inject(LoggerService);
+  private tenantService = inject(TenantService);
+
+  private getLogoCacheKey(): string {
+    const tenantId = this.tenantService.getCurrentTenantId() ?? 'default';
+    return `logo_cache_${tenantId}`;
+  }
 
   /**
    * Returns logo as a base64 data URL, using cache when possible.
@@ -91,7 +96,7 @@ export class LogoCacheService {
 
   private async getCachedLogo(): Promise<LogoCache | null> {
     try {
-      const { value } = await Preferences.get({ key: LOGO_CACHE_KEY });
+      const { value } = await Preferences.get({ key: this.getLogoCacheKey() });
       if (!value) return null;
       return JSON.parse(value) as LogoCache;
     } catch {
@@ -102,7 +107,7 @@ export class LogoCacheService {
   private async saveCachedLogo(cache: LogoCache): Promise<void> {
     try {
       await Preferences.set({
-        key: LOGO_CACHE_KEY,
+        key: this.getLogoCacheKey(),
         value: JSON.stringify(cache),
       });
     } catch (error) {

@@ -1,21 +1,27 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
 import { Translation } from '@jsverse/transloco';
 import {
   LANGUAGE_PREF_KEY,
-  TRANSLATIONS_VERSION_KEY,
-  TRANSLATIONS_LANGUAGES_KEY,
-  TRANSLATIONS_LABELS_KEY,
+  translationsVersionKey,
+  translationsLanguagesKey,
+  translationsLabelsKey,
   translationCacheKey,
 } from './i18n.model';
 import { BUNDLED_TRANSLATIONS } from './translations';
+import { TenantService } from '../tenant/tenant.service';
 
 @Injectable({ providedIn: 'root' })
 export class TranslationCacheService {
+  private tenantService = inject(TenantService);
+
+  private getTenantId(): string {
+    return this.tenantService.getCurrentTenantId() ?? 'default';
+  }
 
   async getCachedTranslation(lang: string): Promise<Translation | null> {
     try {
-      const { value } = await Preferences.get({ key: translationCacheKey(lang) });
+      const { value } = await Preferences.get({ key: translationCacheKey(lang, this.getTenantId()) });
       if (!value) return null;
       return JSON.parse(value) as Translation;
     } catch {
@@ -25,7 +31,7 @@ export class TranslationCacheService {
 
   async cacheTranslation(lang: string, data: Translation): Promise<void> {
     await Preferences.set({
-      key: translationCacheKey(lang),
+      key: translationCacheKey(lang, this.getTenantId()),
       value: JSON.stringify(data),
     });
   }
@@ -36,7 +42,7 @@ export class TranslationCacheService {
 
   async getCachedVersions(): Promise<Record<string, number>> {
     try {
-      const { value } = await Preferences.get({ key: TRANSLATIONS_VERSION_KEY });
+      const { value } = await Preferences.get({ key: translationsVersionKey(this.getTenantId()) });
       if (!value) return {};
       return JSON.parse(value) as Record<string, number>;
     } catch {
@@ -48,14 +54,14 @@ export class TranslationCacheService {
     const versions = await this.getCachedVersions();
     versions[lang] = version;
     await Preferences.set({
-      key: TRANSLATIONS_VERSION_KEY,
+      key: translationsVersionKey(this.getTenantId()),
       value: JSON.stringify(versions),
     });
   }
 
   async getCachedLanguages(): Promise<string[] | null> {
     try {
-      const { value } = await Preferences.get({ key: TRANSLATIONS_LANGUAGES_KEY });
+      const { value } = await Preferences.get({ key: translationsLanguagesKey(this.getTenantId()) });
       if (!value) return null;
       return JSON.parse(value) as string[];
     } catch {
@@ -65,7 +71,7 @@ export class TranslationCacheService {
 
   async cacheLanguages(languages: string[]): Promise<void> {
     await Preferences.set({
-      key: TRANSLATIONS_LANGUAGES_KEY,
+      key: translationsLanguagesKey(this.getTenantId()),
       value: JSON.stringify(languages),
     });
   }
@@ -85,7 +91,7 @@ export class TranslationCacheService {
 
   async getCachedLabels(): Promise<Record<string, string>> {
     try {
-      const { value } = await Preferences.get({ key: TRANSLATIONS_LABELS_KEY });
+      const { value } = await Preferences.get({ key: translationsLabelsKey(this.getTenantId()) });
       if (!value) return {};
       return JSON.parse(value) as Record<string, string>;
     } catch {
@@ -95,7 +101,7 @@ export class TranslationCacheService {
 
   async cacheLabels(labels: Record<string, string>): Promise<void> {
     await Preferences.set({
-      key: TRANSLATIONS_LABELS_KEY,
+      key: translationsLabelsKey(this.getTenantId()),
       value: JSON.stringify(labels),
     });
   }

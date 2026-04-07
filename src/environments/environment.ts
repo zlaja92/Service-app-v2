@@ -8,5 +8,5 @@ export const environment = {
     messagingSenderId: '399858868527',
     appId: '1:399858868527:web:7048caeddb546e853681da',
   },
-  logLevel: 'DEBUG',
+  logLevel: 'INFO',
 };

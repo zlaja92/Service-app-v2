@@ -2,14 +2,19 @@ import { Injectable, inject } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
 import { AppConfig, getDefaultConfig } from './config.model';
 import { FirestoreService } from '../firebase/firestore.service';
+import { TenantService } from '../tenant/tenant.service';
 import { LoggerService } from '../logger/logger.service';
-
-const APP_CONFIG_KEY = 'app_config';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
   private logger = inject(LoggerService);
   private firestoreService = inject(FirestoreService);
+  private tenantService = inject(TenantService);
+
+  private getConfigKey(): string {
+    const tenantId = this.tenantService.getCurrentTenantId();
+    return `app_config_${tenantId ?? 'default'}`;
+  }
 
   /**
    * Loads config for the current tenant.
@@ -21,8 +26,8 @@ export class ConfigService {
    * 5. If offline/error → use local cache, or defaults as last resort
    *
    * Firestore structure:
-   *   tenants/{tenantId}/config/version  → { version: number }
-   *   tenants/{tenantId}/config/current  → AppConfig
+   *   tenants/{tenantId}/settings/version  → { version: number }
+   *   tenants/{tenantId}/settings/config   → AppConfig
    */
   async loadConfig(): Promise<AppConfig> {
     const localConfig = await this.getLocalConfig();
@@ -34,7 +39,6 @@ export class ConfigService {
         this.logger.debug('Config version matches, using local cache', {
           version: localConfig.version,
         });
-        // Ovo je uradjeno da bi se uvek vukao config fajl iz baze tokom razvoja. Kasnije kada se zavrsi otkomentarisati ovo
         return localConfig;
       }
 
@@ -43,7 +47,7 @@ export class ConfigService {
         remoteVersion,
       });
 
-      const remoteConfig = await this.fetchFullConfig();
+      const remoteConfig = await this.fetchFullConfig(remoteVersion);
       await this.saveLocalConfig(remoteConfig);
       return remoteConfig;
     } catch (error) {
@@ -63,7 +67,7 @@ export class ConfigService {
 
   private async getLocalConfig(): Promise<AppConfig | null> {
     try {
-      const { value } = await Preferences.get({ key: APP_CONFIG_KEY });
+      const { value } = await Preferences.get({ key: this.getConfigKey() });
       if (!value) return null;
       return JSON.parse(value) as AppConfig;
     } catch {
@@ -73,10 +77,10 @@ export class ConfigService {
 
   /**
    * Fetches ONLY the version document from Firestore (lightweight read).
-   * Path: tenants/{tenantId}/config/version → { version: number }
+   * Path: tenants/{tenantId}/settings/version → { version: number }
    */
   private async getRemoteConfigVersion(): Promise<number> {
-    const doc = await this.firestoreService.getTenantDocument<{ version: number }>('mobileConfig', 'version');
+    const doc = await this.firestoreService.getTenantDocument<{ version: number }>('settings', 'version');
 
     if (!doc || doc.version == null) {
       throw new Error('Config version document not found or missing version field');
@@ -86,27 +90,24 @@ export class ConfigService {
   }
 
   /**
-   * Fetches the full config document from Firestore.
-   * Path: tenants/{tenantId}/config/current → AppConfig
+   * Fetches the full config document from Firestore and attaches the version
+   * read from the version document (config document itself has no version field).
+   * Path: tenants/{tenantId}/settings/config → Omit<AppConfig, 'version'>
    */
-  private async fetchFullConfig(): Promise<AppConfig> {
-    const config = await this.firestoreService.getTenantDocument<AppConfig>('mobileConfig', 'current');
+  private async fetchFullConfig(version: number): Promise<AppConfig> {
+    const config = await this.firestoreService.getTenantDocument<Omit<AppConfig, 'version'>>('settings', 'config');
 
     if (!config) {
       throw new Error('Config document not found');
     }
 
-    if (config.version == null) {
-      throw new Error('Config document is missing version field');
-    }
-
-    return config;
+    return { ...config, version };
   }
 
   private async saveLocalConfig(config: AppConfig): Promise<void> {
     try {
       await Preferences.set({
-        key: APP_CONFIG_KEY,
+        key: this.getConfigKey(),
         value: JSON.stringify(config),
       });
       this.logger.debug('Config saved to local cache', { version: config.version });

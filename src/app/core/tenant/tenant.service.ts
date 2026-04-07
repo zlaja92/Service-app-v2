@@ -10,18 +10,21 @@ export class TenantService {
 
   async resolveFromAuthToken(): Promise<void> {
     try {
-      const result = await FirebaseAuthentication.getIdToken();
-      if (!result.token) {
+      const result = await FirebaseAuthentication.getIdTokenResult();
+      if (!result.claims) {
         this.logger.warn('No auth token available for tenant resolution');
         return;
       }
 
-      // Decode JWT to read custom claims
-      const payload = JSON.parse(atob(result.token.split('.')[1]));
-      //const tenantId = payload.tenantId ?? null;
-      const tenantId = 'testId'
-      const role = payload.role ?? 'servicer';
-      const servicerId = payload.servicerId ?? null;
+      const claims = result.claims;
+      const tenantId = (claims['tenantId'] as string) ?? null;
+      const role = (claims['role'] as string) ?? 'servicer';
+      const servicerId = (claims['servicerId'] as string) ?? null;
+
+      if (!tenantId) {
+        this.logger.warn('No tenantId found in auth claims');
+        return;
+      }
 
       this.tenantStore.setTenant(tenantId, role, servicerId);
       this.logger.info('Tenant resolved from auth token', { tenantId, role, servicerId });
@@ -35,7 +38,7 @@ export class TenantService {
     if (!tenantId) {
       throw new Error('Tenant not resolved. Call resolveFromAuthToken() first.');
     }
-    return `envs/testEnv/tenants/${tenantId}`;
+    return `tenants/${tenantId}`;
   }
 
   getCollectionPath(collection: string): string {

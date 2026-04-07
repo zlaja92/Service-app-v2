@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { Clearable } from '../../../core/session/clearable';
 
 export interface Part {
   id: string;
@@ -16,7 +17,7 @@ interface PartDoc {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DevicePartsService {
+export class DevicePartsService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
@@ -35,7 +36,7 @@ export class DevicePartsService {
         this.groupPhoto = await this.storageService.resolveFileUrl('Photos', groupPhoto, ['PNG', 'png', 'jpg', 'jpeg']);
       }
 
-      const result = await this.firestoreService.querySubcollection(
+      const result = await this.firestoreService.queryTenantSubcollection(
         `devices/${deviceCode}/Sklopovi/${groupId}`,
         'Rezervni delovi',
       );
@@ -57,6 +58,10 @@ export class DevicePartsService {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  clear(): void {
+    this.reset();
   }
 
   reset(): void {

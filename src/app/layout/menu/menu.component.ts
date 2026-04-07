@@ -58,7 +58,5 @@ export class MenuComponent {
   async logout(): Promise<void> {
     await this.menuCtrl.close();
     await this.authService.logout();
-    this.authStore.clearUser();
-    this.router.navigate(['/login']);
   }
 }

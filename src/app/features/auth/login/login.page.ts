@@ -10,9 +10,8 @@ import { alertCircleOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AuthStore } from '../../../core/auth/auth.store';
-import { TenantService } from '../../../core/tenant/tenant.service';
 import { ConfigStore } from '../../../core/config/config.store';
-import { ThemeService } from '../../../core/theme/theme.service';
+import { SessionService } from '../../../core/session/session.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 @Component({
@@ -30,8 +29,7 @@ export class LoginPage implements OnInit, OnDestroy {
   protected configStore = inject(ConfigStore);
   private translocoService = inject(TranslocoService);
   private authService = inject(AuthService);
-  private tenantService = inject(TenantService);
-  private themeService = inject(ThemeService);
+  private sessionService = inject(SessionService);
   private logger = inject(LoggerService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -66,19 +64,16 @@ export class LoginPage implements OnInit, OnDestroy {
       const user = await this.authService.login(email, password);
       this.authStore.setUser(user);
 
-      // Resolve tenant from custom claims
-      await this.tenantService.resolveFromAuthToken();
-
-      // Apply theme from config
-      this.themeService.applyTheme(this.configStore.theme());
+      await this.sessionService.bootstrap();
 
       this.logger.info('Login flow completed, navigating to home');
-      this.authStore.setLoading(false);
       this.router.navigate(['/home'], { replaceUrl: true });
     } catch (error: unknown) {
       const message = this.getErrorMessage(error);
       this.logger.error('Login failed', { error: message });
       this.authStore.setError(message);
+    } finally {
+      this.authStore.setLoading(false);
     }
   }
 

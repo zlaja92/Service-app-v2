@@ -9,6 +9,13 @@ import { AppComponent } from './app/app.component';
 import { appInitializer } from './app/core/initializer/app-initializer';
 import { FirestoreTranslocoLoader } from './app/core/i18n/firestore-transloco-loader';
 import { DEFAULT_LANGUAGE, BUNDLED_LANGUAGES } from './app/core/i18n/i18n.model';
+import { CLEARABLE_SERVICES } from './app/core/session/clearable';
+import { DeviceSearchService } from './app/features/device-catalog/services/device-search.service';
+import { DeviceGroupsService } from './app/features/device-catalog/services/device-groups.service';
+import { DevicePartsService } from './app/features/device-catalog/services/device-parts.service';
+import { CartService } from './app/features/cart/cart.service';
+import { DocsService } from './app/features/docs/services/docs.service';
+import { PartDetailService } from './app/features/device-catalog/services/part-detail.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -25,5 +32,11 @@ bootstrapApplication(AppComponent, {
       loader: FirestoreTranslocoLoader,
     }),
     provideAppInitializer(appInitializer),
+    { provide: CLEARABLE_SERVICES, useExisting: DeviceSearchService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: DeviceGroupsService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: DevicePartsService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: CartService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: DocsService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: PartDetailService, multi: true },
   ],
 });
