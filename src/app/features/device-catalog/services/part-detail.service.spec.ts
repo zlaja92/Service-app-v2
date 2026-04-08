@@ -4,7 +4,7 @@ import { PartDetailService, PartDetail } from './part-detail.service';
 describe('PartDetailService', () => {
   let service: PartDetailService;
   let mockFirestoreService: {
-    getDocument: jasmine.Spy;
+    getTenantDocument: jasmine.Spy;
   };
   let mockStorageService: {
     resolveFileUrl: jasmine.Spy;
@@ -20,7 +20,7 @@ describe('PartDetailService', () => {
 
   beforeEach(() => {
     mockFirestoreService = {
-      getDocument: jasmine.createSpy('getDocument').and.resolveTo({ Price: 100 }),
+      getTenantDocument: jasmine.createSpy('getTenantDocument').and.resolveTo({ Price: 100 }),
     };
     mockStorageService = {
       resolveFileUrl: jasmine.createSpy('resolveFileUrl').and.resolveTo('https://cdn.example.com/photo.png'),
@@ -59,12 +59,12 @@ describe('PartDetailService', () => {
   describe('loadPartDetail() basic', () => {
     it('should query priceList collection for part code', async () => {
       await service.loadPartDetail('PART-001', 'Part Name');
-      expect(mockFirestoreService.getDocument).toHaveBeenCalledWith('priceList/PART-001');
+      expect(mockFirestoreService.getTenantDocument).toHaveBeenCalledWith('priceList', 'PART-001');
     });
 
     it('should set isLoading true during execution', async () => {
       let loadingDuringCall = false;
-      mockFirestoreService.getDocument.and.callFake(() => {
+      mockFirestoreService.getTenantDocument.and.callFake(() => {
         loadingDuringCall = service.isLoading;
         return Promise.resolve({ Price: 50 });
       });
@@ -88,31 +88,31 @@ describe('PartDetailService', () => {
   // ── Price handling ──
   describe('price handling', () => {
     it('should return price from document', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 150 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 150 });
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBe(150);
     });
 
     it('should return null price when document has no Price field', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({});
+      mockFirestoreService.getTenantDocument.and.resolveTo({});
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBeNull();
     });
 
     it('should return null price when document is null', async () => {
-      mockFirestoreService.getDocument.and.resolveTo(null);
+      mockFirestoreService.getTenantDocument.and.resolveTo(null);
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBeNull();
     });
 
     it('should return price of 0 correctly', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 0 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 0 });
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBe(0);
     });
 
     it('should return decimal price correctly', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 99.99 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 99.99 });
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBe(99.99);
     });
@@ -233,7 +233,7 @@ describe('PartDetailService', () => {
   // ── Error handling ──
   describe('error handling', () => {
     it('should return fallback detail on Firestore error', async () => {
-      mockFirestoreService.getDocument.and.rejectWith(new Error('Firestore error'));
+      mockFirestoreService.getTenantDocument.and.rejectWith(new Error('Firestore error'));
       const detail = await service.loadPartDetail('P1', 'My Part');
       expect(detail.partCode).toBe('P1');
       expect(detail.name).toBe('My Part');
@@ -244,7 +244,7 @@ describe('PartDetailService', () => {
     });
 
     it('should log error on failure', async () => {
-      mockFirestoreService.getDocument.and.rejectWith(new Error('fail'));
+      mockFirestoreService.getTenantDocument.and.rejectWith(new Error('fail'));
       await service.loadPartDetail('P1', 'Part');
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'Failed to load part detail',
@@ -253,14 +253,14 @@ describe('PartDetailService', () => {
     });
 
     it('should set isLoading false on error', async () => {
-      mockFirestoreService.getDocument.and.rejectWith(new Error('fail'));
+      mockFirestoreService.getTenantDocument.and.rejectWith(new Error('fail'));
       await service.loadPartDetail('P1', 'Part');
       expect(service.isLoading).toBeFalse();
     });
 
     it('should return fallback with EUR currency on error regardless of config', async () => {
       mockConfigStore.config.and.returnValue({ business: { currency: 'RSD' } });
-      mockFirestoreService.getDocument.and.rejectWith(new Error('fail'));
+      mockFirestoreService.getTenantDocument.and.rejectWith(new Error('fail'));
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.currency).toBe('EUR');
     });
@@ -281,7 +281,7 @@ describe('PartDetailService', () => {
   // ── Logging ──
   describe('logging', () => {
     it('should log debug on success', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 100 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 100 });
       await service.loadPartDetail('P1', 'Part');
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Part detail loaded', {
         partCode: 'P1',
@@ -291,7 +291,7 @@ describe('PartDetailService', () => {
     });
 
     it('should log null price on success when no price', async () => {
-      mockFirestoreService.getDocument.and.resolveTo(null);
+      mockFirestoreService.getTenantDocument.and.resolveTo(null);
       await service.loadPartDetail('P1', 'Part');
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Part detail loaded', jasmine.objectContaining({
         price: null,
@@ -299,7 +299,7 @@ describe('PartDetailService', () => {
     });
 
     it('should not log debug on error', async () => {
-      mockFirestoreService.getDocument.and.rejectWith(new Error('fail'));
+      mockFirestoreService.getTenantDocument.and.rejectWith(new Error('fail'));
       await service.loadPartDetail('P1', 'Part');
       expect(mockLoggerService.debug).not.toHaveBeenCalled();
     });
@@ -309,7 +309,7 @@ describe('PartDetailService', () => {
   describe('complete PartDetail structure', () => {
     it('should return all fields for part with price and no photo', async () => {
       mockConfigStore.isFeatureEnabled.and.returnValue(false);
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 250 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 250 });
       mockConfigStore.config.and.returnValue({ business: { currency: 'RSD' } });
 
       const detail = await service.loadPartDetail('PART-X', 'Test Part');
@@ -325,7 +325,7 @@ describe('PartDetailService', () => {
 
     it('should return all fields for part with price and photo', async () => {
       mockConfigStore.isFeatureEnabled.and.callFake((f: string) => f === 'partPhoto');
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 50 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 50 });
       mockConfigStore.config.and.returnValue({
         business: { currency: 'EUR', partPhotoFolder: 'Photos' },
       });
@@ -347,7 +347,7 @@ describe('PartDetailService', () => {
   describe('edge cases', () => {
     it('should handle empty part code', async () => {
       await service.loadPartDetail('', 'Part');
-      expect(mockFirestoreService.getDocument).toHaveBeenCalledWith('priceList/');
+      expect(mockFirestoreService.getTenantDocument).toHaveBeenCalledWith('priceList', '');
     });
 
     it('should handle empty part name', async () => {
@@ -361,13 +361,13 @@ describe('PartDetailService', () => {
     });
 
     it('should handle very large price', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: 999999.99 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 999999.99 });
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBe(999999.99);
     });
 
     it('should handle negative price', async () => {
-      mockFirestoreService.getDocument.and.resolveTo({ Price: -10 });
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: -10 });
       const detail = await service.loadPartDetail('P1', 'Part');
       expect(detail.price).toBe(-10);
     });

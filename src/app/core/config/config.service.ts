@@ -1,15 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { Preferences } from '@capacitor/preferences';
 import { AppConfig, getDefaultConfig } from './config.model';
 import { FirestoreService } from '../firebase/firestore.service';
 import { TenantService } from '../tenant/tenant.service';
 import { LoggerService } from '../logger/logger.service';
+import { PreferencesService } from '../storage/preferences.service';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
   private logger = inject(LoggerService);
   private firestoreService = inject(FirestoreService);
   private tenantService = inject(TenantService);
+  private preferences = inject(PreferencesService);
 
   private getConfigKey(): string {
     const tenantId = this.tenantService.getCurrentTenantId();
@@ -67,7 +68,7 @@ export class ConfigService {
 
   private async getLocalConfig(): Promise<AppConfig | null> {
     try {
-      const { value } = await Preferences.get({ key: this.getConfigKey() });
+      const value = await this.preferences.get(this.getConfigKey());
       if (!value) return null;
       return JSON.parse(value) as AppConfig;
     } catch {
@@ -106,10 +107,7 @@ export class ConfigService {
 
   private async saveLocalConfig(config: AppConfig): Promise<void> {
     try {
-      await Preferences.set({
-        key: this.getConfigKey(),
-        value: JSON.stringify(config),
-      });
+      await this.preferences.set(this.getConfigKey(), JSON.stringify(config));
       this.logger.debug('Config saved to local cache', { version: config.version });
     } catch (error) {
       this.logger.warn('Failed to save config to local cache', { error: String(error) });

@@ -5,7 +5,7 @@ import { Group } from '../../../shared/models/group.model';
 describe('DeviceGroupsService', () => {
   let service: DeviceGroupsService;
   let mockFirestoreService: {
-    querySubcollection: jasmine.Spy;
+    queryTenantSubcollection: jasmine.Spy;
   };
   let mockLoggerService: {
     debug: jasmine.Spy;
@@ -25,7 +25,7 @@ describe('DeviceGroupsService', () => {
 
   beforeEach(() => {
     mockFirestoreService = {
-      querySubcollection: jasmine.createSpy('querySubcollection').and.resolveTo(emptyResult()),
+      queryTenantSubcollection: jasmine.createSpy('queryTenantSubcollection').and.resolveTo(emptyResult()),
     };
     mockLoggerService = {
       debug: jasmine.createSpy('debug'),
@@ -61,12 +61,12 @@ describe('DeviceGroupsService', () => {
   describe('load()', () => {
     it('should query Sklopovi subcollection for the device', async () => {
       await service.load('DEV1');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledWith('devices/DEV1', 'Sklopovi');
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith('devices/DEV1', 'Sklopovi');
     });
 
     it('should set isLoading true during execution', async () => {
       let loadingDuringCall = false;
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         loadingDuringCall = service.isLoading;
         return Promise.resolve(emptyResult());
       });
@@ -82,7 +82,7 @@ describe('DeviceGroupsService', () => {
     it('should clear groups before loading', async () => {
       service.groups = [{ id: 'old', name: 'Old', groupPhoto: '' }];
       let groupsDuringCall: Group[] = [];
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         groupsDuringCall = [...service.groups];
         return Promise.resolve(createGroupResult([{ id: 'new', name: 'New', photo: '' }]));
       });
@@ -96,7 +96,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should populate groups from result', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([
           { id: 'G1', name: 'Group 1', photo: 'photo1.jpg' },
           { id: 'G2', name: 'Group 2', photo: 'photo2.jpg' },
@@ -110,7 +110,7 @@ describe('DeviceGroupsService', () => {
   // ── Group mapping ──
   describe('group mapping', () => {
     it('should map doc id to group id', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'SKL-001', name: 'Test', photo: '' }]),
       );
       await service.load('DEV1');
@@ -118,7 +118,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should map Name field to name', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Kompresor', photo: '' }]),
       );
       await service.load('DEV1');
@@ -126,7 +126,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should map Group photo field to groupPhoto', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Test', photo: 'photo123.png' }]),
       );
       await service.load('DEV1');
@@ -134,7 +134,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should use empty string when Name is missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'G1', path: 'devices/DEV1/Sklopovi/G1', data: { 'Group photo': 'p.jpg' } }],
         lastDocumentPath: null,
       });
@@ -143,7 +143,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should use empty string when Group photo is missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'G1', path: 'devices/DEV1/Sklopovi/G1', data: { 'Name': 'Test' } }],
         lastDocumentPath: null,
       });
@@ -152,7 +152,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should map multiple groups preserving order', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([
           { id: 'A', name: 'Alpha', photo: '' },
           { id: 'B', name: 'Beta', photo: '' },
@@ -165,7 +165,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should handle group with all fields missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'G1', path: 'devices/DEV1/Sklopovi/G1', data: {} }],
         lastDocumentPath: null,
       });
@@ -179,49 +179,49 @@ describe('DeviceGroupsService', () => {
   // ── Caching (same device code) ──
   describe('caching', () => {
     it('should skip loading when same device code and groups exist', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Group', photo: '' }]),
       );
       await service.load('DEV1');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledTimes(1);
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(1);
 
       await service.load('DEV1');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledTimes(1);
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(1);
     });
 
     it('should reload when different device code', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Group', photo: '' }]),
       );
       await service.load('DEV1');
       await service.load('DEV2');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledTimes(2);
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(2);
     });
 
     it('should reload same device code if groups are empty', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       await service.load('DEV1');
       expect(service.groups.length).toBe(0);
 
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Now Loaded', photo: '' }]),
       );
       await service.load('DEV1');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledTimes(2);
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(2);
     });
 
     it('should reload after reset even for same device code', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Group', photo: '' }]),
       );
       await service.load('DEV1');
       service.reset();
       await service.load('DEV1');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledTimes(2);
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(2);
     });
 
     it('should not update isLoading when cache hit', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Group', photo: '' }]),
       );
       await service.load('DEV1');
@@ -235,7 +235,7 @@ describe('DeviceGroupsService', () => {
   // ── Error handling ──
   describe('error handling', () => {
     it('should log error on API failure', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('Firestore error'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('Firestore error'));
       await service.load('DEV1');
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'Failed to load device groups',
@@ -244,19 +244,19 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should set isLoading to false on error', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
       await service.load('DEV1');
       expect(service.isLoading).toBeFalse();
     });
 
     it('should leave groups empty on error', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
       await service.load('DEV1');
       expect(service.groups).toEqual([]);
     });
 
     it('should still store device code on error', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
       await service.load('DEV1');
       expect((service as any).loadedDeviceCode).toBe('DEV1');
     });
@@ -265,7 +265,7 @@ describe('DeviceGroupsService', () => {
   // ── Logging ──
   describe('logging', () => {
     it('should log debug on success', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'G', photo: '' }]),
       );
       await service.load('DEV1');
@@ -276,7 +276,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should log correct count for multiple groups', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([
           { id: 'G1', name: 'G1', photo: '' },
           { id: 'G2', name: 'G2', photo: '' },
@@ -291,7 +291,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should not log on cache hit', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'G', photo: '' }]),
       );
       await service.load('DEV1');
@@ -323,7 +323,7 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should allow reloading after reset', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'G', photo: '' }]),
       );
       await service.load('DEV1');
@@ -339,23 +339,23 @@ describe('DeviceGroupsService', () => {
   describe('edge cases', () => {
     it('should handle empty device code', async () => {
       await service.load('');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledWith('devices/', 'Sklopovi');
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith('devices/', 'Sklopovi');
     });
 
     it('should handle device code with special characters', async () => {
       await service.load('DEV-001/A');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledWith('devices/DEV-001/A', 'Sklopovi');
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith('devices/DEV-001/A', 'Sklopovi');
     });
 
     it('should handle large number of groups', async () => {
       const groups = Array.from({ length: 50 }, (_, i) => ({ id: `G${i}`, name: `Group ${i}`, photo: '' }));
-      mockFirestoreService.querySubcollection.and.resolveTo(createGroupResult(groups));
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(createGroupResult(groups));
       await service.load('DEV1');
       expect(service.groups.length).toBe(50);
     });
 
     it('should handle group with unicode name', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'Компресор', photo: '' }]),
       );
       await service.load('DEV1');
@@ -363,12 +363,12 @@ describe('DeviceGroupsService', () => {
     });
 
     it('should handle consecutive loads for different devices', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G1', name: 'First', photo: '' }]),
       );
       await service.load('DEV1');
 
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createGroupResult([{ id: 'G2', name: 'Second', photo: '' }]),
       );
       await service.load('DEV2');

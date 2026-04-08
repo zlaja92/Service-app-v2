@@ -4,7 +4,7 @@ import { DevicePartsService, Part } from './device-parts.service';
 describe('DevicePartsService', () => {
   let service: DevicePartsService;
   let mockFirestoreService: {
-    querySubcollection: jasmine.Spy;
+    queryTenantSubcollection: jasmine.Spy;
   };
   let mockStorageService: {
     resolveFileUrl: jasmine.Spy;
@@ -27,7 +27,7 @@ describe('DevicePartsService', () => {
 
   beforeEach(() => {
     mockFirestoreService = {
-      querySubcollection: jasmine.createSpy('querySubcollection').and.resolveTo(emptyResult()),
+      queryTenantSubcollection: jasmine.createSpy('queryTenantSubcollection').and.resolveTo(emptyResult()),
     };
     mockStorageService = {
       resolveFileUrl: jasmine.createSpy('resolveFileUrl').and.resolveTo('https://storage.example.com/photo.png'),
@@ -67,7 +67,7 @@ describe('DevicePartsService', () => {
   describe('load()', () => {
     it('should query Rezervni delovi subcollection', async () => {
       await service.load('DEV1', 'G1', '');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledWith(
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith(
         'devices/DEV1/Sklopovi/G1',
         'Rezervni delovi',
       );
@@ -75,7 +75,7 @@ describe('DevicePartsService', () => {
 
     it('should set isLoading true during execution', async () => {
       let loadingDuringCall = false;
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         loadingDuringCall = service.isLoading;
         return Promise.resolve(emptyResult());
       });
@@ -91,7 +91,7 @@ describe('DevicePartsService', () => {
     it('should clear parts before loading', async () => {
       service.parts = [{ id: 'old', code: 'OLD', name: 'Old' }];
       let partsDuringCall: Part[] = [];
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         partsDuringCall = [...service.parts];
         return Promise.resolve(emptyResult());
       });
@@ -102,7 +102,7 @@ describe('DevicePartsService', () => {
     it('should clear groupPhoto before loading', async () => {
       service.groupPhoto = 'old-photo.jpg';
       let photoDuringCall!: string;
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         photoDuringCall = service.groupPhoto;
         return Promise.resolve(emptyResult());
       });
@@ -113,7 +113,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should populate parts from result', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([
           { id: 'P1', code: 'C1', name: 'Part 1' },
           { id: 'P2', code: 'C2', name: 'Part 2' },
@@ -127,7 +127,7 @@ describe('DevicePartsService', () => {
   // ── Part mapping ──
   describe('part mapping', () => {
     it('should map doc id to part id', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'RD-001', code: 'C1', name: 'Test' }]),
       );
       await service.load('DEV1', 'G1', '');
@@ -135,7 +135,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should map Code field to code', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P1', code: 'ABC-123', name: 'Test' }]),
       );
       await service.load('DEV1', 'G1', '');
@@ -143,7 +143,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should map Part name field to name', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P1', code: 'C1', name: 'Kompresor klip' }]),
       );
       await service.load('DEV1', 'G1', '');
@@ -151,7 +151,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should use doc id as fallback when Code is missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'P1', path: 'path', data: { 'Part name': 'Test' } }],
         lastDocumentPath: null,
       });
@@ -160,7 +160,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should use empty string when Part name is missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'P1', path: 'path', data: { Code: 'C1' } }],
         lastDocumentPath: null,
       });
@@ -169,7 +169,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should map multiple parts preserving order', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([
           { id: 'A', code: 'CA', name: 'Alpha' },
           { id: 'B', code: 'CB', name: 'Beta' },
@@ -181,7 +181,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should handle part with all data fields missing', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo({
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo({
         documents: [{ id: 'P1', path: 'path', data: {} }],
         lastDocumentPath: null,
       });
@@ -195,7 +195,7 @@ describe('DevicePartsService', () => {
   // ── Group photo ──
   describe('group photo', () => {
     it('should resolve group photo URL when groupPhoto is provided', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/photo.png');
       await service.load('DEV1', 'G1', 'my-photo');
       expect(mockStorageService.resolveFileUrl).toHaveBeenCalledWith('Photos', 'my-photo', ['PNG', 'png', 'jpg', 'jpeg']);
@@ -209,7 +209,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should pass correct extensions for photo resolution', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       await service.load('DEV1', 'G1', 'photo123');
       expect(mockStorageService.resolveFileUrl).toHaveBeenCalledWith(
         'Photos', 'photo123', ['PNG', 'png', 'jpg', 'jpeg'],
@@ -217,7 +217,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should resolve photo in Photos folder', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       await service.load('DEV1', 'G1', 'img');
       expect(mockStorageService.resolveFileUrl.calls.mostRecent().args[0]).toBe('Photos');
     });
@@ -226,7 +226,7 @@ describe('DevicePartsService', () => {
   // ── Error handling ──
   describe('error handling', () => {
     it('should log error on Firestore failure', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('Firestore error'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('Firestore error'));
       await service.load('DEV1', 'G1', '');
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'Failed to load device parts',
@@ -235,20 +235,20 @@ describe('DevicePartsService', () => {
     });
 
     it('should set isLoading false on error', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
       await service.load('DEV1', 'G1', '');
       expect(service.isLoading).toBeFalse();
     });
 
     it('should leave parts empty on error', async () => {
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
       await service.load('DEV1', 'G1', '');
       expect(service.parts).toEqual([]);
     });
 
     it('should handle photo resolution error', async () => {
       mockStorageService.resolveFileUrl.and.rejectWith(new Error('Photo not found'));
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       await service.load('DEV1', 'G1', 'missing-photo');
       expect(mockLoggerService.error).toHaveBeenCalled();
       expect(service.isLoading).toBeFalse();
@@ -257,7 +257,7 @@ describe('DevicePartsService', () => {
     it('should keep resolved photo URL even when Firestore query fails after photo resolves', async () => {
       // Photo resolves first, then Firestore fails
       mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/photo.png');
-      mockFirestoreService.querySubcollection.and.rejectWith(new Error('Firestore fail'));
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('Firestore fail'));
       await service.load('DEV1', 'G1', 'photo.png');
       // The entire try block catches, so groupPhoto may or may not persist
       // depending on implementation — the key test is isLoading is false and error is logged
@@ -272,7 +272,7 @@ describe('DevicePartsService', () => {
     it('should have groupPhoto set before Firestore query is made', async () => {
       let photoWhenQueryCalled = '';
       mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/resolved.png');
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         photoWhenQueryCalled = service.groupPhoto;
         return Promise.resolve(emptyResult());
       });
@@ -284,7 +284,7 @@ describe('DevicePartsService', () => {
   // ── Logging ──
   describe('logging', () => {
     it('should log debug on success with no group photo', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P1', code: 'C1', name: 'Part' }]),
       );
       await service.load('DEV1', 'G1', '');
@@ -298,7 +298,7 @@ describe('DevicePartsService', () => {
 
     it('should log debug with group photo URL', async () => {
       mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/p.png');
-      mockFirestoreService.querySubcollection.and.resolveTo(emptyResult());
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
       await service.load('DEV1', 'G1', 'photo.png');
       expect(mockLoggerService.debug).toHaveBeenCalledWith('Device parts loaded', jasmine.objectContaining({
         groupPhotoUrl: 'https://cdn.example.com/p.png',
@@ -306,7 +306,7 @@ describe('DevicePartsService', () => {
     });
 
     it('should log correct count for multiple parts', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([
           { id: 'P1', code: 'C1', name: 'A' },
           { id: 'P2', code: 'C2', name: 'B' },
@@ -345,18 +345,18 @@ describe('DevicePartsService', () => {
   describe('edge cases', () => {
     it('should handle empty device code and group id', async () => {
       await service.load('', '', '');
-      expect(mockFirestoreService.querySubcollection).toHaveBeenCalledWith('devices//Sklopovi/', 'Rezervni delovi');
+      expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith('devices//Sklopovi/', 'Rezervni delovi');
     });
 
     it('should handle large number of parts', async () => {
       const parts = Array.from({ length: 100 }, (_, i) => ({ id: `P${i}`, code: `C${i}`, name: `Part ${i}` }));
-      mockFirestoreService.querySubcollection.and.resolveTo(createPartResult(parts));
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(createPartResult(parts));
       await service.load('DEV1', 'G1', '');
       expect(service.parts.length).toBe(100);
     });
 
     it('should handle unicode part names', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P1', code: 'C1', name: 'Клапна вентила' }]),
       );
       await service.load('DEV1', 'G1', '');
@@ -364,13 +364,13 @@ describe('DevicePartsService', () => {
     });
 
     it('should handle consecutive loads overriding previous data', async () => {
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P1', code: 'C1', name: 'First' }]),
       );
       await service.load('DEV1', 'G1', '');
       expect(service.parts[0].name).toBe('First');
 
-      mockFirestoreService.querySubcollection.and.resolveTo(
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
         createPartResult([{ id: 'P2', code: 'C2', name: 'Second' }]),
       );
       await service.load('DEV2', 'G2', '');
@@ -384,7 +384,7 @@ describe('DevicePartsService', () => {
         callOrder.push('photo');
         return Promise.resolve('url');
       });
-      mockFirestoreService.querySubcollection.and.callFake(() => {
+      mockFirestoreService.queryTenantSubcollection.and.callFake(() => {
         callOrder.push('parts');
         return Promise.resolve(emptyResult());
       });

@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Preferences } from '@capacitor/preferences';
-import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 import { LoggerService } from '../logger/logger.service';
 import { TenantService } from '../tenant/tenant.service';
+import { PreferencesService } from '../storage/preferences.service';
+import { CapacitorHttpService } from '../http/capacitor-http.service';
 
 interface LogoCache {
   configVersion: number;
@@ -14,6 +15,8 @@ interface LogoCache {
 export class LogoCacheService {
   private logger = inject(LoggerService);
   private tenantService = inject(TenantService);
+  private preferences = inject(PreferencesService);
+  private capacitorHttp = inject(CapacitorHttpService);
 
   private getLogoCacheKey(): string {
     const tenantId = this.tenantService.getCurrentTenantId() ?? 'default';
@@ -67,7 +70,7 @@ export class LogoCacheService {
 
   private async downloadAsBase64(url: string): Promise<string> {
     if (Capacitor.isNativePlatform()) {
-      const response = await CapacitorHttp.get({
+      const response = await this.capacitorHttp.get({
         url,
         responseType: 'arraybuffer',
       });
@@ -96,7 +99,7 @@ export class LogoCacheService {
 
   private async getCachedLogo(): Promise<LogoCache | null> {
     try {
-      const { value } = await Preferences.get({ key: this.getLogoCacheKey() });
+      const value = await this.preferences.get(this.getLogoCacheKey());
       if (!value) return null;
       return JSON.parse(value) as LogoCache;
     } catch {
@@ -106,10 +109,7 @@ export class LogoCacheService {
 
   private async saveCachedLogo(cache: LogoCache): Promise<void> {
     try {
-      await Preferences.set({
-        key: this.getLogoCacheKey(),
-        value: JSON.stringify(cache),
-      });
+      await this.preferences.set(this.getLogoCacheKey(), JSON.stringify(cache));
     } catch (error) {
       this.logger.warn('Failed to save logo to cache', { error: String(error) });
     }

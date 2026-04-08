@@ -1,13 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Preferences } from '@capacitor/preferences';
 import { ThemeConfig } from '../config/config.model';
 import { LoggerService } from '../logger/logger.service';
+import { PreferencesService } from '../storage/preferences.service';
 
 const DARK_MODE_KEY = 'dark_mode_preference';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private logger = inject(LoggerService);
+  private preferences = inject(PreferencesService);
   private currentTheme: ThemeConfig | null = null;
 
   readonly isDarkMode = signal(false);
@@ -19,7 +20,7 @@ export class ThemeService {
 
   async setDarkMode(isDark: boolean): Promise<void> {
     this.applyDarkClass(isDark);
-    await Preferences.set({ key: DARK_MODE_KEY, value: isDark ? 'true' : 'false' });
+    await this.preferences.set(DARK_MODE_KEY, isDark ? 'true' : 'false');
     this.logger.info('Dark mode saved', { isDark });
   }
 
@@ -69,7 +70,7 @@ export class ThemeService {
 
   private async getStoredDarkMode(): Promise<boolean> {
     try {
-      const { value } = await Preferences.get({ key: DARK_MODE_KEY });
+      const value = await this.preferences.get(DARK_MODE_KEY);
       return value === 'true';
     } catch {
       return false;
