@@ -17,6 +17,7 @@ import { CartService } from './app/features/cart/cart.service';
 import { DocsService } from './app/features/docs/services/docs.service';
 import { PartDetailService } from './app/features/device-catalog/services/part-detail.service';
 import { DeviceLookupService } from './app/features/device-management/services/device-lookup.service';
+import { DeviceRegistrationService } from './app/features/device-management/services/device-registration.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -40,5 +41,6 @@ bootstrapApplication(AppComponent, {
     { provide: CLEARABLE_SERVICES, useExisting: DocsService, multi: true },
     { provide: CLEARABLE_SERVICES, useExisting: PartDetailService, multi: true },
     { provide: CLEARABLE_SERVICES, useExisting: DeviceLookupService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: DeviceRegistrationService, multi: true },
   ],
 });

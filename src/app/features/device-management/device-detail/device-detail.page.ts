@@ -8,11 +8,12 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
-  buildOutline, constructOutline, hammerOutline, timeOutline,
+  buildOutline, constructOutline, hammerOutline, timeOutline, addCircleOutline,
 } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../../shared/directives/feature-flag.directive';
 import { DeviceLookupService } from '../services/device-lookup.service';
+import { DeviceRegistrationService } from '../services/device-registration.service';
 import { ConfigStore } from '../../../core/config/config.store';
 
 @Component({
@@ -29,6 +30,7 @@ import { ConfigStore } from '../../../core/config/config.store';
 })
 export class DeviceDetailPage implements ViewWillEnter {
   protected lookupService = inject(DeviceLookupService);
+  protected registrationService = inject(DeviceRegistrationService);
   protected configStore = inject(ConfigStore);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -36,7 +38,7 @@ export class DeviceDetailPage implements ViewWillEnter {
   protected sn = '';
 
   constructor() {
-    addIcons({ buildOutline, constructOutline, hammerOutline, timeOutline });
+    addIcons({ buildOutline, constructOutline, hammerOutline, timeOutline, addCircleOutline });
   }
 
   ionViewWillEnter(): void {
@@ -45,6 +47,14 @@ export class DeviceDetailPage implements ViewWillEnter {
     if (this.sn && this.lookupService.sn !== this.sn) {
       this.lookupService.lookup(this.sn);
     }
+
+    if (this.sn) {
+      this.registrationService.checkRegistration(this.sn);
+    }
+  }
+
+  onAddDevice(): void {
+    this.router.navigate(['/device-management', this.sn, 'add-device']);
   }
 
   onCommissioning(): void {

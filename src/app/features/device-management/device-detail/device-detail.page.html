@@ -38,8 +38,16 @@
     </ion-card>
 
     <div class="action-buttons">
+      @if (registrationService.isRegistered === false) {
+        <ion-button expand="block" fill="solid" color="success" (click)="onAddDevice()">
+          <ion-icon name="add-circle-outline" slot="start" />
+          {{ 'device_register_button' | transloco }}
+        </ion-button>
+      }
+
       @if (device.commissioning) {
         <ion-button expand="block" fill="outline" (click)="onCommissioning()"
+                    [disabled]="registrationService.isRegistered !== true"
                     *appFeatureFlag="'deviceManagement'">
           <ion-icon name="build-outline" slot="start" />
           {{ 'device_info_commissioning' | transloco }}
@@ -48,6 +56,7 @@
 
       @if (device.annualService) {
         <ion-button expand="block" fill="outline" (click)="onAnnualService()"
+                    [disabled]="registrationService.isRegistered !== true"
                     *appFeatureFlag="'deviceManagement'">
           <ion-icon name="construct-outline" slot="start" />
           {{ 'device_info_annual_service' | transloco }}
@@ -56,13 +65,15 @@
 
       @if (device.intervention) {
         <ion-button expand="block" fill="outline" (click)="onIntervention()"
+                    [disabled]="registrationService.isRegistered !== true"
                     *appFeatureFlag="'deviceManagement'">
           <ion-icon name="hammer-outline" slot="start" />
           {{ 'device_info_intervention' | transloco }}
         </ion-button>
       }
 
-      <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()">
+      <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()"
+                  [disabled]="registrationService.isRegistered !== true">
         <ion-icon name="time-outline" slot="start" />
         {{ 'device_info_history' | transloco }}
       </ion-button>

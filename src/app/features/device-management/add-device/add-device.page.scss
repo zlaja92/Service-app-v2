@@ -1,0 +1,49 @@
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.required {
+  color: var(--ion-color-danger);
+  margin-left: 2px;
+}
+
+.form-field {
+  margin-bottom: 8px;
+}
+
+.field-header {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 0;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-dark);
+}
+
+.field-sublabel {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 2px;
+}
+
+ion-item {
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+}
+
+ion-list {
+  padding: 0;
+}
+
+.save-button {
+  margin-top: 24px;
+  padding: 0 16px;
+}

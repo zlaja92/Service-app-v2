@@ -1,0 +1,64 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/device-management/' + sn" />
+    </ion-buttons>
+    <ion-title>{{ 'device_register_button' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (noConfig) {
+    <div class="empty-state">
+      <p>{{ 'device_register_no_config' | transloco }}</p>
+    </div>
+  } @else {
+    <form [formGroup]="form">
+      <ion-list>
+        @for (field of formFields; track field.dbKey) {
+          <div class="form-field">
+            <div class="field-header">
+              <span class="field-label">
+                {{ field.label }}
+                @if (field.required) {
+                  <span class="required">*</span>
+                }
+              </span>
+              @if (field.subLabel) {
+                <span class="field-sublabel">{{ field.subLabel }}</span>
+              }
+            </div>
+            <ion-item lines="full">
+              @switch (field.type) {
+                @case ('text') {
+                  <ion-input [formControlName]="field.dbKey" type="text" />
+                }
+                @case ('number') {
+                  <ion-input [formControlName]="field.dbKey" type="number" />
+                }
+                @case ('date') {
+                  <ion-input [formControlName]="field.dbKey" type="date" />
+                }
+              }
+            </ion-item>
+          </div>
+        }
+      </ion-list>
+    </form>
+
+    <div class="save-button">
+      <ion-button expand="block" color="success" (click)="onSave()"
+                  [disabled]="isSaving || form.invalid">
+        @if (isSaving) {
+          <ion-spinner name="crescent" slot="start" />
+        } @else {
+          <ion-icon name="save-outline" slot="start" />
+        }
+        {{ 'device_register_save' | transloco }}
+      </ion-button>
+    </div>
+  }
+</ion-content>
