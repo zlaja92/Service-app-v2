@@ -75,6 +75,16 @@ export class FirestoreService {
     await this.setDocument(reference, data);
   }
 
+  async addTenantDocument(
+    collection: string,
+    data: Record<string, unknown>,
+  ): Promise<string> {
+    const reference = this.tenantService.getCollectionPath(collection);
+    this.logger.debug('Firestore addTenantDocument', { reference });
+    const result = await FirebaseFirestore.addDocument({ reference, data });
+    return result.reference.id;
+  }
+
   async queryTenantSubcollection<T = Record<string, unknown>>(
     parentDocReference: string,
     subcollection: string,

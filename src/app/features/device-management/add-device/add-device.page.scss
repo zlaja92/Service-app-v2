@@ -39,6 +39,26 @@ ion-item {
   --inner-padding-end: 16px;
 }
 
+ion-select {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+
+  &::part(container) {
+    flex: 1;
+  }
+
+  &::part(icon) {
+    position: absolute;
+    right: 0;
+  }
+}
+
+ion-card-title {
+  font-size: 14px;
+  text-align: center;
+}
+
 ion-list {
   padding: 0;
 }

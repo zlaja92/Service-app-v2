@@ -8,5 +8,6 @@ export const environment = {
     messagingSenderId: '399858868527',
     appId: '1:399858868527:web:7048caeddb546e853681da',
   },
+  cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
   logLevel: 'WARN',
 };

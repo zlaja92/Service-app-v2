@@ -3,6 +3,7 @@ export enum DeviceType {
   GAS_BOILER = 'Gas_boiler',
   BOILER = 'Boiler',
   AIR_CONDITION = 'air_condition',
+  MONOBLOCK = 'monoblock',
 }
 
 export interface Device {
@@ -12,7 +13,9 @@ export interface Device {
   subType: string;
   unitCount: number;
   exists: boolean;
-  commissioning?: boolean;
   annualService?: boolean;
-  intervention?: boolean;
+  firstServiceYear?: number;
+  serviceWindowStart?: number;
+  serviceWindowEnd?: number;
+  maxWarrantyMonths?: number;
 }

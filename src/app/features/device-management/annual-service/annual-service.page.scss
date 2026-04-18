@@ -1,0 +1,35 @@
+ion-select {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+
+  &::part(icon) {
+    position: absolute;
+    right: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.save-button {
+  margin-top: 10pt;
+  margin-bottom: 50pt;
+  height: 35pt;
+}
+
+.card-distance {
+  margin: 0 10px 0 0;
+  padding-bottom: 0;
+}
+
+.card-date {
+  margin: 0 0 0 10px;
+  padding-bottom: 0;
+}

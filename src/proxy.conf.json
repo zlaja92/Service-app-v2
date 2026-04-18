@@ -1,0 +1,10 @@
+{
+  "/api/cloudFunctions": {
+    "target": "https://us-central1-aristonboilersmk-af027.cloudfunctions.net",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/cloudFunctions": ""
+    }
+  }
+}

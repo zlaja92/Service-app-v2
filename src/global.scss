@@ -50,3 +50,17 @@ ion-modal.card-dialog {
   --background: var(--ion-color-step-150, #2a2a2a);
   --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
+
+ion-picker-legacy.date-picker {
+  .picker-toolbar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 25px;
+  }
+
+  .picker-cancel-btn,
+  .picker-confirm-btn {
+    font-size: 18px;
+    height: 52px;
+  }
+}

@@ -1,0 +1,34 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/device-management/' + sn + '/history'" />
+    </ion-buttons>
+    <ion-title>{{ pageTitle }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (isLoading) {
+    <div class="loading-state">
+      <ion-spinner name="crescent" />
+    </div>
+  } @else if (notFound) {
+    <div class="empty-state">
+      <p>{{ 'history_detail_not_found' | transloco }}</p>
+    </div>
+  } @else {
+    <ion-list>
+      @for (field of fields; track field.label) {
+        <ion-item>
+          <ion-label class="ion-text-wrap">
+            <h3>{{ field.label }}</h3>
+            <p>{{ field.value }}</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+</ion-content>

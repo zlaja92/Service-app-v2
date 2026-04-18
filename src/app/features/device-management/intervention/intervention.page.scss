@@ -1,0 +1,74 @@
+ion-select {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+
+  &::part(icon) {
+    position: absolute;
+    right: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.save-button {
+  margin-top: 10pt;
+  margin-bottom: 0;
+  height: 35pt;
+}
+
+.schematic-button {
+  margin-top: 10pt;
+  margin-bottom: 50pt;
+  height: 35pt;
+}
+
+.col-input {
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.col-add,
+.col-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  max-width: 100px !important;
+
+  ion-button {
+    width: 100%;
+    min-height: 40px;
+  }
+}
+
+.col-remove {
+  padding-right: 6px;
+}
+
+.col-add {
+  padding-left: 6px;
+}
+
+.card-spare-part {
+  margin: 0 10px 0 0;
+  padding-bottom: 0;
+}
+
+.card-distance {
+  margin: 0 10px 0 0;
+  padding-bottom: 0;
+}
+
+.card-date {
+  margin: 0 0 0 10px;
+  padding-bottom: 0;
+}

@@ -8,11 +8,13 @@
 </ion-header>
 
 <ion-content>
-  @if (configStore.logoDataUrl(); as logo) {
-    <div class="logo-section">
+  <div class="logo-section">
+    @if (configStore.logoDataUrl(); as logo) {
       <img [src]="logo" [alt]="configStore.appTitle()" />
-    </div>
-  }
+    } @else {
+      <ion-skeleton-text [animated]="true" class="logo-skeleton" />
+    }
+  </div>
 
   <div class="actions-section">
     <ion-item *appFeatureFlag="'deviceManagement'">

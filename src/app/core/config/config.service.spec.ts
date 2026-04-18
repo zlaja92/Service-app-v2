@@ -26,7 +26,6 @@ describe('ConfigService', () => {
       partPhotoFolder: '',
       snModelStart: 0,
       snModelLength: 7,
-      dynamicForm: [],
     },
   };
 

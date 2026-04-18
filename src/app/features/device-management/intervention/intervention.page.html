@@ -1,0 +1,148 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/device-management/' + sn" />
+    </ion-buttons>
+    <ion-title>{{ 'intervention_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (noDevice) {
+    <div class="empty-state">
+      <p>{{ 'intervention_no_device' | transloco }}</p>
+    </div>
+  } @else {
+    <form [formGroup]="form">
+
+      <!-- Tip intervencije -->
+      <ion-item>
+        <ion-label position="stacked">{{ 'intervention_type_label' | transloco }}</ion-label>
+        <ion-select formControlName="interventionType" interface="action-sheet">
+          @for (type of interventionTypes; track type.code) {
+            <ion-select-option [value]="type.name">{{ type.name }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <!-- Opis kvara -->
+      <ion-item>
+        <ion-label position="stacked">{{ 'intervention_description_label' | transloco }}</ion-label>
+        <ion-select formControlName="description" interface="action-sheet">
+          @for (desc of faultDescriptions; track desc) {
+            <ion-select-option [value]="desc">{{ desc }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <!-- Greška -->
+      <ion-item>
+        <ion-label position="stacked">{{ 'intervention_error_label' | transloco }}</ion-label>
+        <ion-select formControlName="error" interface="action-sheet">
+          @for (error of errorCodes; track error) {
+            <ion-select-option [value]="error">{{ error }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <!-- Obaveštenje o produženju garancije (HP/GB only) -->
+      @if (showCallAccepted) {
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_call_accepted_label' | transloco }}</ion-label>
+          <ion-select formControlName="callAccepted" interface="action-sheet">
+            <ion-select-option [value]="true">
+              {{ 'intervention_call_accepted_yes' | transloco }}
+            </ion-select-option>
+            <ion-select-option [value]="false">
+              {{ 'intervention_call_accepted_no' | transloco }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      }
+
+      <!-- Kilometraža + Datum -->
+      <ion-grid>
+        <ion-row>
+          <ion-col>
+            <ion-card class="card-distance">
+              <ion-item>
+                <ion-label position="stacked">{{ 'intervention_distance_label' | transloco }}</ion-label>
+                <ion-input formControlName="distance" inputmode="numeric" maxlength="3" />
+              </ion-item>
+            </ion-card>
+          </ion-col>
+          <ion-col>
+            <ion-card class="card-date">
+              <ion-item>
+                <ion-label position="stacked">{{ 'intervention_date_label' | transloco }}</ion-label>
+                <ion-input [value]="todayFormatted" disabled />
+              </ion-item>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+
+      <!-- Rezervni delovi -->
+      <ion-grid>
+        @for (control of spareParts.controls; track $index) {
+          <ion-row>
+            <ion-col size="8" class="col-input">
+              <ion-card class="card-spare-part">
+                <ion-item lines="full">
+                  <ion-label position="stacked">
+                    {{ 'intervention_spare_part_label' | transloco }} {{ $index + 1 }}
+                  </ion-label>
+                  <ion-input clearInput maxlength="21" [formControl]="control" />
+                </ion-item>
+              </ion-card>
+            </ion-col>
+            @if ($index === spareParts.length - 1) {
+              <ion-col size="2" class="col-remove">
+                <ion-button fill="outline" color="primary" class="part-button"
+                            (click)="removePart()" [disabled]="spareParts.length === 1">
+                  <ion-icon name="remove-outline" />
+                </ion-button>
+              </ion-col>
+              <ion-col size="2" class="col-add">
+                <ion-button color="primary" class="part-button"
+                            (click)="addPart()" [disabled]="spareParts.length >= maxParts">
+                  <ion-icon name="add-outline" />
+                </ion-button>
+              </ion-col>
+            }
+          </ion-row>
+        }
+      </ion-grid>
+
+      <!-- Napomena -->
+      <ion-card>
+        <ion-item>
+          <ion-label position="floating">{{ 'intervention_note_label' | transloco }}</ion-label>
+          <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
+                        [placeholder]="'intervention_note_placeholder' | transloco" />
+        </ion-item>
+      </ion-card>
+
+    </form>
+
+    <!-- Sačuvaj -->
+    <ion-button expand="block" fill="outline" color="primary" class="save-button"
+                (click)="onSave()" [disabled]="isSaving">
+      @if (isSaving) {
+        <ion-spinner name="crescent" slot="start" />
+      }
+      {{ 'intervention_save' | transloco }}
+    </ion-button>
+
+    <!-- Sklopni crtež -->
+    @if (configStore.isFeatureEnabled('deviceCatalog')) {
+      <ion-button expand="block" fill="outline" color="primary" class="schematic-button"
+                  (click)="onExplodedView()">
+        {{ 'intervention_exploded_view' | transloco }}
+      </ion-button>
+    }
+  }
+</ion-content>

@@ -11,7 +11,7 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  @if (lookupService.isLoading) {
+  @if (isInitializing) {
     <ion-card>
       <ion-card-header>
         <ion-card-title>
@@ -21,11 +21,18 @@
       <ion-card-content>
         <ion-skeleton-text [animated]="true" style="width: 40%" />
         <ion-skeleton-text [animated]="true" style="width: 50%" />
+        <ion-skeleton-text [animated]="true" style="width: 80%" />
       </ion-card-content>
     </ion-card>
+    <div class="action-buttons">
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 36px; margin-bottom: 8px" />
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 36px; margin-bottom: 8px" />
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 36px; margin-bottom: 8px" />
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 36px" />
+    </div>
   }
 
-  @if (!lookupService.isLoading && lookupService.device; as device) {
+  @if (!isInitializing && lookupService.device; as device) {
     <ion-card>
       <ion-card-header>
         <ion-card-title>{{ device.name }}</ion-card-title>
@@ -38,39 +45,27 @@
     </ion-card>
 
     <div class="action-buttons">
-      @if (registrationService.isRegistered === false) {
-        <ion-button expand="block" fill="solid" color="success" (click)="onAddDevice()">
-          <ion-icon name="add-circle-outline" slot="start" />
-          {{ 'device_register_button' | transloco }}
-        </ion-button>
-      }
-
-      @if (device.commissioning) {
-        <ion-button expand="block" fill="outline" (click)="onCommissioning()"
-                    [disabled]="registrationService.isRegistered !== true"
-                    *appFeatureFlag="'deviceManagement'">
-          <ion-icon name="build-outline" slot="start" />
-          {{ 'device_info_commissioning' | transloco }}
-        </ion-button>
-      }
+      <ion-button expand="block" fill="outline" (click)="onCommissioning()"
+                  [disabled]="registrationService.isRegistered === true">
+        <ion-icon name="build-outline" slot="start" />
+        {{ 'device_info_commissioning' | transloco }}
+      </ion-button>
 
       @if (device.annualService) {
         <ion-button expand="block" fill="outline" (click)="onAnnualService()"
-                    [disabled]="registrationService.isRegistered !== true"
+                    [disabled]="!eligibilityService.isEligible || eligibilityService.isChecking"
                     *appFeatureFlag="'deviceManagement'">
           <ion-icon name="construct-outline" slot="start" />
           {{ 'device_info_annual_service' | transloco }}
         </ion-button>
       }
 
-      @if (device.intervention) {
-        <ion-button expand="block" fill="outline" (click)="onIntervention()"
-                    [disabled]="registrationService.isRegistered !== true"
-                    *appFeatureFlag="'deviceManagement'">
-          <ion-icon name="hammer-outline" slot="start" />
-          {{ 'device_info_intervention' | transloco }}
-        </ion-button>
-      }
+      <ion-button expand="block" fill="outline" (click)="onIntervention()"
+                  [disabled]="registrationService.isRegistered !== true"
+                  *appFeatureFlag="'deviceManagement'">
+        <ion-icon name="hammer-outline" slot="start" />
+        {{ 'device_info_intervention' | transloco }}
+      </ion-button>
 
       <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()"
                   [disabled]="registrationService.isRegistered !== true">
@@ -80,7 +75,7 @@
     </div>
   }
 
-  @if (!lookupService.isLoading && !lookupService.device) {
+  @if (!isInitializing && !lookupService.device) {
     <div class="empty-state">
       <p>{{ 'device_info_not_found' | transloco }}</p>
     </div>

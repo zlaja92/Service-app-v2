@@ -1,0 +1,23 @@
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50%;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+ion-item h2 {
+  font-weight: 600;
+}
+
+ion-item p {
+  color: var(--ion-color-medium);
+}

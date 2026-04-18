@@ -17,41 +17,66 @@
     </div>
   } @else {
     <form [formGroup]="form">
-      <ion-list>
-        @for (field of formFields; track field.dbKey) {
-          <div class="form-field">
-            <div class="field-header">
-              <span class="field-label">
-                {{ field.label }}
-                @if (field.required) {
-                  <span class="required">*</span>
+      @for (group of groups; track group.key) {
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>{{ group.label | transloco }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-list>
+              @for (field of getFieldsByGroup(group.key); track field.key) {
+                @if (isFieldVisible(field)) {
+                  <div class="form-field">
+                    <div class="field-header">
+                      <span class="field-label">
+                        {{ field.label | transloco }}
+                        @if (field.required) {
+                          <span class="required">*</span>
+                        }
+                      </span>
+                    </div>
+                    <ion-item lines="full">
+                      @switch (field.type) {
+                        @case ('text') {
+                          <ion-input [formControlName]="field.key" type="text" />
+                        }
+                        @case ('number') {
+                          <ion-input [formControlName]="field.key" type="number" />
+                        }
+                        @case ('date') {
+                          <ion-input [formControlName]="field.key" type="text" readonly="true"
+                                     [placeholder]="'add_device_select_date_placeholder' | transloco"
+                                     (click)="openDatePicker(field.key)" />
+                        }
+                        @case ('textarea') {
+                          <ion-textarea [formControlName]="field.key" [autoGrow]="true"
+                                        [rows]="4" />
+                        }
+                        @case ('select') {
+                          <ion-select [formControlName]="field.key" interface="action-sheet"
+                                      [placeholder]="'add_device_select_placeholder' | transloco"
+                                      justify="space-between">
+                            @for (option of field.options; track option.value) {
+                              <ion-select-option [value]="option.value">
+                                {{ option.label | transloco }}
+                              </ion-select-option>
+                            }
+                          </ion-select>
+                        }
+                      }
+                    </ion-item>
+                  </div>
                 }
-              </span>
-              @if (field.subLabel) {
-                <span class="field-sublabel">{{ field.subLabel }}</span>
               }
-            </div>
-            <ion-item lines="full">
-              @switch (field.type) {
-                @case ('text') {
-                  <ion-input [formControlName]="field.dbKey" type="text" />
-                }
-                @case ('number') {
-                  <ion-input [formControlName]="field.dbKey" type="number" />
-                }
-                @case ('date') {
-                  <ion-input [formControlName]="field.dbKey" type="date" />
-                }
-              }
-            </ion-item>
-          </div>
-        }
-      </ion-list>
+            </ion-list>
+          </ion-card-content>
+        </ion-card>
+      }
     </form>
 
     <div class="save-button">
-      <ion-button expand="block" color="success" (click)="onSave()"
-                  [disabled]="isSaving || form.invalid">
+      <ion-button expand="block" color="primary" (click)="onSave()"
+                  [disabled]="isSaving">
         @if (isSaving) {
           <ion-spinner name="crescent" slot="start" />
         } @else {

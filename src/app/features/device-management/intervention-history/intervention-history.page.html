@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/device-management/' + sn" />
+    </ion-buttons>
+    <ion-title>{{ 'history_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (isLoading) {
+    <div class="loading-state">
+      <ion-spinner name="crescent" />
+    </div>
+  } @else if (items.length === 0) {
+    <div class="empty-state">
+      <p>{{ 'history_empty' | transloco }}</p>
+    </div>
+  } @else {
+    <ion-list>
+      @for (item of items; track item.id) {
+        <ion-item button (click)="openDetail(item)" detail="true">
+          <ion-label>
+            <h2>{{ item.date }} {{ item.typeLabel }}</h2>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+</ion-content>

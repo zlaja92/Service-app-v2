@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonMenuButton,
-  IonButton, IonIcon, IonItem, IonInput,
+  IonButton, IonIcon, IonItem, IonInput, IonSkeletonText,
   ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -28,7 +28,7 @@ import { BUNDLED_TRANSLATIONS } from '../../core/i18n/translations'; // [TEMP:tr
   imports: [
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonMenuButton,
-    IonButton, IonIcon, IonItem, IonInput,
+    IonButton, IonIcon, IonItem, IonInput, IonSkeletonText,
     TranslocoModule,
     FeatureFlagDirective,
   ],

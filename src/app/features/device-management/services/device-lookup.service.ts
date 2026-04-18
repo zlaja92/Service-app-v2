@@ -12,6 +12,10 @@ interface DeviceDoc {
   commissioning?: boolean;
   annualService?: boolean;
   intervention?: boolean;
+  firstServiceYear?: number;
+  serviceWindowStart?: number;
+  serviceWindowEnd?: number;
+  maxWarrantyMonths?: number;
   [key: string]: unknown;
 }
 
@@ -66,9 +70,7 @@ export class DeviceLookupService implements Clearable {
         sn,
         modelCode,
         name: this.device.name,
-        commissioning: this.device.commissioning,
         annualService: this.device.annualService,
-        intervention: this.device.intervention,
       });
       return this.device;
     } catch (error) {
@@ -93,9 +95,11 @@ export class DeviceLookupService implements Clearable {
       subType: '',
       unitCount: 0,
       exists: true,
-      commissioning: data['commissioning'] ?? false,
       annualService: data['annualService'] ?? false,
-      intervention: data['intervention'] ?? false,
+      firstServiceYear: data['firstServiceYear'],
+      serviceWindowStart: data['serviceWindowStart'],
+      serviceWindowEnd: data['serviceWindowEnd'],
+      maxWarrantyMonths: data['maxWarrantyMonths'],
     };
   }
 }

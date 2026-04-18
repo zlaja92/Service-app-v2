@@ -21,7 +21,7 @@ export class DeviceRegistrationService implements Clearable {
 
     try {
       const doc = await this.firestoreService.getTenantDocument<DeviceRegistration>(
-        'deviceRegistrations',
+        'uredjaji',
         sn,
       );
       this.isRegistered = doc !== null;
@@ -50,7 +50,7 @@ export class DeviceRegistrationService implements Clearable {
       };
 
       await this.firestoreService.setTenantDocument(
-        'deviceRegistrations',
+        'uredjaji',
         sn,
         data,
       );

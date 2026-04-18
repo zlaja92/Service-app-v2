@@ -49,15 +49,8 @@ export interface BusinessConfig {
   partPhotoFolder: string;
   snModelStart: number;
   snModelLength: number;
-  dynamicForm: DynamicForm[];
-}
-
-export interface DynamicForm {
-  subLabel: string;
-  label: string;
-  type: 'text' | 'number' | 'date';
-  required: boolean;
-  dbKey: string;
+  interventionFaultOptions: { value: string; label: string }[];
+  interventionErrorOptions: { value: string; label: string }[];
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -111,7 +104,8 @@ export function getDefaultConfig(): AppConfig {
       partPhotoFolder: '',
       snModelStart: 0,
       snModelLength: 7,
-      dynamicForm: [],
+      interventionFaultOptions: [],
+      interventionErrorOptions: [],
     },
   };
 }

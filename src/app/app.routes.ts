@@ -56,6 +56,30 @@ export const routes: Routes = [
         canMatch: [featureGuard('deviceManagement')],
       },
       {
+        path: 'device-management/:sn/annual-service',
+        loadComponent: () =>
+          import('./features/device-management/annual-service/annual-service.page').then((m) => m.AnnualServicePage),
+        canMatch: [featureGuard('deviceManagement')],
+      },
+      {
+        path: 'device-management/:sn/intervention',
+        loadComponent: () =>
+          import('./features/device-management/intervention/intervention.page').then((m) => m.InterventionPage),
+        canMatch: [featureGuard('deviceManagement')],
+      },
+      {
+        path: 'device-management/:sn/history/:id',
+        loadComponent: () =>
+          import('./features/device-management/intervention-detail/intervention-detail.page').then((m) => m.InterventionDetailPage),
+        canMatch: [featureGuard('deviceManagement')],
+      },
+      {
+        path: 'device-management/:sn/history',
+        loadComponent: () =>
+          import('./features/device-management/intervention-history/intervention-history.page').then((m) => m.InterventionHistoryPage),
+        canMatch: [featureGuard('deviceManagement')],
+      },
+      {
         path: 'device-management/:sn',
         loadComponent: () =>
           import('./features/device-management/device-detail/device-detail.page').then((m) => m.DeviceDetailPage),
