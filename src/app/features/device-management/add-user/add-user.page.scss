@@ -1,0 +1,16 @@
+ion-select {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+
+  &::part(icon) {
+    position: absolute;
+    right: 0;
+  }
+}
+
+.save-button {
+  margin-top: 10pt;
+  margin-bottom: 50pt;
+  height: 35pt;
+}

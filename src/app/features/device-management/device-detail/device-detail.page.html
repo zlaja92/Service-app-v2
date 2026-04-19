@@ -44,12 +44,44 @@
       </ion-card-content>
     </ion-card>
 
+    @if (registrationService.userData; as user) {
+      <ion-card>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="stacked">{{ 'device_info_user_name' | transloco }}</ion-label>
+            <ion-input readonly [value]="user['firstName'] + ' ' + user['lastName']" />
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">{{ 'device_info_user_address' | transloco }}</ion-label>
+            <ion-input readonly [value]="user['streetName'] + ' ' + user['homeNumber']" />
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">{{ 'device_info_user_city' | transloco }}</ion-label>
+            <ion-input readonly [value]="user['postCode'] + ' ' + user['city']" />
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">{{ 'device_info_user_phone' | transloco }}</ion-label>
+            <ion-input readonly [value]="user['phoneNumber']" />
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+    }
+
     <div class="action-buttons">
-      <ion-button expand="block" fill="outline" (click)="onCommissioning()"
-                  [disabled]="registrationService.isRegistered === true">
-        <ion-icon name="build-outline" slot="start" />
-        {{ 'device_info_commissioning' | transloco }}
-      </ion-button>
+      @if (registrationService.isRegistered !== true) {
+        <ion-button expand="block" fill="outline" (click)="onAddUser()">
+          <ion-icon name="person-add-outline" slot="start" />
+          {{ 'device_info_add_user' | transloco }}
+        </ion-button>
+      }
+
+      @if (device.commissioning && !isCommissioningDone && registrationService.userData?.['warrantyStatus'] === 'in_warranty') {
+        <ion-button expand="block" fill="outline" (click)="onCommissioning()"
+                    [disabled]="registrationService.isRegistered !== true">
+          <ion-icon name="build-outline" slot="start" />
+          {{ 'device_info_commissioning' | transloco }}
+        </ion-button>
+      }
 
       @if (device.annualService) {
         <ion-button expand="block" fill="outline" (click)="onAnnualService()"
@@ -61,14 +93,14 @@
       }
 
       <ion-button expand="block" fill="outline" (click)="onIntervention()"
-                  [disabled]="registrationService.isRegistered !== true"
+                  [disabled]="!isOperational"
                   *appFeatureFlag="'deviceManagement'">
         <ion-icon name="hammer-outline" slot="start" />
         {{ 'device_info_intervention' | transloco }}
       </ion-button>
 
       <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()"
-                  [disabled]="registrationService.isRegistered !== true">
+                  [disabled]="!isOperational">
         <ion-icon name="time-outline" slot="start" />
         {{ 'device_info_history' | transloco }}
       </ion-button>

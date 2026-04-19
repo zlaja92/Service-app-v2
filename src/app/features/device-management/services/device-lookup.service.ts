@@ -95,6 +95,7 @@ export class DeviceLookupService implements Clearable {
       subType: '',
       unitCount: 0,
       exists: true,
+      commissioning: data['commissioning'] ?? false,
       annualService: data['annualService'] ?? false,
       firstServiceYear: data['firstServiceYear'],
       serviceWindowStart: data['serviceWindowStart'],

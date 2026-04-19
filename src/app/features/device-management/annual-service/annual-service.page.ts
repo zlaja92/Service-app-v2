@@ -84,30 +84,13 @@ export class AnnualServicePage implements ViewWillEnter {
   async onSave(): Promise<void> {
     if (!this.validateForm()) return;
 
-    const confirmed = await this.showConfirmAlert();
-    if (!confirmed) return;
-
     const device = this.lookupService.device;
     if (!device || !this.serviceType) return;
-
-    this.isSaving = true;
 
     const formValue = this.form.getRawValue();
     const data = this.buildInterventionData(formValue);
 
-    const docId = await this.interventionService.saveIntervention(this.sn, device, data);
-
-    if (!docId) {
-      this.isSaving = false;
-      await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
-      return;
-    }
-
-    await this.saveForConnectedDevice(device, data);
-
-    this.isSaving = false;
-    await this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
-    void this.router.navigate(['/device-management', this.sn]);
+    await this.showConfirmAndSave(device, data);
   }
 
   private buildInterventionData(formValue: { callAccepted: boolean | null; distance: string; note: string }): Record<string, unknown> {
@@ -158,25 +141,53 @@ export class AnnualServicePage implements ViewWillEnter {
     return true;
   }
 
-  private async showConfirmAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('annual_service_confirm_title'),
-        message: this.transloco.translate('annual_service_confirm_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('annual_service_confirm_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
+  private async showConfirmAndSave(device: Device, data: Record<string, unknown>): Promise<void> {
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('annual_service_confirm_title'),
+      message: this.transloco.translate('annual_service_confirm_message'),
+      buttons: [
+        {
+          text: this.transloco.translate('annual_service_confirm_cancel'),
+          role: 'cancel',
+        },
+        {
+          text: this.transloco.translate('annual_service_confirm_save'),
+          handler: () => {
+            void this.saveAndNavigate(alert, device, data);
+            return false;
           },
-          {
-            text: this.transloco.translate('annual_service_confirm_save'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
+        },
+      ],
     });
+    await alert.present();
+  }
+
+  private async saveAndNavigate(
+    alert: HTMLIonAlertElement,
+    device: Device,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const saveButton = alert.querySelector('.alert-button:last-child') as HTMLElement | null;
+    if (saveButton) {
+      saveButton.textContent = '';
+      const spinner = document.createElement('ion-spinner');
+      spinner.setAttribute('name', 'crescent');
+      saveButton.appendChild(spinner);
+    }
+
+    const docId = await this.interventionService.saveIntervention(this.sn, device, data);
+
+    if (!docId) {
+      await alert.dismiss();
+      await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
+      return;
+    }
+
+    await this.saveForConnectedDevice(device, data);
+
+    await alert.dismiss();
+    void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
+    void this.router.navigate(['/device-management', this.sn]);
   }
 
   private async showToast(message: string, color: string): Promise<void> {

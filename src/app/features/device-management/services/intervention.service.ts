@@ -83,7 +83,7 @@ export class InterventionService implements Clearable {
 
   async getRegistration(sn: string): Promise<Record<string, unknown> | null> {
     try {
-      return await this.firestoreService.getTenantDocument('uredjaji', sn);
+      return await this.firestoreService.getTenantDocument('users', sn);
     } catch (error) {
       this.logger.error('Failed to load registration', { sn, error: String(error) });
       return null;

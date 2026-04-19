@@ -1,0 +1,81 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/device-management/' + sn" />
+    </ion-buttons>
+    <ion-title>{{ 'add_user_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-subtitle>{{ 'add_user_subtitle' | transloco }}</ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <form [formGroup]="form">
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_first_name' | transloco }}</ion-label>
+          <ion-input formControlName="firstName" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_last_name' | transloco }}</ion-label>
+          <ion-input formControlName="lastName" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_street' | transloco }}</ion-label>
+          <ion-input formControlName="streetName" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_house_number' | transloco }}</ion-label>
+          <ion-input formControlName="homeNumber" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_city' | transloco }}</ion-label>
+          <ion-input formControlName="city" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_post_code' | transloco }}</ion-label>
+          <ion-input formControlName="postCode" inputmode="numeric" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_phone' | transloco }}</ion-label>
+          <ion-input formControlName="phoneNumber" inputmode="tel" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'add_user_warranty' | transloco }}</ion-label>
+          <ion-select formControlName="warrantyStatus" interface="action-sheet">
+            <ion-select-option value="in_warranty">
+              {{ 'add_user_in_warranty' | transloco }}
+            </ion-select-option>
+            <ion-select-option value="out_of_warranty">
+              {{ 'add_user_out_of_warranty' | transloco }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">{{ 'add_user_note' | transloco }}</ion-label>
+          <ion-textarea formControlName="note" maxlength="1000" [rows]="5"
+                        [placeholder]="'add_user_note_placeholder' | transloco" />
+        </ion-item>
+      </form>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-button expand="block" fill="solid" color="primary" class="save-button"
+              (click)="onSave()">
+    {{ 'add_user_save' | transloco }}
+  </ion-button>
+</ion-content>
