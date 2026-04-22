@@ -19,15 +19,15 @@
     <form [formGroup]="form">
 
       <!-- Tip intervencije (read-only) -->
-      <ion-item>
+      <ion-item class="field-uppercase">
         <ion-label position="stacked">{{ 'annual_service_type_label' | transloco }}</ion-label>
-        <ion-input [value]="serviceType?.name ?? ''" disabled />
+        <ion-input [value]="serviceType ? (serviceType.label | transloco) : ''" disabled />
       </ion-item>
 
-      <!-- Opis kvara (read-only) -->
-      <ion-item>
+      <!-- Opis (read-only) -->
+      <ion-item class="field-uppercase">
         <ion-label position="stacked">{{ 'annual_service_description_label' | transloco }}</ion-label>
-        <ion-input value="GODIŠNJI SERVIS" disabled />
+        <ion-input [value]="'intervention_description_annual_service' | transloco" disabled />
       </ion-item>
 
       <!-- Obaveštenje o produženju garancije -->

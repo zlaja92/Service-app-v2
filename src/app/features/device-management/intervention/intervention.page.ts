@@ -14,12 +14,14 @@ import { addOutline, removeOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
+import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { DeviceType } from '../../../shared/models/device.model';
+import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
-  InterventionType,
-  INTERVENTION_TYPES,
+  InterventionTypeOption,
+  INTERVENTION_OPTIONS,
   FAULT_DESCRIPTIONS,
   ERROR_CODES,
   MAX_SPARE_PARTS,
@@ -44,6 +46,7 @@ import {
 export class InterventionPage implements ViewWillEnter {
   private readonly lookupService = inject(DeviceLookupService);
   private readonly interventionService = inject(InterventionService);
+  private readonly envInfoService = inject(DeviceEnvInfoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly alertCtrl = inject(AlertController);
@@ -60,7 +63,7 @@ export class InterventionPage implements ViewWillEnter {
   protected readonly DeviceType = DeviceType;
   protected readonly todayFormatted = this.formatToday();
 
-  protected interventionTypes: InterventionType[] = [];
+  protected interventionTypes: InterventionTypeOption[] = [];
   protected faultDescriptions: string[] = [];
   protected errorCodes: string[] = [];
 
@@ -82,6 +85,7 @@ export class InterventionPage implements ViewWillEnter {
   }
 
   ionViewWillEnter(): void {
+    this.isSaving = false;
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
     const device = this.lookupService.device;
 
@@ -93,7 +97,7 @@ export class InterventionPage implements ViewWillEnter {
 
     this.noDevice = false;
     this.deviceType = device.type;
-    this.interventionTypes = INTERVENTION_TYPES[device.type] ?? [];
+    this.interventionTypes = INTERVENTION_OPTIONS[device.type] ?? [];
     this.faultDescriptions = FAULT_DESCRIPTIONS[device.type] ?? [];
     this.errorCodes = ERROR_CODES[device.type] ?? [];
     this.resetForm();
@@ -119,48 +123,45 @@ export class InterventionPage implements ViewWillEnter {
   async onSave(): Promise<void> {
     if (!this.validateForm()) return;
 
-    const confirmed = await this.showConfirmAlert();
-    if (!confirmed) return;
-
     const device = this.lookupService.device;
     if (!device) return;
 
-    this.isSaving = true;
-
     const formValue = this.form.getRawValue();
-    const selectedType = this.interventionTypes.find(
-      t => t.name === formValue.interventionType,
-    );
+
+    const parts = this.spareParts.getRawValue().filter(p => p.trim() !== '');
 
     const data: Record<string, unknown> = {
-      interventionType: {
-        code: selectedType?.code ?? '',
-        name: formValue.interventionType,
-      },
-      description: formValue.description,
+      interventionType: formValue.interventionType,
+      interventionDescription: formValue.description.toUpperCase(),
       error: formValue.error,
       distance: formValue.distance,
       note: formValue.note,
-      spareParts: this.spareParts.getRawValue().filter(p => p.trim() !== ''),
-      date: this.todayFormatted,
     };
 
-    if (this.showCallAccepted) {
-      data['callAccepted'] = formValue.callAccepted;
+    parts.forEach((part, i) => { data[`sparePart${i + 1}`] = part; });
+
+    if (requiresEnvInfo(device.type)) {
+      const prefill = await this.envInfoService.getLastEnvInfo(this.sn);
+      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
+      if (!envInfo) return;
+      data['envInfo'] = envInfo;
+    } else {
+      const confirmed = await this.showConfirmAlert();
+      if (!confirmed) return;
     }
 
+    this.isSaving = true;
     const docId = await this.interventionService.saveIntervention(this.sn, device, data);
-    this.isSaving = false;
 
     if (docId) {
       await this.showToast(
         this.transloco.translate('intervention_save_success'),
         'success',
       );
-      // TODO: For HP/GB, navigate to device-env-info page when implemented
       // TODO: Generate PDF report when pdfReports feature is implemented
       void this.router.navigate(['/device-management', this.sn]);
     } else {
+      this.isSaving = false;
       await this.showToast(
         this.transloco.translate('intervention_save_error'),
         'danger',

@@ -1,7 +1,12 @@
+.field-uppercase ion-input {
+  text-transform: uppercase;
+}
+
 ion-select {
   width: 100%;
   max-width: 100%;
   justify-content: space-between;
+  text-transform: uppercase;
 
   &::part(icon) {
     position: absolute;

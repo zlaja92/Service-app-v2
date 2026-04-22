@@ -1,0 +1,86 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="onDismiss()">
+        <ion-icon slot="icon-only" name="arrow-back-outline" class="back-icon" />
+      </ion-button>
+    </ion-buttons>
+    <ion-title>
+      {{ (readOnly ? 'env_info_view_title' : 'env_info_title') | transloco }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="form">
+    @for (section of sections; track section.key) {
+      <ion-card>
+        <ion-card-header>
+          <ion-card-subtitle>{{ section.label | transloco }}</ion-card-subtitle>
+        </ion-card-header>
+
+        <ion-card-content>
+          @for (field of fieldsPerSection.get(section.key); track field.key) {
+            @if (readOnly) {
+              <ion-item>
+                <ion-label position="stacked">{{ field.label | transloco }}</ion-label>
+                @if (field.unit) {
+                  <ion-grid class="input-grid">
+                    <ion-row>
+                      <ion-col>
+                        <ion-input [value]="form.get(field.key)?.value" readonly />
+                      </ion-col>
+                      <ion-col size="auto" class="unit-col">
+                        <span class="unit-label">{{ field.unit }}</span>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                } @else {
+                  <ion-input [value]="form.get(field.key)?.value" readonly />
+                }
+              </ion-item>
+            } @else if (field.type === 'select') {
+              <ion-item>
+                <ion-label position="stacked">{{ field.label | transloco }}</ion-label>
+                <ion-select [formControlName]="field.key"
+                            [placeholder]="'env_info_select_placeholder' | transloco"
+                            interface="action-sheet">
+                  @for (option of field.options; track option) {
+                    <ion-select-option [value]="option | transloco">{{ option | transloco }}</ion-select-option>
+                  }
+                </ion-select>
+              </ion-item>
+            } @else {
+              <ion-item>
+                <ion-label position="stacked">
+                  {{ field.label | transloco }}
+                </ion-label>
+                <ion-grid class="input-grid">
+                  <ion-row>
+                    <ion-col>
+                      <ion-input [formControlName]="field.key"
+                                 inputmode="decimal"
+                                 [placeholder]="'env_info_input_placeholder' | transloco" />
+                    </ion-col>
+                    @if (field.unit) {
+                      <ion-col size="auto" class="unit-col">
+                        <span class="unit-label">{{ field.unit }}</span>
+                      </ion-col>
+                    }
+                  </ion-row>
+                </ion-grid>
+              </ion-item>
+            }
+          }
+        </ion-card-content>
+      </ion-card>
+    }
+  </form>
+
+  @if (!readOnly) {
+    <ion-button expand="block" fill="solid" color="primary" class="save-button"
+                (click)="onSave()">
+      {{ 'env_info_save' | transloco }}
+    </ion-button>
+  }
+</ion-content>

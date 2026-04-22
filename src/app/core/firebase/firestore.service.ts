@@ -3,6 +3,7 @@ import {
   FirebaseFirestore,
   QueryCompositeFilterConstraint,
   QueryNonFilterConstraint,
+  WriteBatchOperation,
 } from '@capacitor-firebase/firestore';
 import { TenantService } from '../tenant/tenant.service';
 import { LoggerService } from '../logger/logger.service';
@@ -110,5 +111,44 @@ export class FirestoreService {
     }));
 
     return { documents, lastDocumentPath: null };
+  }
+
+  /**
+   * Executes multiple write operations as a single atomic batch.
+   * All operations succeed or all fail. Combined with Firestore rules
+   * (allow update: if false), set operations on existing documents
+   * will cause the entire batch to fail - preventing overwrites.
+   */
+  async writeBatch(operations: WriteBatchOperation[]): Promise<void> {
+    this.logger.debug('Firestore writeBatch', { operationCount: operations.length });
+    await FirebaseFirestore.writeBatch({ operations });
+  }
+
+  /**
+   * Builds a full Firestore reference path for a tenant-scoped document.
+   */
+  buildTenantReference(collection: string, docId: string): string {
+    return `${this.tenantService.getCollectionPath(collection)}/${docId}`;
+  }
+
+  /**
+   * Generates a random 20-character document ID.
+   * Uses the same algorithm as Firebase's AutoId.newId() -
+   * crypto-secure random bytes mapped to alphanumeric characters.
+   */
+  generateId(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const maxMultiple = Math.floor(256 / chars.length) * chars.length;
+    let autoId = '';
+    const targetLength = 20;
+    while (autoId.length < targetLength) {
+      const bytes = crypto.getRandomValues(new Uint8Array(40));
+      for (let i = 0; i < bytes.length; ++i) {
+        if (autoId.length < targetLength && bytes[i] < maxMultiple) {
+          autoId += chars.charAt(bytes[i] % chars.length);
+        }
+      }
+    }
+    return autoId;
   }
 }

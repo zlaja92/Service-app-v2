@@ -11,6 +11,7 @@ interface DeviceDoc {
   'Device type': string;
   commissioning?: boolean;
   annualService?: boolean;
+  connectedDevice?: boolean;
   intervention?: boolean;
   firstServiceYear?: number;
   serviceWindowStart?: number;
@@ -81,6 +82,25 @@ export class DeviceLookupService implements Clearable {
     }
   }
 
+  /**
+   * Looks up a device by SN without modifying service state.
+   * Use this when you need device info but don't want to change
+   * the currently active device (e.g. validating a connected device).
+   */
+  async lookupSilent(sn: string): Promise<Device | null> {
+    const modelCode = this.extractModelCode(sn);
+    if (!modelCode) return null;
+
+    try {
+      const doc = await this.firestoreService.getTenantDocument<DeviceDoc>('devices', modelCode);
+      if (!doc) return null;
+      return this.mapToDevice(modelCode, doc);
+    } catch (error) {
+      this.logger.error('Silent device lookup failed', { sn, error: String(error) });
+      return null;
+    }
+  }
+
   clear(): void {
     this.device = null;
     this.isLoading = false;
@@ -97,6 +117,7 @@ export class DeviceLookupService implements Clearable {
       exists: true,
       commissioning: data['commissioning'] ?? false,
       annualService: data['annualService'] ?? false,
+      connectedDevice: data['connectedDevice'] ?? false,
       firstServiceYear: data['firstServiceYear'],
       serviceWindowStart: data['serviceWindowStart'],
       serviceWindowEnd: data['serviceWindowEnd'],

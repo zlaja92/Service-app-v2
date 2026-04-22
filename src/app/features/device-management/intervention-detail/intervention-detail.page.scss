@@ -25,3 +25,11 @@ ion-item p {
   color: var(--ion-color-dark);
   margin-top: 4px;
 }
+
+ion-item.field-uppercase p {
+  text-transform: uppercase;
+}
+
+.env-info-button {
+  margin: 16px;
+}

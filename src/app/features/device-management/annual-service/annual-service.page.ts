@@ -12,13 +12,16 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
+import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
+import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
+  InterventionType,
+  InterventionTypeOption,
   ANNUAL_SERVICE_TYPES,
   ANNUAL_SERVICE_DESCRIPTION,
   DEFAULT_DISTANCE,
-  InterventionType,
 } from '../models/intervention.model';
 
 @Component({
@@ -38,6 +41,7 @@ import {
 export class AnnualServicePage implements ViewWillEnter {
   private readonly lookupService = inject(DeviceLookupService);
   private readonly interventionService = inject(InterventionService);
+  private readonly envInfoService = inject(DeviceEnvInfoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly alertCtrl = inject(AlertController);
@@ -48,7 +52,7 @@ export class AnnualServicePage implements ViewWillEnter {
   protected sn = '';
   protected noDevice = false;
   protected isSaving = false;
-  protected serviceType: InterventionType | null = null;
+  protected serviceType: InterventionTypeOption | null = null;
   protected readonly todayFormatted = this.formatToday();
 
   protected form = new FormGroup({
@@ -58,6 +62,7 @@ export class AnnualServicePage implements ViewWillEnter {
   });
 
   ionViewWillEnter(): void {
+    this.isSaving = false;
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
     const device = this.lookupService.device;
 
@@ -88,23 +93,37 @@ export class AnnualServicePage implements ViewWillEnter {
     if (!device || !this.serviceType) return;
 
     const formValue = this.form.getRawValue();
-    const data = this.buildInterventionData(formValue);
-
-    await this.showConfirmAndSave(device, data);
-  }
-
-  private buildInterventionData(formValue: { callAccepted: boolean | null; distance: string; note: string }): Record<string, unknown> {
-    return {
-      interventionType: {
-        code: this.serviceType!.code,
-        name: this.serviceType!.name,
-      },
-      description: ANNUAL_SERVICE_DESCRIPTION,
+    const data: Record<string, unknown> = {
+      interventionType: InterventionType.ANNUAL_SERVICE,
+      interventionDescription: this.transloco.translate(ANNUAL_SERVICE_DESCRIPTION),
       callAccepted: formValue.callAccepted,
       distance: formValue.distance,
       note: formValue.note,
-      date: this.todayFormatted,
     };
+
+    if (requiresEnvInfo(device.type)) {
+      const prefill = await this.envInfoService.getLastEnvInfo(this.sn);
+      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
+      if (!envInfo) return;
+      data['envInfo'] = envInfo;
+    } else {
+      const confirmed = await this.showConfirmAlert();
+      if (!confirmed) return;
+    }
+
+    this.isSaving = true;
+    const docId = await this.interventionService.saveIntervention(this.sn, device, data);
+
+    if (!docId) {
+      this.isSaving = false;
+      await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
+      return;
+    }
+
+    await this.saveForConnectedDevice(device, data);
+
+    void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
+    void this.router.navigate(['/device-management', this.sn]);
   }
 
   private async saveForConnectedDevice(device: Device, data: Record<string, unknown>): Promise<void> {
@@ -141,53 +160,25 @@ export class AnnualServicePage implements ViewWillEnter {
     return true;
   }
 
-  private async showConfirmAndSave(device: Device, data: Record<string, unknown>): Promise<void> {
-    const alert = await this.alertCtrl.create({
-      header: this.transloco.translate('annual_service_confirm_title'),
-      message: this.transloco.translate('annual_service_confirm_message'),
-      buttons: [
-        {
-          text: this.transloco.translate('annual_service_confirm_cancel'),
-          role: 'cancel',
-        },
-        {
-          text: this.transloco.translate('annual_service_confirm_save'),
-          handler: () => {
-            void this.saveAndNavigate(alert, device, data);
-            return false;
+  private async showConfirmAlert(): Promise<boolean> {
+    return new Promise<boolean>(async (resolve) => {
+      const alert = await this.alertCtrl.create({
+        header: this.transloco.translate('annual_service_confirm_title'),
+        message: this.transloco.translate('annual_service_confirm_message'),
+        buttons: [
+          {
+            text: this.transloco.translate('annual_service_confirm_cancel'),
+            role: 'cancel',
+            handler: () => resolve(false),
           },
-        },
-      ],
+          {
+            text: this.transloco.translate('annual_service_confirm_save'),
+            handler: () => resolve(true),
+          },
+        ],
+      });
+      await alert.present();
     });
-    await alert.present();
-  }
-
-  private async saveAndNavigate(
-    alert: HTMLIonAlertElement,
-    device: Device,
-    data: Record<string, unknown>,
-  ): Promise<void> {
-    const saveButton = alert.querySelector('.alert-button:last-child') as HTMLElement | null;
-    if (saveButton) {
-      saveButton.textContent = '';
-      const spinner = document.createElement('ion-spinner');
-      spinner.setAttribute('name', 'crescent');
-      saveButton.appendChild(spinner);
-    }
-
-    const docId = await this.interventionService.saveIntervention(this.sn, device, data);
-
-    if (!docId) {
-      await alert.dismiss();
-      await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
-      return;
-    }
-
-    await this.saveForConnectedDevice(device, data);
-
-    await alert.dismiss();
-    void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
-    void this.router.navigate(['/device-management', this.sn]);
   }
 
   private async showToast(message: string, color: string): Promise<void> {

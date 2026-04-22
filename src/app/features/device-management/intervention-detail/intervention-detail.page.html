@@ -21,14 +21,25 @@
     </div>
   } @else {
     <ion-list>
-      @for (field of fields; track field.label) {
-        <ion-item>
+      @for (field of fields; track field.key) {
+        <ion-item [class.field-uppercase]="field.key === 'interventionType' || field.key === 'interventionDescription'">
           <ion-label class="ion-text-wrap">
             <h3>{{ field.label }}</h3>
-            <p>{{ field.value }}</p>
+            @if (field.key === 'note') {
+              <ion-textarea readonly [value]="field.value" [rows]="5" [autoGrow]="true" />
+            } @else {
+              <p>{{ field.value }}</p>
+            }
           </ion-label>
         </ion-item>
       }
     </ion-list>
+
+    @if (hasEnvInfo) {
+      <ion-button expand="block" fill="outline" color="primary" class="env-info-button"
+                  (click)="onViewEnvInfo()">
+        {{ 'env_info_view_title' | transloco }}
+      </ion-button>
+    }
   }
 </ion-content>

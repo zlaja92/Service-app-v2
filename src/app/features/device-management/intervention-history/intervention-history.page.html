@@ -22,9 +22,10 @@
   } @else {
     <ion-list>
       @for (item of items; track item.id) {
-        <ion-item button (click)="openDetail(item)" detail="true">
+        <ion-item [button]="item.clickable" (click)="openDetail(item)"
+                  [detail]="item.clickable">
           <ion-label>
-            <h2>{{ item.date }} {{ item.typeLabel }}</h2>
+            <h2>{{ item.dateKey ? (item.dateKey | transloco) : item.date }} {{ item.typeLabelKey ? (item.typeLabelKey | transloco) : '' }}</h2>
           </ion-label>
         </ion-item>
       }

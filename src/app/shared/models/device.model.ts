@@ -15,6 +15,7 @@ export interface Device {
   exists: boolean;
   commissioning?: boolean;
   annualService?: boolean;
+  connectedDevice?: boolean;
   firstServiceYear?: number;
   serviceWindowStart?: number;
   serviceWindowEnd?: number;

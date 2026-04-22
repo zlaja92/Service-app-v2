@@ -51,16 +51,42 @@ ion-modal.card-dialog {
   --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
+ion-modal.fullscreen-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}
+
+
+ion-action-sheet {
+  .action-sheet-button {
+    text-transform: uppercase;
+  }
+}
+
 ion-picker-legacy.date-picker {
   .picker-toolbar {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 25px;
+    padding: 0 16px;
+    margin-bottom: 30px;
+  }
+
+  .picker-toolbar-cancel {
+    justify-content: flex-start;
+  }
+
+  .picker-toolbar-confirm {
+    justify-content: flex-end;
   }
 
   .picker-cancel-btn,
   .picker-confirm-btn {
-    font-size: 18px;
-    height: 52px;
+    font-size: 20px;
+    font-weight: 600;
+    height: 56px;
+    padding: 0 8px;
+    line-height: 1.3;
+    overflow: visible;
   }
 }

@@ -22,8 +22,8 @@
       <ion-item>
         <ion-label position="stacked">{{ 'intervention_type_label' | transloco }}</ion-label>
         <ion-select formControlName="interventionType" interface="action-sheet">
-          @for (type of interventionTypes; track type.code) {
-            <ion-select-option [value]="type.name">{{ type.name }}</ion-select-option>
+          @for (type of interventionTypes; track type.key) {
+            <ion-select-option [value]="type.key">{{ type.label | transloco }}</ion-select-option>
           }
         </ion-select>
       </ion-item>

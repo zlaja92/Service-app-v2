@@ -27,12 +27,21 @@
           <ion-label position="stacked">{{ 'commissioning_installer_phone' | transloco }}</ion-label>
           <ion-input formControlName="installerPhoneNumber" inputmode="tel" />
         </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'commissioning_note' | transloco }}</ion-label>
+          <ion-textarea formControlName="note" maxlength="1000" [rows]="5"
+                        [placeholder]="'commissioning_note_placeholder' | transloco" />
+        </ion-item>
       </form>
     </ion-card-content>
   </ion-card>
 
   <ion-button expand="block" fill="solid" color="primary" class="save-button"
-              (click)="onSave()">
+              (click)="onSave()" [disabled]="isSaving">
+    @if (isSaving) {
+      <ion-spinner name="crescent" slot="start" />
+    }
     {{ 'commissioning_save' | transloco }}
   </ion-button>
 </ion-content>

@@ -1,0 +1,47 @@
+.input-grid {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.unit-col {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  padding-inline-end: 0;
+}
+
+.unit-label {
+  font-size: 1.1em;
+  font-weight: 500;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.save-button {
+  height: 35pt;
+  margin-top: 10pt;
+  margin-bottom: 50pt;
+  margin-inline: 16px;
+}
+
+ion-card-content {
+  padding-inline: 8px;
+}
+
+.back-icon {
+  font-size: 24px;
+}
+
+
+ion-select {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+
+  &::part(icon) {
+    position: absolute;
+    right: 0;
+  }
+}

@@ -10,7 +10,7 @@ import { ToastController } from '@ionic/angular/standalone';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
 import { LoggerService } from '../../../core/logger/logger.service';
-import { InterventionHistoryItem } from '../models/intervention.model';
+import { InterventionHistoryItem, InterventionType } from '../models/intervention.model';
 
 @Component({
   selector: 'app-intervention-history',
@@ -37,10 +37,31 @@ export class InterventionHistoryPage implements ViewWillEnter {
 
   ionViewWillEnter(): void {
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
-    void this.loadHistory();
+    void this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    if (!this.lookupService.device || this.lookupService.sn !== this.sn) {
+      await this.lookupService.lookup(this.sn);
+    }
+    await this.loadHistory();
   }
 
   openDetail(item: InterventionHistoryItem): void {
+    if (!item.clickable) return;
+
+    if (item.source === 'commissioning-header') {
+      const commissioning = this.findCommissioningIntervention();
+      if (commissioning) {
+        void this.router.navigate(
+          ['/device-management', this.sn, 'history', commissioning.id],
+        );
+      } else {
+        void this.showToast(this.transloco.translate('history_no_commissioning'));
+      }
+      return;
+    }
+
     void this.router.navigate(
       ['/device-management', this.sn, 'history', item.id],
     );
@@ -50,43 +71,38 @@ export class InterventionHistoryPage implements ViewWillEnter {
     this.isLoading = true;
     this.items = [];
 
-    const device = this.lookupService.device;
     const interventions = await this.interventionService.getInterventionsBySn(this.sn);
+    this.cachedInterventions = interventions;
 
     const items: InterventionHistoryItem[] = [];
 
-    if (device?.annualService) {
-      const commissioning = interventions.find(i => this.isCommissioning(i.data));
-      if (commissioning) {
-        items.push({
-          id: commissioning.id,
-          date: this.extractDate(commissioning.data),
-          typeLabel: this.transloco.translate('history_type_commissioning'),
-          source: 'intervention',
-        });
-      } else {
-        void this.showToast(this.transloco.translate('history_no_commissioning'));
-      }
-    } else {
-      const registration = await this.interventionService.getRegistration(this.sn);
-      if (registration) {
-        items.push({
-          id: 'registration',
-          date: this.formatDate(this.toDateString(registration['dateOfPurchase'])),
-          typeLabel: this.transloco.translate('history_type_purchase'),
-          source: 'registration',
-        });
-      }
+    const device = this.lookupService.device;
+    const registration = await this.interventionService.getRegistration(this.sn);
+    const isCommissioning = device?.commissioning === true;
+
+    if (registration) {
+      const purchaseDateRaw = this.toDateString(registration['dateOfPurchase']);
+      const hasDate = !!purchaseDateRaw;
+
+      items.push({
+        id: 'header',
+        date: hasDate ? this.formatDate(purchaseDateRaw) : '',
+        dateKey: hasDate ? undefined : (isCommissioning ? 'history_unknown_commissioning_date' : 'history_unknown_date'),
+        typeLabelKey: hasDate ? (isCommissioning ? 'history_type_commissioning' : 'history_type_purchase') : '',
+        source: isCommissioning ? 'commissioning-header' : 'registration',
+        clickable: isCommissioning,
+      });
     }
 
     for (const intervention of interventions) {
-      if (this.isCommissioning(intervention.data) && device?.annualService) continue;
+      if (intervention.data['interventionType'] === InterventionType.COMMISSIONING) continue;
 
       items.push({
         id: intervention.id,
         date: this.extractDate(intervention.data),
-        typeLabel: this.resolveTypeLabel(intervention.data),
+        typeLabelKey: this.resolveTypeLabelKey(intervention.data),
         source: 'intervention',
+        clickable: true,
       });
     }
 
@@ -94,39 +110,29 @@ export class InterventionHistoryPage implements ViewWillEnter {
     this.isLoading = false;
   }
 
-  private isCommissioning(data: Record<string, unknown>): boolean {
-    const typeName = this.getInterventionTypeName(data);
-    return typeName.toUpperCase().includes('PUŠTANJE')
-      || typeName.toUpperCase().includes('PUSTANJE');
+  private cachedInterventions: { id: string; data: Record<string, unknown> }[] = [];
+
+  private findCommissioningIntervention(): { id: string } | undefined {
+    return this.cachedInterventions.find(
+      i => i.data['interventionType'] === InterventionType.COMMISSIONING,
+    );
   }
 
-  private resolveTypeLabel(data: Record<string, unknown>): string {
-    const typeName = this.getInterventionTypeName(data);
-    const upper = typeName.toUpperCase();
+  private resolveTypeLabelKey(data: Record<string, unknown>): string {
+    const type = data['interventionType'] as string;
 
-    if (upper.includes('POPRAVKA')) {
-      return this.transloco.translate('history_type_repair');
+    switch (type) {
+      case InterventionType.COMMISSIONING:
+        return 'history_type_commissioning';
+      case InterventionType.ANNUAL_SERVICE:
+        return 'history_type_annual_service';
+      default:
+        return 'history_type_repair';
     }
-    if (upper.includes('GODIŠNJ') || upper.includes('SERVIS')) {
-      return this.transloco.translate('history_type_annual_service');
-    }
-    if (upper.includes('PUŠTANJE') || upper.includes('PUSTANJE')) {
-      return this.transloco.translate('history_type_commissioning');
-    }
-    return typeName || this.transloco.translate('history_type_repair');
-  }
-
-  private getInterventionTypeName(data: Record<string, unknown>): string {
-    const interventionType = data['interventionType'];
-    if (typeof interventionType === 'object' && interventionType !== null) {
-      return (interventionType as { name: string }).name ?? '';
-    }
-    return String(interventionType ?? '');
   }
 
   private extractDate(data: Record<string, unknown>): string {
-    const raw = String(data['date'] ?? data['createdAt'] ?? '');
-    return this.formatDate(raw);
+    return this.formatDate(this.toDateString(data['addedDate']));
   }
 
   private toDateString(value: unknown): string {

@@ -1,14 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
-import { Device } from '../../../shared/models/device.model';
+import { Device, DeviceType } from '../../../shared/models/device.model';
+import {
+  COMMISSIONING_TYPES, ANNUAL_SERVICE_TYPES, INTERVENTION_OPTIONS,
+} from '../models/intervention.model';
 
 @Injectable({ providedIn: 'root' })
 export class InterventionService implements Clearable {
   private readonly firestoreService = inject(FirestoreService);
   private readonly authStore = inject(AuthStore);
+  private readonly serverTimeService = inject(ServerTimeService);
   private readonly logger = inject(LoggerService);
 
   isSaving = false;
@@ -21,14 +26,22 @@ export class InterventionService implements Clearable {
     this.isSaving = true;
 
     try {
+      const serverTime = await this.serverTimeService.getServerTime();
+      if (!serverTime) {
+        this.logger.error('Intervention save failed: server time unavailable', { sn });
+        return null;
+      }
+
+      const registration = await this.getRegistration(sn);
+      const warrantyStatus = registration?.['warrantyStatus'] as string ?? '';
+
       const data: Record<string, unknown> = {
         sn,
-        deviceCode: device.code,
-        deviceName: device.name,
-        deviceType: device.type,
         ...formData,
-        createdBy: this.authStore.userEmail(),
-        createdAt: new Date().toISOString(),
+        warrantyStatus,
+        addedBy: this.authStore.userEmail(),
+        addedDate: serverTime,
+        exported: false,
       };
 
       const docId = await this.firestoreService.addTenantDocument('interventions', data);
@@ -62,9 +75,9 @@ export class InterventionService implements Clearable {
       );
 
       return result.documents.sort((a, b) => {
-        const dateA = String(a.data['createdAt'] ?? '');
-        const dateB = String(b.data['createdAt'] ?? '');
-        return dateB.localeCompare(dateA);
+        const dateA = this.toTimestamp(a.data['addedDate']);
+        const dateB = this.toTimestamp(b.data['addedDate']);
+        return dateA - dateB;
       });
     } catch (error) {
       this.logger.error('Failed to load interventions', { sn, error: String(error) });
@@ -90,7 +103,76 @@ export class InterventionService implements Clearable {
     }
   }
 
+  getInterventionLabel(deviceType: DeviceType, type: string): string | null {
+    if (COMMISSIONING_TYPES[deviceType]?.key === type) return COMMISSIONING_TYPES[deviceType]!.label;
+    if (ANNUAL_SERVICE_TYPES[deviceType]?.key === type) return ANNUAL_SERVICE_TYPES[deviceType]!.label;
+    return INTERVENTION_OPTIONS[deviceType]?.find(o => o.key === type)?.label ?? null;
+  }
+
+  /**
+   * Saves two interventions atomically using batch write.
+   * Both succeed or both fail - no partial writes.
+   */
+  async saveInterventionBatch(
+    entries: { sn: string; device: Device; formData: Record<string, unknown> }[],
+  ): Promise<boolean> {
+    this.isSaving = true;
+
+    try {
+      const serverTime = await this.serverTimeService.getServerTime();
+      if (!serverTime) {
+        this.logger.error('Intervention batch save failed: server time unavailable');
+        return false;
+      }
+
+      const operations = await Promise.all(
+        entries.map(async (entry) => {
+          const registration = await this.getRegistration(entry.sn);
+          const warrantyStatus = registration?.['warrantyStatus'] as string ?? '';
+
+          const data: Record<string, unknown> = {
+            sn: entry.sn,
+            ...entry.formData,
+            warrantyStatus,
+            addedBy: this.authStore.userEmail(),
+            addedDate: serverTime,
+            exported: false,
+          };
+
+          const docId = this.firestoreService.generateId();
+          return {
+            type: 'set' as const,
+            reference: this.firestoreService.buildTenantReference('interventions', docId),
+            data,
+          };
+        }),
+      );
+
+      await this.firestoreService.writeBatch(operations);
+      this.logger.info('Intervention batch saved', { count: entries.length });
+      return true;
+    } catch (error) {
+      this.logger.error('Intervention batch save failed', { error: String(error) });
+      return false;
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
   clear(): void {
     this.isSaving = false;
+  }
+
+  private toTimestamp(value: unknown): number {
+    if (!value) return 0;
+    if (typeof value === 'object' && value !== null && 'seconds' in value) {
+      return (value as { seconds: number }).seconds * 1000;
+    }
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'string') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    return 0;
   }
 }

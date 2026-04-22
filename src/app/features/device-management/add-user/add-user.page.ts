@@ -3,14 +3,15 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonButton, IonItem, IonInput, IonTextarea, IonSelect, IonSelectOption,
+  IonButton, IonItem, IonInput, IonSelect, IonSelectOption,
   IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
   IonSpinner,
-  ViewWillEnter, AlertController, ToastController,
+  ViewWillEnter, AlertController, ToastController, PickerController, PickerColumn,
 } from '@ionic/angular/standalone';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
+import { ServerTimeService } from '../../../core/firebase/server-time.service';
 
 @Component({
   selector: 'app-add-user',
@@ -19,7 +20,7 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
   imports: [
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonButton, IonItem, IonInput, IonTextarea, IonSelect, IonSelectOption,
+    IonButton, IonItem, IonInput, IonSelect, IonSelectOption,
     IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
     IonSpinner,
     TranslocoModule,
@@ -28,12 +29,14 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
 export class AddUserPage implements ViewWillEnter {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly lookupService = inject(DeviceLookupService);
+  protected readonly lookupService = inject(DeviceLookupService);
   private readonly registrationService = inject(DeviceRegistrationService);
   private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
+  private readonly serverTimeService = inject(ServerTimeService);
   protected sn = '';
+  private connectedSn = '';
 
   protected form = new FormGroup({
     firstName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -44,11 +47,107 @@ export class AddUserPage implements ViewWillEnter {
     postCode: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     phoneNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     warrantyStatus: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    note: new FormControl('', { nonNullable: true }),
+    dateOfPurchase: new FormControl('', { nonNullable: true }),
+    callAccepted: new FormControl<boolean | null>(null),
   });
+
+  private readonly pickerCtrl = inject(PickerController);
+
+  private readonly MONTH_KEYS = [
+    'add_user_month_jan', 'add_user_month_feb', 'add_user_month_mar',
+    'add_user_month_apr', 'add_user_month_may', 'add_user_month_jun',
+    'add_user_month_jul', 'add_user_month_aug', 'add_user_month_sep',
+    'add_user_month_oct', 'add_user_month_nov', 'add_user_month_dec',
+  ];
+
+  get showDateOfPurchase(): boolean {
+    return !this.lookupService.device?.commissioning
+      && this.form.get('warrantyStatus')?.value === 'in_warranty';
+  }
+
+  async openDatePicker(): Promise<void> {
+    const today = new Date();
+    const currentValue = this.form.get('dateOfPurchase')?.value as string;
+
+    let selectedDay = today.getDate();
+    let selectedMonth = today.getMonth() + 1;
+    let selectedYear = today.getFullYear();
+
+    if (currentValue) {
+      const [d, m, y] = currentValue.split('.').map(Number);
+      selectedDay = d;
+      selectedMonth = m;
+      selectedYear = y;
+    }
+
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+    const picker = await this.pickerCtrl.create({
+      cssClass: 'date-picker',
+      columns: [
+        this.buildDayColumn(daysInMonth, selectedDay),
+        this.buildMonthColumn(selectedMonth),
+        this.buildYearColumn(selectedYear),
+      ],
+      buttons: [
+        {
+          text: this.transloco.translate('add_user_date_cancel'),
+          role: 'cancel',
+          cssClass: 'picker-cancel-btn',
+        },
+        {
+          text: this.transloco.translate('add_user_date_done'),
+          cssClass: 'picker-confirm-btn',
+          handler: (value: Record<string, { value: number }>) => {
+            const day = String(value['day'].value).padStart(2, '0');
+            const month = String(value['month'].value).padStart(2, '0');
+            const year = value['year'].value;
+            this.form.get('dateOfPurchase')?.setValue(`${day}.${month}.${year}`);
+          },
+        },
+      ],
+    });
+    await picker.present();
+  }
+
+  private buildDayColumn(daysInMonth: number, selectedDay: number): PickerColumn {
+    return {
+      name: 'day',
+      selectedIndex: Math.min(selectedDay, daysInMonth) - 1,
+      options: Array.from({ length: daysInMonth }, (_, i) => ({
+        text: String(i + 1),
+        value: i + 1,
+      })),
+    };
+  }
+
+  private buildMonthColumn(selectedMonth: number): PickerColumn {
+    return {
+      name: 'month',
+      selectedIndex: selectedMonth - 1,
+      options: this.MONTH_KEYS.map((key, i) => ({
+        text: this.transloco.translate(key),
+        value: i + 1,
+      })),
+    };
+  }
+
+  private buildYearColumn(selectedYear: number): PickerColumn {
+    const startYear = 2000;
+    const endYear = new Date().getFullYear();
+    return {
+      name: 'year',
+      selectedIndex: Math.min(selectedYear, endYear) - startYear,
+      options: Array.from({ length: endYear - startYear + 1 }, (_, i) => ({
+        text: String(startYear + i),
+        value: startYear + i,
+      })),
+    };
+  }
 
   ionViewWillEnter(): void {
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
+    this.connectedSn = this.route.snapshot.queryParamMap.get('connectedSn') ?? '';
     this.form.reset();
   }
 
@@ -59,6 +158,29 @@ export class AddUserPage implements ViewWillEnter {
     if (!device) return;
 
     const formValue = this.form.getRawValue();
+    const data: Record<string, unknown> = {
+      ...formValue,
+      firstNameSrch: this.toLatinUpperCase(formValue.firstName),
+      lastNameSrch: this.toLatinUpperCase(formValue.lastName),
+    };
+
+    if (!device.annualService) {
+      delete data['callAccepted'];
+    }
+
+    if (formValue.warrantyStatus === 'out_of_warranty') {
+      delete data['dateOfPurchase'];
+    } else if (device.commissioning) {
+      const serverTime = await this.serverTimeService.getServerTime();
+      if (!serverTime) {
+        void this.showToast(this.transloco.translate('add_user_server_time_error'), 'danger');
+        return;
+      }
+      data['dateOfPurchase'] = serverTime;
+    } else if (formValue.dateOfPurchase) {
+      const [day, month, year] = formValue.dateOfPurchase.split('.').map(Number);
+      data['dateOfPurchase'] = new Date(year, month - 1, day);
+    }
 
     const alert = await this.alertCtrl.create({
       header: this.transloco.translate('add_user_confirm_title'),
@@ -71,7 +193,7 @@ export class AddUserPage implements ViewWillEnter {
         {
           text: this.transloco.translate('add_user_confirm_save'),
           handler: () => {
-            void this.saveAndNavigate(alert, formValue);
+            void this.saveAndNavigate(alert, data);
             return false;
           },
         },
@@ -82,7 +204,7 @@ export class AddUserPage implements ViewWillEnter {
 
   private async saveAndNavigate(
     alert: HTMLIonAlertElement,
-    formValue: Record<string, string>,
+    data: Record<string, unknown>,
   ): Promise<void> {
     const saveButton = alert.querySelector('.alert-button:last-child') as HTMLElement | null;
     if (saveButton) {
@@ -98,13 +220,18 @@ export class AddUserPage implements ViewWillEnter {
       return;
     }
 
-    const data: Record<string, unknown> = {
-      ...formValue,
-      firstNameSrch: this.toLatinUpperCase(formValue['firstName']),
-      lastNameSrch: this.toLatinUpperCase(formValue['lastName']),
-    };
+    let success: boolean;
 
-    const success = await this.registrationService.register(this.sn, device, data);
+    if (this.connectedSn) {
+      const mainData = { ...data, connectedDevice: this.connectedSn };
+      const connectedData = { ...data, connectedDevice: this.sn };
+      success = await this.registrationService.registerBatch([
+        { sn: this.sn, device, dynamicFields: mainData },
+        { sn: this.connectedSn, device, dynamicFields: connectedData },
+      ]);
+    } else {
+      success = await this.registrationService.register(this.sn, device, data);
+    }
 
     await alert.dismiss();
 
@@ -127,7 +254,11 @@ export class AddUserPage implements ViewWillEnter {
     if (!value.city.trim()) missing.push(this.transloco.translate('add_user_city'));
     if (!value.postCode.trim()) missing.push(this.transloco.translate('add_user_post_code'));
     if (!value.phoneNumber.trim()) missing.push(this.transloco.translate('add_user_phone'));
+    if (this.lookupService.device?.annualService && value.callAccepted == null) {
+      missing.push(this.transloco.translate('add_user_call_accepted'));
+    }
     if (!value.warrantyStatus) missing.push(this.transloco.translate('add_user_warranty'));
+    if (this.showDateOfPurchase && !value.dateOfPurchase) missing.push(this.transloco.translate('add_user_date_of_purchase'));
 
     if (missing.length > 0) {
       void this.showToast(

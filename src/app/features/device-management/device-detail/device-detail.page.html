@@ -33,19 +33,12 @@
   }
 
   @if (!isInitializing && lookupService.device; as device) {
-    <ion-card>
+    <ion-card class="device-card">
       <ion-card-header>
         <ion-card-title>{{ device.name }}</ion-card-title>
+        <ion-card-subtitle>{{ sn }}</ion-card-subtitle>
       </ion-card-header>
-      <ion-card-content>
-        <p><strong>{{ 'device_info_code' | transloco }}:</strong> {{ device.code }}</p>
-        <p><strong>{{ 'device_info_type' | transloco }}:</strong> {{ device.type }}</p>
-        <p><strong>{{ 'device_info_sn' | transloco }}:</strong> {{ sn }}</p>
-      </ion-card-content>
-    </ion-card>
-
-    @if (registrationService.userData; as user) {
-      <ion-card>
+      @if (registrationService.userData; as user) {
         <ion-card-content>
           <ion-item>
             <ion-label position="stacked">{{ 'device_info_user_name' | transloco }}</ion-label>
@@ -63,14 +56,53 @@
             <ion-label position="stacked">{{ 'device_info_user_phone' | transloco }}</ion-label>
             <ion-input readonly [value]="user['phoneNumber']" />
           </ion-item>
+          @if (user['warrantyStatus'] === 'in_warranty') {
+            @if (registrationService.getPurchaseDateFormatted(); as purchaseDate) {
+              <ion-item>
+                <ion-label position="stacked">{{ 'device_info_purchase_date' | transloco }}</ion-label>
+                <ion-input readonly [value]="purchaseDate" />
+              </ion-item>
+            }
+            @if (registrationService.getWarrantyEndDateFormatted(device); as warrantyEnd) {
+              <ion-item>
+                <ion-label position="stacked">{{ 'device_info_warranty_until' | transloco }}</ion-label>
+                <ion-input readonly [value]="warrantyEnd" />
+              </ion-item>
+            }
+          }
+        </ion-card-content>
+      }
+    </ion-card>
+
+    @if (needsConnectedDevice) {
+      <ion-card>
+        <ion-card-content>
+          <p class="connected-label">{{ 'connected_device_title' | transloco }}</p>
+          <div class="connected-row">
+            <ion-item class="connected-input">
+              <ion-input [(ngModel)]="connectedSnInput"
+                         [placeholder]="'connected_device_sn_placeholder' | transloco"
+                         maxlength="21"
+                         [clearInput]="true" />
+            </ion-item>
+            <ion-button fill="outline" color="primary" class="connected-scan"
+                        (click)="scanConnectedBarcode()">
+              <ion-icon slot="icon-only" name="barcode-outline" />
+            </ion-button>
+          </div>
         </ion-card-content>
       </ion-card>
     }
 
     <div class="action-buttons">
       @if (registrationService.isRegistered !== true) {
-        <ion-button expand="block" fill="outline" (click)="onAddUser()">
-          <ion-icon name="person-add-outline" slot="start" />
+        <ion-button expand="block" fill="outline" (click)="onAddUser()"
+                    [disabled]="isSearchingConnected">
+          @if (isSearchingConnected) {
+            <ion-spinner name="crescent" slot="start" class="button-spinner" />
+          } @else {
+            <ion-icon name="person-add-outline" slot="start" />
+          }
           {{ 'device_info_add_user' | transloco }}
         </ion-button>
       }
@@ -85,7 +117,7 @@
 
       @if (device.annualService) {
         <ion-button expand="block" fill="outline" (click)="onAnnualService()"
-                    [disabled]="!eligibilityService.isEligible || eligibilityService.isChecking"
+                    [disabled]="!isAnnualServiceEnabled"
                     *appFeatureFlag="'deviceManagement'">
           <ion-icon name="construct-outline" slot="start" />
           {{ 'device_info_annual_service' | transloco }}

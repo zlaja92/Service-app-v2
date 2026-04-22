@@ -3,14 +3,17 @@ import { DeviceType } from '../../../shared/models/device.model';
 export interface InterventionHistoryItem {
   id: string;
   date: string;
-  typeLabel: string;
-  source: 'intervention' | 'registration';
+  dateKey?: string;
+  typeLabelKey: string;
+  source: 'intervention' | 'registration' | 'commissioning-header';
+  clickable: boolean;
 }
 
 /** Ordered list of fields to display on intervention detail page. */
 export const INTERVENTION_DISPLAY_FIELDS = [
-  'date', 'interventionType', 'description', 'error', 'distance',
-  'callAccepted', 'spareParts', 'note', 'createdBy', 'createdAt',
+  'interventionType', 'interventionDescription', 'warrantyStatus',
+  'sparePart1', 'sparePart2', 'sparePart3', 'sparePart4',
+  'addedBy', 'addedDate', 'error', 'note',
 ];
 
 /** Ordered list of fields to display on registration detail page. */
@@ -19,45 +22,59 @@ export const REGISTRATION_DISPLAY_FIELDS = [
 ];
 
 /** Metadata fields excluded from detail display. */
-export const HIDDEN_FIELDS = ['sn', 'deviceCode', 'deviceName', 'deviceType'];
+export const HIDDEN_FIELDS = ['sn', 'deviceCode', 'deviceName', 'deviceType', 'exported'];
 
-export interface InterventionType {
-  code: string;
-  name: string;
+export enum InterventionType {
+  COMMISSIONING = 'commissioning',
+  ANNUAL_SERVICE = 'annual_service',
+  INTERVENTION_REPAIR = 'intervention_repair',
+  INTERVENTION_NOISE = 'intervention_noise',
+  INTERVENTION_REPLACE = 'intervention_replace',
 }
 
-/** Maximum spare parts per intervention. TODO: Move to BusinessConfig. */
+export interface InterventionTypeOption {
+  key: InterventionType;
+  label: string;
+}
+
+export const COMMISSIONING_TYPES: Partial<Record<DeviceType, InterventionTypeOption>> = {
+  [DeviceType.GAS_BOILER]: { key: InterventionType.COMMISSIONING, label: 'intervention_type_commissioning_gas_boiler' },
+  [DeviceType.HEAT_PUMP]: { key: InterventionType.COMMISSIONING, label: 'intervention_type_commissioning_heat_pump' },
+};
+
+export const ANNUAL_SERVICE_TYPES: Partial<Record<DeviceType, InterventionTypeOption>> = {
+  [DeviceType.GAS_BOILER]: { key: InterventionType.ANNUAL_SERVICE, label: 'intervention_type_annual_gas_boiler' },
+  [DeviceType.HEAT_PUMP]: { key: InterventionType.ANNUAL_SERVICE, label: 'intervention_type_annual_heat_pump' },
+};
+
+export const INTERVENTION_OPTIONS: Partial<Record<DeviceType, InterventionTypeOption[]>> = {
+  [DeviceType.BOILER]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_boiler' },
+    { key: InterventionType.INTERVENTION_NOISE, label: 'intervention_type_noise_boiler' },
+    { key: InterventionType.INTERVENTION_REPLACE, label: 'intervention_type_replace_boiler' },
+  ],
+  [DeviceType.GAS_BOILER]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_gas_boiler' },
+  ],
+  [DeviceType.HEAT_PUMP]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_heat_pump' },
+  ],
+  [DeviceType.AIR_CONDITION]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_air_condition' },
+  ],
+  [DeviceType.MONOBLOCK]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_monoblock' },
+  ],
+};
+/** Maximum spare parts per intervention. */
 export const MAX_SPARE_PARTS = 4;
+
+export const COMMISSIONING_DESCRIPTION = 'intervention_description_commissioning';
+export const ANNUAL_SERVICE_DESCRIPTION = 'intervention_description_annual_service';
 
 export const DEFAULT_ERROR = 'BEZ GREŠKE';
 export const DEFAULT_DISTANCE = '30';
 
-export const ANNUAL_SERVICE_TYPES: Partial<Record<DeviceType, InterventionType>> = {
-  [DeviceType.GAS_BOILER]: { code: 'M799001', name: 'GASNI KOTAO REDOVNO ODRŽAVANJE' },
-  [DeviceType.HEAT_PUMP]: { code: 'M853001', name: 'TOPLOTNA PUMPA - GODIŠNJI SERVIS' },
-};
-
-export const ANNUAL_SERVICE_DESCRIPTION = 'GODIŠNJI SERVIS';
-
-export const INTERVENTION_TYPES: Record<DeviceType, InterventionType[]> = {
-  [DeviceType.GAS_BOILER]: [
-    { code: 'B799001', name: 'POPRAVKA - GASNI KOTAO' },
-  ],
-  [DeviceType.HEAT_PUMP]: [
-    { code: 'B853005', name: 'POPRAVKA - TOPLOTNA PUMPA' },
-  ],
-  [DeviceType.AIR_CONDITION]: [
-    { code: 'B380001', name: 'POPRAVKA - KLIMA' },
-  ],
-  [DeviceType.BOILER]: [
-    { code: 'B899001', name: 'POPRAVKA ELEKTRIČNOG BOJLERA' },
-    { code: 'B899003', name: 'BUKA-ZAMENA OBA GREJAČA VLS' },
-    { code: 'C899001', name: 'ZAMENA ELEKTRIČNOG BOJLERA' },
-  ],
-  [DeviceType.MONOBLOCK]: [
-    { code: 'B853005', name: 'POPRAVKA - TOPLOTNA PUMPA' },
-  ],
-};
 
 export const FAULT_DESCRIPTIONS: Record<DeviceType, string[]> = {
   [DeviceType.BOILER]: [

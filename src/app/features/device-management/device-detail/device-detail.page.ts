@@ -1,33 +1,38 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+  IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonButton, IonIcon, IonSkeletonText, IonMenuButton,
-  IonItem, IonLabel, IonInput,
-  ViewWillEnter,
+  IonItem, IonLabel, IonInput, IonSpinner,
+  ViewWillEnter, ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline,
+  searchOutline, barcodeOutline,
 } from 'ionicons/icons';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../../shared/directives/feature-flag.directive';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
 import { InterventionService } from '../services/intervention.service';
+import { InterventionType } from '../models/intervention.model';
 import { AnnualServiceEligibilityService } from '../services/annual-service-eligibility.service';
 import { ConfigStore } from '../../../core/config/config.store';
+import { Device } from '../../../shared/models/device.model';
 
 @Component({
   selector: 'app-device-detail',
   templateUrl: './device-detail.page.html',
   styleUrls: ['./device-detail.page.scss'],
   imports: [
+    FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+    IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
     IonButton, IonIcon, IonSkeletonText, IonMenuButton,
-    IonItem, IonLabel, IonInput,
+    IonItem, IonLabel, IonInput, IonSpinner,
     TranslocoModule,
     FeatureFlagDirective,
   ],
@@ -40,13 +45,19 @@ export class DeviceDetailPage implements ViewWillEnter {
   protected configStore = inject(ConfigStore);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toastCtrl = inject(ToastController);
+  private transloco = inject(TranslocoService);
 
   protected sn = '';
   protected isInitializing = true;
   protected isCommissioningDone = false;
 
+  protected connectedSnInput = '';
+  protected connectedSn = '';
+  protected isSearchingConnected = false;
+
   constructor() {
-    addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline });
+    addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline, searchOutline, barcodeOutline });
   }
 
   ionViewWillEnter(): void {
@@ -88,19 +99,9 @@ export class DeviceDetailPage implements ViewWillEnter {
 
   private async checkCommissioningDone(): Promise<void> {
     const interventions = await this.interventionService.getInterventionsBySn(this.sn);
-    this.isCommissioningDone = interventions.some(i => {
-      const typeName = this.getInterventionTypeName(i.data);
-      return typeName.toUpperCase().includes('PUŠTANJE')
-        || typeName.toUpperCase().includes('PUSTANJE');
-    });
-  }
-
-  private getInterventionTypeName(data: Record<string, unknown>): string {
-    const interventionType = data['interventionType'];
-    if (typeof interventionType === 'object' && interventionType !== null) {
-      return (interventionType as { name: string }).name ?? '';
-    }
-    return String(interventionType ?? '');
+    this.isCommissioningDone = interventions.some(i =>
+      i.data['interventionType'] === InterventionType.COMMISSIONING,
+    );
   }
 
   get isOperational(): boolean {
@@ -112,12 +113,102 @@ export class DeviceDetailPage implements ViewWillEnter {
     return !this.lookupService.device?.commissioning || this.isCommissioningDone;
   }
 
-  onAddUser(): void {
-    this.router.navigate(['/device-management', this.sn, 'add-user']);
+  get isAnnualServiceEnabled(): boolean {
+    const warrantyStatus = this.registrationService.userData?.['warrantyStatus'];
+    if (warrantyStatus === 'out_of_warranty') return true;
+    return this.eligibilityService.isEligible && !this.eligibilityService.isChecking;
+  }
+
+  get needsConnectedDevice(): boolean {
+    return !!this.lookupService.device?.connectedDevice
+      && this.registrationService.isRegistered !== true;
+  }
+
+  scanConnectedBarcode(): void {
+    // TODO: Implement barcode scanning for connected device
+  }
+
+  async onAddUser(): Promise<void> {
+    if (this.needsConnectedDevice) {
+      const valid = await this.validateConnectedDevice();
+      if (!valid) return;
+    }
+
+    const extras = this.connectedSn
+      ? { queryParams: { connectedSn: this.connectedSn } }
+      : undefined;
+    this.router.navigate(['/device-management', this.sn, 'add-user'], extras);
+  }
+
+  private async validateConnectedDevice(): Promise<boolean> {
+    const sn = this.connectedSnInput.trim();
+
+    if (!sn) {
+      await this.showToast(this.transloco.translate('connected_device_sn_placeholder'), 'warning');
+      return false;
+    }
+
+    this.isSearchingConnected = true;
+
+    try {
+      const device = await this.lookupConnectedDevice(sn);
+
+      if (!device) {
+        await this.showToast(this.transloco.translate('connected_device_not_found'), 'danger');
+        return false;
+      }
+
+      if (!device.connectedDevice) {
+        await this.showToast(this.transloco.translate('connected_device_no_connected_flag'), 'danger');
+        return false;
+      }
+
+      if (device.type !== this.lookupService.device?.type) {
+        await this.showToast(this.transloco.translate('connected_device_wrong_type'), 'danger');
+        return false;
+      }
+
+      if (device.code === this.lookupService.device?.code) {
+        await this.showToast(this.transloco.translate('connected_device_same_model'), 'danger');
+        return false;
+      }
+
+      const existingRegistration = await this.interventionService.getRegistration(sn);
+
+      if (existingRegistration) {
+        await this.showToast(this.transloco.translate('connected_device_already_registered'), 'danger');
+        return false;
+      }
+
+      this.connectedSn = sn;
+      return true;
+    } catch {
+      await this.showToast(this.transloco.translate('connected_device_not_found'), 'danger');
+      return false;
+    } finally {
+      this.isSearchingConnected = false;
+    }
+  }
+
+  private async lookupConnectedDevice(sn: string): Promise<Device | null> {
+    return this.lookupService.lookupSilent(sn);
+  }
+
+  private async showToast(message: string, color: string): Promise<void> {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 3000,
+      color,
+      position: 'bottom',
+    });
+    await toast.present();
   }
 
   onCommissioning(): void {
-    this.router.navigate(['/device-management', this.sn, 'add-device']);
+    const extras = this.connectedSn
+      ? { queryParams: { connectedSn: this.connectedSn } }
+      : undefined;
+    this.router.navigate(['/device-management', this.sn, 'add-device'], extras);
   }
 
   onAnnualService(): void {

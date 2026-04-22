@@ -53,6 +53,20 @@
           <ion-input formControlName="phoneNumber" inputmode="tel" />
         </ion-item>
 
+        @if (lookupService.device?.annualService) {
+          <ion-item>
+            <ion-label position="stacked">{{ 'add_user_call_accepted' | transloco }}</ion-label>
+            <ion-select formControlName="callAccepted" interface="action-sheet">
+              <ion-select-option [value]="true">
+                {{ 'add_user_call_accepted_yes' | transloco }}
+              </ion-select-option>
+              <ion-select-option [value]="false">
+                {{ 'add_user_call_accepted_no' | transloco }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        }
+
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_warranty' | transloco }}</ion-label>
           <ion-select formControlName="warrantyStatus" interface="action-sheet">
@@ -65,11 +79,13 @@
           </ion-select>
         </ion-item>
 
-        <ion-item>
-          <ion-label position="floating">{{ 'add_user_note' | transloco }}</ion-label>
-          <ion-textarea formControlName="note" maxlength="1000" [rows]="5"
-                        [placeholder]="'add_user_note_placeholder' | transloco" />
-        </ion-item>
+        @if (showDateOfPurchase) {
+          <ion-item button="true" (click)="openDatePicker()">
+            <ion-label position="stacked">{{ 'add_user_date_of_purchase' | transloco }}</ion-label>
+            <ion-input readonly [value]="form.get('dateOfPurchase')?.value"
+                       [placeholder]="'add_user_select_date' | transloco" />
+          </ion-item>
+        }
       </form>
     </ion-card-content>
   </ion-card>

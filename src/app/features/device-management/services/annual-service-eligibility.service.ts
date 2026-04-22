@@ -4,7 +4,7 @@ import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { Clearable } from '../../../core/session/clearable';
 import { Device } from '../../../shared/models/device.model';
 import { InterventionService } from './intervention.service';
-import { ANNUAL_SERVICE_DESCRIPTION } from '../models/intervention.model';
+import { InterventionType } from '../models/intervention.model';
 
 export interface ServiceWindowParams {
   firstServiceYear: number;
@@ -88,8 +88,8 @@ export class AnnualServiceEligibilityService implements Clearable {
 
       const interventions = await this.interventionService.getInterventionsBySn(sn);
       const annualServiceDates = interventions
-        .filter(i => i.data['description'] === ANNUAL_SERVICE_DESCRIPTION)
-        .map(i => this.parseInterventionDate(i.data['date']))
+        .filter(i => i.data['interventionType'] === InterventionType.ANNUAL_SERVICE)
+        .map(i => this.toDate(i.data['addedDate']))
         .filter((d): d is Date => d !== null);
 
       this.logger.info('Eligibility data', {
@@ -235,10 +235,4 @@ export class AnnualServiceEligibilityService implements Clearable {
     return null;
   }
 
-  private parseInterventionDate(value: unknown): Date | null {
-    if (typeof value !== 'string') return null;
-    const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!match) return null;
-    return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
-  }
 }
