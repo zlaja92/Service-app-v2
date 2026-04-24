@@ -44,8 +44,8 @@ export class InterventionService implements Clearable {
         exported: false,
       };
 
-      const docId = await this.firestoreService.addTenantDocument('interventions', data);
-      this.logger.info('Intervention saved', { sn, deviceCode: device.code, docId });
+      const docId = await this.firestoreService.addDeviceTypeDocument(device.type, 'interventions', data);
+      this.logger.info('Intervention saved', { sn, deviceType: device.type, docId });
       return docId;
     } catch (error) {
       this.logger.error('Intervention save failed', { sn, error: String(error) });
@@ -57,9 +57,11 @@ export class InterventionService implements Clearable {
 
   async getInterventionsBySn(
     sn: string,
+    deviceType: string,
   ): Promise<{ id: string; data: Record<string, unknown> }[]> {
     try {
-      const result = await this.firestoreService.queryTenantCollection<Record<string, unknown>>(
+      const result = await this.firestoreService.queryDeviceTypeCollection<Record<string, unknown>>(
+        deviceType,
         'interventions',
         {
           compositeFilter: {
@@ -85,9 +87,9 @@ export class InterventionService implements Clearable {
     }
   }
 
-  async getInterventionById(id: string): Promise<Record<string, unknown> | null> {
+  async getInterventionById(id: string, deviceType: string): Promise<Record<string, unknown> | null> {
     try {
-      return await this.firestoreService.getTenantDocument('interventions', id);
+      return await this.firestoreService.getDeviceTypeDocument(deviceType, 'interventions', id);
     } catch (error) {
       this.logger.error('Failed to load intervention', { id, error: String(error) });
       return null;
@@ -142,7 +144,7 @@ export class InterventionService implements Clearable {
           const docId = this.firestoreService.generateId();
           return {
             type: 'set' as const,
-            reference: this.firestoreService.buildTenantReference('interventions', docId),
+            reference: this.firestoreService.buildDeviceTypeReference(entry.device.type, 'interventions', docId),
             data,
           };
         }),

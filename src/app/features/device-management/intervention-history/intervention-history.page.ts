@@ -71,12 +71,17 @@ export class InterventionHistoryPage implements ViewWillEnter {
     this.isLoading = true;
     this.items = [];
 
-    const interventions = await this.interventionService.getInterventionsBySn(this.sn);
+    const device = this.lookupService.device;
+    if (!device) {
+      this.isLoading = false;
+      return;
+    }
+
+    const interventions = await this.interventionService.getInterventionsBySn(this.sn, device.type);
     this.cachedInterventions = interventions;
 
     const items: InterventionHistoryItem[] = [];
 
-    const device = this.lookupService.device;
     const registration = await this.interventionService.getRegistration(this.sn);
     const isCommissioning = device?.commissioning === true;
 

@@ -4,12 +4,14 @@ interface TenantState {
   tenantId: string | null;
   role: string | null;
   servicerId: string | null;
+  deviceTypes: string[];
 }
 
 const initialState: TenantState = {
   tenantId: null,
   role: null,
   servicerId: null,
+  deviceTypes: [],
 };
 
 export const TenantStore = signalStore(
@@ -17,8 +19,13 @@ export const TenantStore = signalStore(
   withState(initialState),
 
   withMethods((store) => ({
-    setTenant(tenantId: string | null, role: string | null, servicerId: string | null): void {
-      patchState(store, { tenantId, role, servicerId });
+    setTenant(
+      tenantId: string | null,
+      role: string | null,
+      servicerId: string | null,
+      deviceTypes: string[] = [],
+    ): void {
+      patchState(store, { tenantId, role, servicerId, deviceTypes });
     },
 
     clear(): void {

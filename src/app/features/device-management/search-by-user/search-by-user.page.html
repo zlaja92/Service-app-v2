@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" />
+    </ion-buttons>
+    <ion-title>{{ 'user_search_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="search-section">
+    <ion-item>
+      <ion-label position="stacked">{{ 'user_search_last_name' | transloco }}</ion-label>
+      <ion-input [(ngModel)]="lastName"
+                 [placeholder]="'user_search_last_name_placeholder' | transloco"
+                 />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">{{ 'user_search_first_name' | transloco }}</ion-label>
+      <ion-input [(ngModel)]="firstName"
+                 [placeholder]="'user_search_first_name_placeholder' | transloco"
+                 />
+    </ion-item>
+
+    <ion-button expand="block" fill="solid" color="primary" class="search-button"
+                (click)="onSearch()"
+                [disabled]="searchService.isLoading || (firstName.trim().length < configStore.business()!.userSearchMinLength && lastName.trim().length < configStore.business()!.userSearchMinLength)">
+      @if (searchService.isLoading) {
+        <ion-spinner name="crescent" slot="start" class="button-spinner" />
+      } @else {
+        <ion-icon name="search-outline" slot="start" />
+      }
+      {{ 'user_search_search' | transloco }}
+    </ion-button>
+  </div>
+
+  @if (searchService.results.length > 0) {
+    <ion-list>
+      @for (user of searchService.results; track user.sn) {
+        <ion-item button (click)="onResultClick(user.sn)" detail>
+          <ion-label>
+            <h2>{{ user.lastName }} {{ user.firstName }}</h2>
+            <p>{{ user.streetName }}, {{ user.city }}</p>
+            <p class="sn-label">{{ user.sn }}</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+
+    @if (searchService.hasMore) {
+      <ion-button expand="block" fill="clear" color="primary" class="load-more"
+                  (click)="onLoadMore()" [disabled]="searchService.isLoading">
+        @if (searchService.isLoading) {
+          <ion-spinner name="crescent" />
+        } @else {
+          {{ 'user_search_load_more' | transloco }}
+        }
+      </ion-button>
+    }
+  }
+
+  @if (!searchService.isLoading && searchService.results.length === 0 && hasSearched) {
+    <div class="empty-state">
+      <p>{{ 'user_search_no_results' | transloco }}</p>
+    </div>
+  }
+</ion-content>

@@ -40,7 +40,7 @@ export class ConfigService {
         this.logger.debug('Config version matches, using local cache', {
           version: localConfig.version,
         });
-        return localConfig;
+        return this.mergeWithDefaults(localConfig);
       }
 
       this.logger.info('New config version detected, fetching full config', {
@@ -58,7 +58,7 @@ export class ConfigService {
 
       if (localConfig) {
         this.logger.info('Using cached local config', { version: localConfig.version });
-        return localConfig;
+        return this.mergeWithDefaults(localConfig);
       }
 
       this.logger.warn('No local config available, using defaults');
@@ -96,13 +96,24 @@ export class ConfigService {
    * Path: tenants/{tenantId}/settings/config → Omit<AppConfig, 'version'>
    */
   private async fetchFullConfig(version: number): Promise<AppConfig> {
-    const config = await this.firestoreService.getTenantDocument<Omit<AppConfig, 'version'>>('settings', 'config');
+    const config = await this.firestoreService.getTenantDocument<Record<string, unknown>>('settings', 'config');
 
     if (!config) {
       throw new Error('Config document not found');
     }
 
-    return { ...config, version };
+    return this.mergeWithDefaults({ ...config, version } as AppConfig);
+  }
+
+  private mergeWithDefaults(config: AppConfig): AppConfig {
+    const defaults = getDefaultConfig();
+    return {
+      version: config.version,
+      features: { ...defaults.features, ...config.features },
+      theme: { ...defaults.theme, ...config.theme },
+      localization: { ...defaults.localization, ...config.localization },
+      business: { ...defaults.business, ...config.business },
+    };
   }
 
   private async saveLocalConfig(config: AppConfig): Promise<void> {

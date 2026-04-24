@@ -76,29 +76,35 @@ export class DeviceDetailPage implements ViewWillEnter {
       await this.lookupService.lookup(this.sn);
     }
 
-    await this.registrationService.checkRegistration(this.sn);
-
     const device = this.lookupService.device;
 
-    console.log('device-detail init', {
-      commissioning: device?.commissioning,
-      isRegistered: this.registrationService.isRegistered,
-      warrantyStatus: this.registrationService.userData?.['warrantyStatus'],
-    });
-
-    if (this.registrationService.isRegistered && device?.commissioning) {
-      await this.checkCommissioningDone();
+    if (!device) {
+      this.isInitializing = false;
+      return;
     }
 
-    if (device?.annualService) {
+    await this.registrationService.checkRegistration(this.sn);
+
+    if (this.registrationService.isRegistered) {
+      const savedConnected = this.registrationService.userData?.['connectedDevice'] as string | undefined;
+      if (savedConnected) {
+        this.connectedSn = savedConnected;
+      }
+    }
+
+    if (this.registrationService.isRegistered && device.commissioning) {
+      await this.checkCommissioningDone(device.type);
+    }
+
+    if (device.annualService) {
       await this.eligibilityService.checkEligibility(this.sn, device);
     }
 
     this.isInitializing = false;
   }
 
-  private async checkCommissioningDone(): Promise<void> {
-    const interventions = await this.interventionService.getInterventionsBySn(this.sn);
+  private async checkCommissioningDone(deviceType: string): Promise<void> {
+    const interventions = await this.interventionService.getInterventionsBySn(this.sn, deviceType);
     this.isCommissioningDone = interventions.some(i =>
       i.data['interventionType'] === InterventionType.COMMISSIONING,
     );

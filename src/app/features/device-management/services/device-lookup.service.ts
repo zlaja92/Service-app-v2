@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { Clearable } from '../../../core/session/clearable';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 
@@ -24,6 +25,7 @@ interface DeviceDoc {
 export class DeviceLookupService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private configStore = inject(ConfigStore);
+  private tenantService = inject(TenantService);
   private logger = inject(LoggerService);
 
   device: Device | null = null;
@@ -66,7 +68,15 @@ export class DeviceLookupService implements Clearable {
         return null;
       }
 
-      this.device = this.mapToDevice(modelCode, doc);
+      const device = this.mapToDevice(modelCode, doc);
+
+      if (!this.tenantService.isDeviceTypeAllowed(device.type)) {
+        this.logger.info('Device found but type not allowed', { sn, modelCode, type: device.type });
+        this.isLoading = false;
+        return null;
+      }
+
+      this.device = device;
       this.logger.info('Device found', {
         sn,
         modelCode,
@@ -94,7 +104,11 @@ export class DeviceLookupService implements Clearable {
     try {
       const doc = await this.firestoreService.getTenantDocument<DeviceDoc>('devices', modelCode);
       if (!doc) return null;
-      return this.mapToDevice(modelCode, doc);
+
+      const device = this.mapToDevice(modelCode, doc);
+      if (!this.tenantService.isDeviceTypeAllowed(device.type)) return null;
+
+      return device;
     } catch (error) {
       this.logger.error('Silent device lookup failed', { sn, error: String(error) });
       return null;

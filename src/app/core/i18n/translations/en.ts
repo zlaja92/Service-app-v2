@@ -400,6 +400,16 @@ export const en: Translation = {
   env_info_input_placeholder: 'Enter value',
 
   // ─── Connected Device ───────────────────────────────────────────
+  // ─── User Search ─────────────────────────────────────────────
+  user_search_title: 'Search by user',
+  user_search_first_name: 'First name',
+  user_search_last_name: 'Last name',
+  user_search_first_name_placeholder: 'Enter first name',
+  user_search_last_name_placeholder: 'Enter last name',
+  user_search_search: 'Search',
+  user_search_load_more: 'Load more',
+  user_search_no_results: 'No users found.',
+
   connected_device_title: 'Connected unit',
   connected_device_sn_placeholder: 'Enter serial number',
   connected_device_search: 'Search',

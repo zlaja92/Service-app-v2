@@ -49,6 +49,8 @@ export interface BusinessConfig {
   partPhotoFolder: string;
   snModelStart: number;
   snModelLength: number;
+  userSearchPageSize: number;
+  userSearchMinLength: number;
   interventionFaultOptions: { value: string; label: string }[];
   interventionErrorOptions: { value: string; label: string }[];
 }
@@ -104,6 +106,8 @@ export function getDefaultConfig(): AppConfig {
       partPhotoFolder: '',
       snModelStart: 0,
       snModelLength: 7,
+      userSearchPageSize: 20,
+      userSearchMinLength: 2,
       interventionFaultOptions: [],
       interventionErrorOptions: [],
     },

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
 import { Device } from '../../../shared/models/device.model';
@@ -18,6 +19,7 @@ interface DeviceDoc {
 @Injectable({ providedIn: 'root' })
 export class DeviceSearchService implements Clearable {
   private firestoreService = inject(FirestoreService);
+  private tenantService = inject(TenantService);
   private logger = inject(LoggerService);
 
   devices: Device[] = [];
@@ -102,7 +104,10 @@ export class DeviceSearchService implements Clearable {
       this.lastDocumentPath = result.lastDocumentPath;
       this.hasMore = result.documents.length === PAGE_SIZE;
 
-      const newDevices = result.documents.map((doc) => this.mapToDevice(doc.id, doc.data));
+      const allowedTypes = this.tenantService.getAllowedDeviceTypes();
+      const newDevices = result.documents
+        .map((doc) => this.mapToDevice(doc.id, doc.data))
+        .filter((device) => allowedTypes.includes(device.type));
       this.devices = [...this.devices, ...newDevices];
 
       this.logger.debug('Device search results', {

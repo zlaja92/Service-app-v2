@@ -86,7 +86,7 @@ export class AnnualServiceEligibilityService implements Clearable {
         return;
       }
 
-      const interventions = await this.interventionService.getInterventionsBySn(sn);
+      const interventions = await this.interventionService.getInterventionsBySn(sn, device.type);
       const annualServiceDates = interventions
         .filter(i => i.data['interventionType'] === InterventionType.ANNUAL_SERVICE)
         .map(i => this.toDate(i.data['addedDate']))

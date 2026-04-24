@@ -131,6 +131,74 @@ export class FirestoreService {
     return `${this.tenantService.getCollectionPath(collection)}/${docId}`;
   }
 
+  // ─── Device-type-scoped methods ───────────────────────────────
+  // Path: tenants/{tenantId}/{deviceType}/{collection}/{docId}
+  // Used for users and interventions collections.
+
+  async getDeviceTypeDocument<T = Record<string, unknown>>(
+    deviceType: string,
+    collection: string,
+    docId: string,
+  ): Promise<T | null> {
+    const reference = `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
+    return this.getDocument<T>(reference);
+  }
+
+  async setDeviceTypeDocument(
+    deviceType: string,
+    collection: string,
+    docId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const reference = `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
+    await this.setDocument(reference, data);
+  }
+
+  async addDeviceTypeDocument(
+    deviceType: string,
+    collection: string,
+    data: Record<string, unknown>,
+  ): Promise<string> {
+    const reference = this.tenantService.getDeviceTypeCollectionPath(deviceType, collection);
+    this.logger.debug('Firestore addDeviceTypeDocument', { reference });
+    const result = await FirebaseFirestore.addDocument({ reference, data });
+    return result.reference.id;
+  }
+
+  async queryDeviceTypeCollection<T = Record<string, unknown>>(
+    deviceType: string,
+    collection: string,
+    options: {
+      compositeFilter?: QueryCompositeFilterConstraint;
+      queryConstraints?: QueryNonFilterConstraint[];
+    },
+  ): Promise<CollectionQueryResult<T>> {
+    const reference = this.tenantService.getDeviceTypeCollectionPath(deviceType, collection);
+    this.logger.debug('Firestore queryDeviceTypeCollection', { reference });
+
+    const result = await FirebaseFirestore.getCollection({
+      reference,
+      compositeFilter: options.compositeFilter,
+      queryConstraints: options.queryConstraints,
+    });
+
+    const documents = (result.snapshots ?? []).map((snapshot) => ({
+      id: snapshot.id,
+      path: snapshot.path,
+      data: snapshot.data as T,
+    }));
+
+    const lastDocumentPath = documents.length > 0
+      ? documents[documents.length - 1].path
+      : null;
+
+    return { documents, lastDocumentPath };
+  }
+
+  buildDeviceTypeReference(deviceType: string, collection: string, docId: string): string {
+    return `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
+  }
+
   /**
    * Generates a random 20-character document ID.
    * Uses the same algorithm as Firebase's AutoId.newId() -

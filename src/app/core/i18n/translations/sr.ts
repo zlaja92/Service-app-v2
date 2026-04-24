@@ -400,6 +400,16 @@ export const sr: Translation = {
   env_info_input_placeholder: 'Unesite vrednost',
 
   // ─── Connected Device ───────────────────────────────────────────
+  // ─── User Search ─────────────────────────────────────────────
+  user_search_title: 'Pretraži po korisniku',
+  user_search_first_name: 'Ime',
+  user_search_last_name: 'Prezime',
+  user_search_first_name_placeholder: 'Unesite ime',
+  user_search_last_name_placeholder: 'Unesite prezime',
+  user_search_search: 'Pretraži',
+  user_search_load_more: 'Učitaj još',
+  user_search_no_results: 'Nema pronađenih korisnika.',
+
   connected_device_title: 'Povezana jedinica',
   connected_device_sn_placeholder: 'Unesite serijski broj',
   connected_device_search: 'Pretraži',

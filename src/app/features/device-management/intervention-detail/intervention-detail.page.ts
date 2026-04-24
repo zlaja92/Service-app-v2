@@ -89,12 +89,14 @@ export class InterventionDetailPage implements ViewWillEnter {
     let data: Record<string, unknown> | null;
     let isRegistration = false;
 
+    const deviceType = this.lookupService.device?.type ?? '';
+
     if (id === 'registration') {
       data = await this.interventionService.getRegistration(this.sn);
       isRegistration = true;
       this.pageTitle = this.transloco.translate('history_type_purchase');
     } else {
-      data = await this.interventionService.getInterventionById(id);
+      data = await this.interventionService.getInterventionById(id, deviceType);
       this.pageTitle = this.transloco.translate('history_detail_title');
     }
 

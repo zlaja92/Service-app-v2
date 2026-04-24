@@ -53,6 +53,7 @@ export class DeviceRegistrationService implements Clearable {
 
       const data: Record<string, unknown> = {
         sn,
+        deviceType: device.type,
         addedBy: this.authStore.userEmail(),
         addedDate: serverTime,
         ...dynamicFields,
@@ -65,7 +66,7 @@ export class DeviceRegistrationService implements Clearable {
       );
 
       this.isRegistered = true;
-      this.logger.info('Device registered', { sn, deviceCode: device.code });
+      this.logger.info('Device registered', { sn, deviceType: device.type, deviceCode: device.code });
       return true;
     } catch (error) {
       this.logger.error('Device registration failed', { sn, error: String(error) });
@@ -90,6 +91,7 @@ export class DeviceRegistrationService implements Clearable {
       const operations = entries.map((entry) => {
         const data: Record<string, unknown> = {
           sn: entry.sn,
+          deviceType: entry.device.type,
           addedBy: this.authStore.userEmail(),
           addedDate: serverTime,
           ...entry.dynamicFields,

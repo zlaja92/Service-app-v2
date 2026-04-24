@@ -54,8 +54,8 @@ export class DeviceEnvInfoService {
     await modal.present();
   }
 
-  async getLastEnvInfo(sn: string): Promise<Record<string, string> | null> {
-    const interventions = await this.interventionService.getInterventionsBySn(sn);
+  async getLastEnvInfo(sn: string, deviceType: string): Promise<Record<string, string> | null> {
+    const interventions = await this.interventionService.getInterventionsBySn(sn, deviceType);
 
     for (let i = interventions.length - 1; i >= 0; i--) {
       const envInfo = interventions[i].data['envInfo'] as Record<string, string> | undefined;

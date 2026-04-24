@@ -14,6 +14,9 @@
     letter-spacing: 0.5px;
   }
 
+  ion-item {
+    --background: transparent;
+  }
 }
 
 .connected-label {
@@ -27,18 +30,22 @@
 .connected-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .connected-input {
   flex: 1;
   --padding-start: 0;
+  --padding-end: 0;
+  --inner-padding-end: 0;
+  --background: transparent;
 }
 
 .connected-scan {
   flex-shrink: 0;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  height: 45px;
 }
 
 .button-spinner {
