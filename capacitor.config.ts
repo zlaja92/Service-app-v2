@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.aristonservice',
+  appId: 'io.ionic.Ariston',
   appName: 'Ariston Service',
   webDir: 'www',
   plugins: {

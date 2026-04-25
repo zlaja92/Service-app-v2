@@ -106,11 +106,6 @@ const HP_SECTIONS: EnvInfoSectionConfig[] = [
   { key: 'systemOp', label: 'env_info_section_system_operation' },
 ];
 
-const MONOBLOCK_SECTIONS: EnvInfoSectionConfig[] = [
-  { key: 'electrical', label: 'env_info_section_electrical' },
-  { key: 'hydraulic', label: 'env_info_section_hydraulic' },
-  { key: 'systemOp', label: 'env_info_section_system_operation' },
-];
 
 const GAS_BOILER_SECTIONS: EnvInfoSectionConfig[] = [
   { key: 'gasBoiler', label: 'env_info_section_gas_boiler' },
@@ -173,19 +168,16 @@ const GAS_BOILER_FIELDS: EnvInfoFieldConfig[] = [
   { key: 'readyForUse', label: 'env_info_ready_for_use', type: 'select', section: 'gasBoiler', options: YES_NO_OPTIONS },
 ];
 
-const MONOBLOCK_FIELDS: EnvInfoFieldConfig[] = HP_FIELDS.filter(f => f.section !== 'freon');
 
 // ─── Lookup Maps ──────────────────────────────────────────────────
 
 export const ENV_INFO_FIELDS: Partial<Record<DeviceType, EnvInfoFieldConfig[]>> = {
   [DeviceType.HEAT_PUMP]: HP_FIELDS,
-  [DeviceType.MONOBLOCK]: MONOBLOCK_FIELDS,
   [DeviceType.GAS_BOILER]: GAS_BOILER_FIELDS,
 };
 
 export const ENV_INFO_SECTIONS: Partial<Record<DeviceType, EnvInfoSectionConfig[]>> = {
   [DeviceType.HEAT_PUMP]: HP_SECTIONS,
-  [DeviceType.MONOBLOCK]: MONOBLOCK_SECTIONS,
   [DeviceType.GAS_BOILER]: GAS_BOILER_SECTIONS,
 };
 
@@ -193,6 +185,5 @@ export const ENV_INFO_SECTIONS: Partial<Record<DeviceType, EnvInfoSectionConfig[
 
 export function requiresEnvInfo(deviceType: DeviceType): boolean {
   return deviceType === DeviceType.HEAT_PUMP
-    || deviceType === DeviceType.GAS_BOILER
-    || deviceType === DeviceType.MONOBLOCK;
+    || deviceType === DeviceType.GAS_BOILER;
 }

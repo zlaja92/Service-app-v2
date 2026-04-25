@@ -81,16 +81,9 @@ const GAS_BOILER_FIELDS: FieldConfig[] = [
   ...makeExtraFields('gk_field_', 5),
 ];
 
-const MONOBLOCK_FIELDS: FieldConfig[] = [
-  ...BASE_FIELDS,
-  CONNECTED_DEVICE_FIELD,
-  ...makeExtraFields('mb_field_', 5),
-];
-
 export const DEVICE_FORM_CONFIG: Record<DeviceType, FieldConfig[]> = {
   [DeviceType.BOILER]: BASE_FIELDS,
   [DeviceType.AIR_CONDITION]: BASE_FIELDS,
   [DeviceType.HEAT_PUMP]: HEAT_PUMP_FIELDS,
   [DeviceType.GAS_BOILER]: GAS_BOILER_FIELDS,
-  [DeviceType.MONOBLOCK]: MONOBLOCK_FIELDS,
 };

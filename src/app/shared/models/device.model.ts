@@ -1,9 +1,8 @@
 export enum DeviceType {
-  HEAT_PUMP = 'heat_pump',
-  GAS_BOILER = 'Gas_boiler',
-  BOILER = 'Boiler',
-  AIR_CONDITION = 'air_condition',
-  MONOBLOCK = 'monoblock',
+  HEAT_PUMP = 'heat-pump',
+  GAS_BOILER = 'gas-boiler',
+  BOILER = 'boiler',
+  AIR_CONDITION = 'air-condition',
 }
 
 export interface Device {

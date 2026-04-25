@@ -62,9 +62,6 @@ export const INTERVENTION_OPTIONS: Partial<Record<DeviceType, InterventionTypeOp
   [DeviceType.AIR_CONDITION]: [
     { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_air_condition' },
   ],
-  [DeviceType.MONOBLOCK]: [
-    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_monoblock' },
-  ],
 };
 /** Maximum spare parts per intervention. */
 export const MAX_SPARE_PARTS = 4;
@@ -156,32 +153,6 @@ export const FAULT_DESCRIPTIONS: Record<DeviceType, string[]> = {
     'NEISPAVAN ULOŽAK TROKRAKOG',
   ],
   [DeviceType.AIR_CONDITION]: [
-    'BUKA PRILIKOM ZAGREVANJA',
-    'CURENJE SIGURNOSNOG VENTILA',
-    'CURI VODA IZ KOTLA',
-    'NEISPRAVAN DISPLEJ',
-    'GASNI VENTIL NEISPRAVAN',
-    'GREŠKA ELEKTRONSKE PLOČE',
-    'IZMENJIVAČ NE RADI ZAPUŠEN',
-    'PUMPA NEISPRAVNA',
-    'MANOMETAR NE PRIKAZUJE PRITISAK',
-    'NEISPRAVNE ELEKTRODE',
-    'NEMA MODULACIJE',
-    'OLABAVLJEN DEO',
-    'PREGREVA SE VODA',
-    'VAZDUŠNI PRESOSTAT NEISPRAVAN',
-    'VODENI PRESOSTAT NEISPRAVAN',
-    'SLAVINA ZA DOPUNU NIJE ISPRAVNA',
-    'NTC T NEISPRAVAN',
-    'UREĐAJ NE PALI',
-    'VENTILATOR NEISPRAVAN',
-    'NEISPRAVAN SERVO MOTOR',
-    'NEISPARVAN TROKRAKI VENTIL',
-    'NEISPRAVAN REED RELEJ',
-    'NEISPRAVAN MERAČ PROTOKA',
-    'NEISPAVAN ULOŽAK TROKRAKOG',
-  ],
-  [DeviceType.MONOBLOCK]: [
     'BUKA PRILIKOM ZAGREVANJA',
     'CURENJE SIGURNOSNOG VENTILA',
     'CURI VODA IZ KOTLA',
@@ -350,5 +321,4 @@ export const ERROR_CODES: Record<DeviceType, string[]> = {
   [DeviceType.GAS_BOILER]: BOILER_GAS_AC_ERRORS,
   [DeviceType.AIR_CONDITION]: BOILER_GAS_AC_ERRORS,
   [DeviceType.HEAT_PUMP]: HEAT_PUMP_ERRORS,
-  [DeviceType.MONOBLOCK]: HEAT_PUMP_ERRORS,
 };

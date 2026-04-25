@@ -1,6 +1,21 @@
 import UIKit
 import Capacitor
 import FirebaseCore
+import FirebaseAppCheck
+
+class AristonAppCheckProviderFactory: NSObject, FirebaseAppCheck.AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> (any AppCheckProvider)? {
+        #if DEBUG
+        return AppCheckDebugProvider(app: app)
+        #else
+        if #available(iOS 14.0, *) {
+            return AppAttestProvider(app: app)
+        } else {
+            return DeviceCheckProvider(app: app)
+        }
+        #endif
+    }
+}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,6 +23,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        AppCheck.setAppCheckProviderFactory(AristonAppCheckProviderFactory())
         FirebaseApp.configure()
         return true
     }
