@@ -18,5 +18,5 @@ export interface Device {
   firstServiceYear?: number;
   serviceWindowStart?: number;
   serviceWindowEnd?: number;
-  maxWarrantyMonths?: number;
+  warrantyMonths?: number;
 }

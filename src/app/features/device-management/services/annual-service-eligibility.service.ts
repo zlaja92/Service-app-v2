@@ -10,7 +10,7 @@ export interface ServiceWindowParams {
   firstServiceYear: number;
   serviceWindowStart: number;
   serviceWindowEnd: number;
-  maxWarrantyMonths: number;
+  warrantyMonths: number;
 }
 
 export type DisableReason =
@@ -133,7 +133,7 @@ export class AnnualServiceEligibilityService implements Clearable {
     annualServiceDates: Date[],
     extendedWarrantyMonths: number,
   ): { eligible: boolean; reason: DisableReason } {
-    const effectiveWarranty = params.maxWarrantyMonths + extendedWarrantyMonths;
+    const effectiveWarranty = params.warrantyMonths + extendedWarrantyMonths;
     const monthsElapsed = this.monthsDiff(commissioningDate, now);
 
     if (monthsElapsed > effectiveWarranty) {
@@ -200,7 +200,7 @@ export class AnnualServiceEligibilityService implements Clearable {
       device.firstServiceYear == null
       || device.serviceWindowStart == null
       || device.serviceWindowEnd == null
-      || device.maxWarrantyMonths == null
+      || device.warrantyMonths == null
     ) {
       return null;
     }
@@ -208,9 +208,9 @@ export class AnnualServiceEligibilityService implements Clearable {
     const firstServiceYear = Number(device.firstServiceYear);
     const serviceWindowStart = Number(device.serviceWindowStart);
     const serviceWindowEnd = Number(device.serviceWindowEnd);
-    const maxWarrantyMonths = Number(device.maxWarrantyMonths);
+    const warrantyMonths = Number(device.warrantyMonths);
 
-    if ([firstServiceYear, serviceWindowStart, serviceWindowEnd, maxWarrantyMonths].some(isNaN)) {
+    if ([firstServiceYear, serviceWindowStart, serviceWindowEnd, warrantyMonths].some(isNaN)) {
       return null;
     }
 
@@ -219,7 +219,7 @@ export class AnnualServiceEligibilityService implements Clearable {
       return null;
     }
 
-    return { firstServiceYear, serviceWindowStart, serviceWindowEnd, maxWarrantyMonths };
+    return { firstServiceYear, serviceWindowStart, serviceWindowEnd, warrantyMonths };
   }
 
   private toDate(value: unknown): Date | null {

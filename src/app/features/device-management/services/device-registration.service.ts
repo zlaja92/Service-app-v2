@@ -124,14 +124,14 @@ export class DeviceRegistrationService implements Clearable {
   }
 
   getWarrantyEndDateFormatted(device: Device): string | null {
-    if (!this.userData || !device.maxWarrantyMonths) return null;
+    if (!this.userData || !device.warrantyMonths) return null;
 
     const raw = this.userData['dateOfPurchase'];
     const date = this.toDate(raw);
     if (!date) return null;
 
     const extendedMonths = Number(this.userData['extendedWarrantyMonths']) || 0;
-    const totalMonths = Number(device.maxWarrantyMonths) + extendedMonths;
+    const totalMonths = Number(device.warrantyMonths) + extendedMonths;
 
     const endDate = new Date(date);
     endDate.setMonth(endDate.getMonth() + totalMonths);

@@ -17,7 +17,7 @@ interface DeviceDoc {
   firstServiceYear?: number;
   serviceWindowStart?: number;
   serviceWindowEnd?: number;
-  maxWarrantyMonths?: number;
+  warrantyMonths?: number;
   [key: string]: unknown;
 }
 
@@ -135,7 +135,7 @@ export class DeviceLookupService implements Clearable {
       firstServiceYear: data['firstServiceYear'],
       serviceWindowStart: data['serviceWindowStart'],
       serviceWindowEnd: data['serviceWindowEnd'],
-      maxWarrantyMonths: data['maxWarrantyMonths'],
+      warrantyMonths: data['warrantyMonths'],
     };
   }
 }
