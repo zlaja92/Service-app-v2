@@ -25,14 +25,17 @@ describe('ConfigStore', () => {
       theme: { ...getDefaultTheme(), appTitle: 'Test App', primaryColor: '#00FF00' },
       localization: { defaultLanguage: 'en', supportedLanguages: ['en', 'de'] },
       business: {
-        warrantyPeriodMonths: 36,
-        serviceIntervalMonths: 12,
         maxPartsPerIntervention: 8,
         currency: 'RSD',
         partNote: 'note',
         partPhotoFolder: 'photos',
         snModelStart: 2,
         snModelLength: 10,
+        userSearchPageSize: 20,
+        userSearchMinLength: 2,
+        interventionCollections: { default: 'interventions' },
+        interventionFaultOptions: [],
+        interventionErrorOptions: [],
       },
       ...overrides,
     };
@@ -196,7 +199,7 @@ describe('ConfigStore', () => {
       store.setConfig(testConfig);
 
       expect(store.business()).toBeDefined();
-      expect(store.business()!.warrantyPeriodMonths).toBe(36);
+      expect(store.business()!.maxPartsPerIntervention).toBe(8);
       expect(store.business()!.currency).toBe('RSD');
     });
   });

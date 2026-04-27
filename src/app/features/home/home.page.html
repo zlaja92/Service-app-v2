@@ -32,7 +32,7 @@
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
-                (click)="scanBarcode()" *appFeatureFlag="'barcodeScan'">
+                (click)="scanBarcode()" *appFeatureFlag="'deviceManagement'">
       <ion-icon name="barcode-outline" slot="start" />
       {{ 'home_scan_barcode' | transloco }}
     </ion-button>
@@ -50,7 +50,7 @@
     </ion-button>
 
     <ion-button expand="block" fill="outline" color="primary"
-                (click)="navigateTo('/search-by-user')" *appFeatureFlag="'searchByUser'">
+                (click)="navigateTo('/search-by-user')" *appFeatureFlag="'deviceManagement'">
       <ion-icon name="person-outline" slot="start" />
       {{ 'home_search_by_user' | transloco }}
     </ion-button>

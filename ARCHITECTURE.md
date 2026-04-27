@@ -396,11 +396,8 @@ export interface FeatureFlags {
   spareParts: boolean;
   cart: boolean;
   documentation: boolean;
-  searchByUser: boolean;
   searchByDevice: boolean;
-  servicerHistory: boolean;
   bugReport: boolean;
-  barcodeScan: boolean;
   pdfReports: boolean;
   emailOrders: boolean;
 }
@@ -423,8 +420,6 @@ export interface LocalizationConfig {
 
 // Poslovna konfiguracija
 export interface BusinessConfig {
-  warrantyPeriodMonths: number;
-  serviceIntervalMonths: number;
   maxPartsPerIntervention: number;
   // ... ostali poslovni parametri
 }
@@ -754,7 +749,7 @@ canMatch:
 export class FeatureFlagDirective {
   // Prikazuje ili sakriva element na osnovu feature flag-a
   // Koristi se u template-ima:
-  // <ion-button *appFeatureFlag="'barcodeScan'">Scan</ion-button>
+  // <ion-button *appFeatureFlag="'deviceManagement'">Scan</ion-button>
 }
 ```
 
@@ -1868,15 +1863,10 @@ Firebase Firestore Database
 │       │   │   │   ├── commissioning: boolean
 │       │   │   │   ├── warrantyExtension: boolean
 │       │   │   │   ├── interventionInWarranty: boolean
-│       │   │   │   ├── interventionOutWarranty: boolean
-│       │   │   │   ├── spareParts: boolean
 │       │   │   │   ├── cart: boolean
 │       │   │   │   ├── documentation: boolean
-│       │   │   │   ├── searchByUser: boolean
 │       │   │   │   ├── searchByDevice: boolean
-│       │   │   │   ├── servicerHistory: boolean
 │       │   │   │   ├── bugReport: boolean
-│       │   │   │   ├── barcodeScan: boolean
 │       │   │   │   ├── pdfReports: boolean
 │       │   │   │   └── emailOrders: boolean
 │       │   │   }
@@ -1893,8 +1883,6 @@ Firebase Firestore Database
 │       │   │   │   └── supportedLanguages: ["sr", "en"]
 │       │   │   }
 │       │   │   └── business: {
-│       │   │       ├── warrantyPeriodMonths: 60
-│       │   │       ├── serviceIntervalMonths: 19
 │       │   │       └── maxPartsPerIntervention: 4
 │       │   │   }
 │       │   }
@@ -2146,7 +2134,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/search/search-by-user/search-by-user.page')
             .then(m => m.SearchByUserPage),
-        canMatch: [featureGuard('searchByUser')],
+        canMatch: [featureGuard('deviceManagement')],
       },
       {
         path: 'search-by-name',

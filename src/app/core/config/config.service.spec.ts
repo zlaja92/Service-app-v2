@@ -18,14 +18,17 @@ describe('ConfigService', () => {
     theme: getDefaultTheme(),
     localization: { defaultLanguage: 'sr', supportedLanguages: ['sr', 'en', 'mk'] },
     business: {
-      warrantyPeriodMonths: 60,
-      serviceIntervalMonths: 19,
       maxPartsPerIntervention: 4,
       currency: 'EUR',
       partNote: '',
       partPhotoFolder: '',
       snModelStart: 0,
       snModelLength: 7,
+      userSearchPageSize: 20,
+      userSearchMinLength: 2,
+      interventionCollections: { default: 'interventions' },
+      interventionFaultOptions: [],
+      interventionErrorOptions: [],
     },
   };
 

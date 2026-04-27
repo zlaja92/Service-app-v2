@@ -9,21 +9,13 @@ describe('getDefaultFeatures()', () => {
   it('should return correct default values for all 17 feature flags', () => {
     const result = getDefaultFeatures();
 
-    // TRUE by default (4)
+    // TRUE by default (2)
     expect(result.deviceManagement).toBe(true);
-    expect(result.searchByUser).toBe(true);
     expect(result.deviceCatalog).toBe(true);
-    expect(result.barcodeScan).toBe(true);
 
-    // FALSE by default (13)
-    expect(result.commissioning).toBe(false);
-    expect(result.warrantyExtension).toBe(false);
-    expect(result.interventionInWarranty).toBe(false);
-    expect(result.interventionOutWarranty).toBe(false);
-    expect(result.spareParts).toBe(false);
+    // FALSE by default (7)
     expect(result.cart).toBe(false);
     expect(result.documentation).toBe(false);
-    expect(result.servicerHistory).toBe(false);
     expect(result.bugReport).toBe(false);
     expect(result.pdfReports).toBe(false);
     expect(result.emailOrders).toBe(false);
@@ -97,8 +89,6 @@ describe('getDefaultConfig()', () => {
   it('should return correct business defaults', () => {
     const result = getDefaultConfig();
 
-    expect(result.business.warrantyPeriodMonths).toBe(60);
-    expect(result.business.serviceIntervalMonths).toBe(19);
     expect(result.business.maxPartsPerIntervention).toBe(4);
     expect(result.business.currency).toBe('EUR');
     expect(result.business.partNote).toBe('');

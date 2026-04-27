@@ -53,7 +53,7 @@ export const routes: Routes = [
         path: 'search-by-user',
         loadComponent: () =>
           import('./features/device-management/search-by-user/search-by-user.page').then((m) => m.SearchByUserPage),
-        canMatch: [featureGuard('searchByUser')],
+        canMatch: [featureGuard('deviceManagement')],
       },
       {
         path: 'device-management/:sn/add-user',

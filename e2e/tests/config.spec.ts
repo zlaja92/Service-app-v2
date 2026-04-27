@@ -470,11 +470,9 @@ test.describe('Config – Preferences (localStorage) cache for offline resilienc
     const syntheticConfig = {
       version: 42,
       features: {
-        commissioning: false, warrantyExtension: false,
-        interventionInWarranty: false, interventionOutWarranty: false,
-        spareParts: false, cart: false, documentation: false,
-        searchByUser: true, deviceCatalog: true, servicerHistory: false,
-        bugReport: false, barcodeScan: true, pdfReports: false,
+        cart: false, documentation: false,
+        deviceCatalog: true,
+        bugReport: false, pdfReports: false,
         emailOrders: false, partPhoto: false, cartNote: false,
       },
       theme: {
@@ -487,7 +485,6 @@ test.describe('Config – Preferences (localStorage) cache for offline resilienc
       },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr'] },
       business: {
-        warrantyPeriodMonths: 60, serviceIntervalMonths: 19,
         maxPartsPerIntervention: 4, currency: 'EUR',
         partNote: '', partPhotoFolder: '',
       },
@@ -589,11 +586,9 @@ test.describe('Config – version field is a number (not sourced from config doc
     const legacyConfig = {
       version: '99', // intentionally a string – simulates old format
       features: {
-        commissioning: false, warrantyExtension: false,
-        interventionInWarranty: false, interventionOutWarranty: false,
-        spareParts: false, cart: false, documentation: false,
-        searchByUser: true, deviceCatalog: true, servicerHistory: false,
-        bugReport: false, barcodeScan: true, pdfReports: false,
+        cart: false, documentation: false,
+        deviceCatalog: true,
+        bugReport: false, pdfReports: false,
         emailOrders: false, partPhoto: false, cartNote: false,
       },
       theme: {
@@ -606,7 +601,6 @@ test.describe('Config – version field is a number (not sourced from config doc
       },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr', 'en'] },
       business: {
-        warrantyPeriodMonths: 60, serviceIntervalMonths: 19,
         maxPartsPerIntervention: 4, currency: 'EUR',
         partNote: '', partPhotoFolder: '',
       },
@@ -714,11 +708,9 @@ test.describe('Config – tenant-aware Preferences cache key', () => {
     const syntheticConfig = {
       version: 7,
       features: {
-        commissioning: false, warrantyExtension: false,
-        interventionInWarranty: false, interventionOutWarranty: false,
-        spareParts: false, cart: false, documentation: false,
-        searchByUser: true, deviceCatalog: true, servicerHistory: false,
-        bugReport: false, barcodeScan: true, pdfReports: false,
+        cart: false, documentation: false,
+        deviceCatalog: true,
+        bugReport: false, pdfReports: false,
         emailOrders: false, partPhoto: false, cartNote: false,
       },
       theme: {
@@ -727,7 +719,6 @@ test.describe('Config – tenant-aware Preferences cache key', () => {
       },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr'] },
       business: {
-        warrantyPeriodMonths: 60, serviceIntervalMonths: 19,
         maxPartsPerIntervention: 4, currency: 'EUR',
         partNote: '', partPhotoFolder: '',
       },
