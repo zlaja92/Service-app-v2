@@ -14,6 +14,10 @@ import {
   searchOutline, barcodeOutline,
 } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import {
+  CapacitorBarcodeScanner,
+  CapacitorBarcodeScannerTypeHintALLOption,
+} from '@capacitor/barcode-scanner';
 import { FeatureFlagDirective } from '../../../shared/directives/feature-flag.directive';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
@@ -130,8 +134,21 @@ export class DeviceDetailPage implements ViewWillEnter {
       && this.registrationService.isRegistered !== true;
   }
 
-  scanConnectedBarcode(): void {
-    // TODO: Implement barcode scanning for connected device
+  async scanConnectedBarcode(): Promise<void> {
+    try {
+      const result = await CapacitorBarcodeScanner.scanBarcode({
+        hint: CapacitorBarcodeScannerTypeHintALLOption.ALL,
+      });
+
+      if (result.ScanResult) {
+        this.connectedSnInput = result.ScanResult;
+      }
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code ?? '';
+      if (code === 'OS-PLUG-BARC-0006') return;
+
+      await this.showToast(this.transloco.translate('home_scan_error'), 'danger');
+    }
   }
 
   async onAddUser(): Promise<void> {

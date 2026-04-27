@@ -51,6 +51,7 @@ export interface BusinessConfig {
   snModelLength: number;
   userSearchPageSize: number;
   userSearchMinLength: number;
+  interventionCollections: Record<string, string>;
   interventionFaultOptions: { value: string; label: string }[];
   interventionErrorOptions: { value: string; label: string }[];
 }
@@ -108,6 +109,7 @@ export function getDefaultConfig(): AppConfig {
       snModelLength: 7,
       userSearchPageSize: 20,
       userSearchMinLength: 2,
+      interventionCollections: { default: 'interventions' },
       interventionFaultOptions: [],
       interventionErrorOptions: [],
     },

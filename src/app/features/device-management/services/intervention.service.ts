@@ -44,7 +44,7 @@ export class InterventionService implements Clearable {
         exported: false,
       };
 
-      const docId = await this.firestoreService.addDeviceTypeDocument(device.type, 'interventions', data);
+      const docId = await this.firestoreService.addInterventionDocument(device.type, data);
       this.logger.info('Intervention saved', { sn, deviceType: device.type, docId });
       return docId;
     } catch (error) {
@@ -60,9 +60,8 @@ export class InterventionService implements Clearable {
     deviceType: string,
   ): Promise<{ id: string; data: Record<string, unknown> }[]> {
     try {
-      const result = await this.firestoreService.queryDeviceTypeCollection<Record<string, unknown>>(
+      const result = await this.firestoreService.queryInterventionCollection<Record<string, unknown>>(
         deviceType,
-        'interventions',
         {
           compositeFilter: {
             type: 'and',
@@ -89,7 +88,7 @@ export class InterventionService implements Clearable {
 
   async getInterventionById(id: string, deviceType: string): Promise<Record<string, unknown> | null> {
     try {
-      return await this.firestoreService.getDeviceTypeDocument(deviceType, 'interventions', id);
+      return await this.firestoreService.getInterventionDocument(deviceType, id);
     } catch (error) {
       this.logger.error('Failed to load intervention', { id, error: String(error) });
       return null;
@@ -144,7 +143,7 @@ export class InterventionService implements Clearable {
           const docId = this.firestoreService.generateId();
           return {
             type: 'set' as const,
-            reference: this.firestoreService.buildDeviceTypeReference(entry.device.type, 'interventions', docId),
+            reference: this.firestoreService.buildInterventionReference(entry.device.type, docId),
             data,
           };
         }),

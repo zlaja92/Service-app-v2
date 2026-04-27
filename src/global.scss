@@ -62,6 +62,19 @@ ion-modal.fullscreen-modal {
   padding: 12px;
 }
 
+.item-label-stacked ion-select,
+.item-label-floating ion-select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.item-label-stacked ion-select::part(icon),
+.item-label-floating ion-select::part(icon) {
+  position: absolute;
+  right: 0;
+  height: 100%;
+}
+
 ion-action-sheet {
   .action-sheet-button {
     text-transform: uppercase;

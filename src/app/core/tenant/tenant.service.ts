@@ -1,12 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { TenantStore } from './tenant.store';
+import { ConfigStore } from '../config/config.store';
 import { LoggerService } from '../logger/logger.service';
 
 @Injectable({ providedIn: 'root' })
 export class TenantService {
   private logger = inject(LoggerService);
   private tenantStore = inject(TenantStore);
+  private configStore = inject(ConfigStore);
 
   async resolveFromAuthToken(): Promise<void> {
     try {
@@ -65,12 +67,15 @@ export class TenantService {
   }
 
   /**
-   * Returns collection path scoped to device type.
-   * Path: tenants/{tenantId}/{deviceType}/{collection}
-   * Used for users and interventions collections.
+   * Returns the intervention collection path for a device type.
+   * Collection name is resolved from config (interventionCollections mapping).
+   * Falls back to 'interventions' if no mapping exists for the device type.
+   * Path: tenants/{tenantId}/{collectionName}
    */
-  getDeviceTypeCollectionPath(deviceType: string, collection: string): string {
-    return `${this.getTenantDocPath()}/deviceTypes/${deviceType}/${collection}`;
+  getInterventionCollectionPath(deviceType: string): string {
+    const mapping = this.configStore.business()?.interventionCollections ?? {};
+    const collectionName = mapping[deviceType] ?? mapping['default'] ?? 'interventions';
+    return `${this.getTenantDocPath()}/${collectionName}`;
   }
 
   /**

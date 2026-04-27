@@ -131,50 +131,37 @@ export class FirestoreService {
     return `${this.tenantService.getCollectionPath(collection)}/${docId}`;
   }
 
-  // ─── Device-type-scoped methods ───────────────────────────────
-  // Path: tenants/{tenantId}/{deviceType}/{collection}/{docId}
-  // Used for users and interventions collections.
+  // ─── Intervention collection methods ─────────────────────────
+  // Collection name resolved from config (interventionCollections mapping).
+  // Path: tenants/{tenantId}/{resolvedCollectionName}/{docId}
 
-  async getDeviceTypeDocument<T = Record<string, unknown>>(
+  async getInterventionDocument<T = Record<string, unknown>>(
     deviceType: string,
-    collection: string,
     docId: string,
   ): Promise<T | null> {
-    const reference = `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
+    const reference = `${this.tenantService.getInterventionCollectionPath(deviceType)}/${docId}`;
     return this.getDocument<T>(reference);
   }
 
-  async setDeviceTypeDocument(
+  async addInterventionDocument(
     deviceType: string,
-    collection: string,
-    docId: string,
-    data: Record<string, unknown>,
-  ): Promise<void> {
-    const reference = `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
-    await this.setDocument(reference, data);
-  }
-
-  async addDeviceTypeDocument(
-    deviceType: string,
-    collection: string,
     data: Record<string, unknown>,
   ): Promise<string> {
-    const reference = this.tenantService.getDeviceTypeCollectionPath(deviceType, collection);
-    this.logger.debug('Firestore addDeviceTypeDocument', { reference });
+    const reference = this.tenantService.getInterventionCollectionPath(deviceType);
+    this.logger.debug('Firestore addInterventionDocument', { reference });
     const result = await FirebaseFirestore.addDocument({ reference, data });
     return result.reference.id;
   }
 
-  async queryDeviceTypeCollection<T = Record<string, unknown>>(
+  async queryInterventionCollection<T = Record<string, unknown>>(
     deviceType: string,
-    collection: string,
     options: {
       compositeFilter?: QueryCompositeFilterConstraint;
       queryConstraints?: QueryNonFilterConstraint[];
     },
   ): Promise<CollectionQueryResult<T>> {
-    const reference = this.tenantService.getDeviceTypeCollectionPath(deviceType, collection);
-    this.logger.debug('Firestore queryDeviceTypeCollection', { reference });
+    const reference = this.tenantService.getInterventionCollectionPath(deviceType);
+    this.logger.debug('Firestore queryInterventionCollection', { reference });
 
     const result = await FirebaseFirestore.getCollection({
       reference,
@@ -195,8 +182,8 @@ export class FirestoreService {
     return { documents, lastDocumentPath };
   }
 
-  buildDeviceTypeReference(deviceType: string, collection: string, docId: string): string {
-    return `${this.tenantService.getDeviceTypeCollectionPath(deviceType, collection)}/${docId}`;
+  buildInterventionReference(deviceType: string, docId: string): string {
+    return `${this.tenantService.getInterventionCollectionPath(deviceType)}/${docId}`;
   }
 
   /**

@@ -29,6 +29,7 @@
     "@capacitor-firebase/functions": "^8.2.0",
     "@capacitor-firebase/storage": "^8.1.0",
     "@capacitor/app": "8.0.1",
+    "@capacitor/barcode-scanner": "^3.0.2",
     "@capacitor/browser": "^8.0.1",
     "@capacitor/core": "8.1.0",
     "@capacitor/haptics": "8.0.1",

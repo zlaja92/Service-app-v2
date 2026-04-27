@@ -17,6 +17,10 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { FeatureFlagDirective } from '../../shared/directives/feature-flag.directive';
 import { DeviceLookupService } from '../device-management/services/device-lookup.service';
 import { TranslocoService } from '@jsverse/transloco';
+import {
+  CapacitorBarcodeScanner,
+  CapacitorBarcodeScannerTypeHintALLOption,
+} from '@capacitor/barcode-scanner';
 import { FirestoreService } from '../../core/firebase/firestore.service'; // [TEMP:translation-upload] remove this import
 import { LANGUAGE_LABELS, TranslationVersionDoc } from '../../core/i18n/i18n.model'; // [TEMP:translation-upload] remove this import
 import { BUNDLED_TRANSLATIONS } from '../../core/i18n/translations'; // [TEMP:translation-upload] remove this import
@@ -69,8 +73,27 @@ export class HomePage {
     }
   }
 
-  scanBarcode(): void {
-    // TODO: Implement barcode scanning
+  async scanBarcode(): Promise<void> {
+    try {
+      const result = await CapacitorBarcodeScanner.scanBarcode({
+        hint: CapacitorBarcodeScannerTypeHintALLOption.ALL,
+      });
+
+      if (result.ScanResult) {
+        this.snInput = result.ScanResult;
+      }
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code ?? '';
+      if (code === 'OS-PLUG-BARC-0006') return; // user cancelled
+
+      const toast = await this.toastCtrl.create({
+        message: this.translocoService.translate('home_scan_error'),
+        duration: 3000,
+        color: 'danger',
+        position: 'bottom',
+      });
+      await toast.present();
+    }
   }
 
   navigateTo(path: string): void {
