@@ -73,6 +73,10 @@ export const DEFAULT_ERROR = 'BEZ GREŠKE';
 export const DEFAULT_DISTANCE = '30';
 
 
+// [TODO:DELETE] Obrisati FAULT_DESCRIPTIONS, ERROR_CODES, BOILER_GAS_AC_ERRORS i HEAT_PUMP_ERRORS
+// nakon što se podaci unesu u Firestore (tenants/{tenantId}/settings/config → business.interventionFaultOptions i business.interventionErrorOptions).
+// Ove konstante su ostavljene kao referenca za unos u bazu. Ako su liste u app-u prazne, podaci još nisu uneti.
+// Više se ne koriste u kodu — intervention page čita iz ConfigStore.
 export const FAULT_DESCRIPTIONS: Record<DeviceType, string[]> = {
   [DeviceType.BOILER]: [
     'NE GREJE, SIJA SIJALICA',

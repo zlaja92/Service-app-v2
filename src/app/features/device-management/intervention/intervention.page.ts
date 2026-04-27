@@ -22,8 +22,6 @@ import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
   InterventionTypeOption,
   INTERVENTION_OPTIONS,
-  FAULT_DESCRIPTIONS,
-  ERROR_CODES,
   MAX_SPARE_PARTS,
   DEFAULT_ERROR,
   DEFAULT_DISTANCE,
@@ -98,8 +96,10 @@ export class InterventionPage implements ViewWillEnter {
     this.noDevice = false;
     this.deviceType = device.type;
     this.interventionTypes = INTERVENTION_OPTIONS[device.type] ?? [];
-    this.faultDescriptions = FAULT_DESCRIPTIONS[device.type] ?? [];
-    this.errorCodes = ERROR_CODES[device.type] ?? [];
+
+    const business = this.configStore.business();
+    this.faultDescriptions = business?.interventionFaultOptions?.[device.type] ?? [];
+    this.errorCodes = business?.interventionErrorOptions?.[device.type] ?? [];
     this.resetForm();
   }
 

@@ -42,8 +42,8 @@ export interface BusinessConfig {
   userSearchPageSize: number;
   userSearchMinLength: number;
   interventionCollections: Record<string, string>;
-  interventionFaultOptions: { value: string; label: string }[];
-  interventionErrorOptions: { value: string; label: string }[];
+  interventionFaultOptions: Record<string, string[]>;
+  interventionErrorOptions: Record<string, string[]>;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -90,8 +90,8 @@ export function getDefaultConfig(): AppConfig {
       userSearchPageSize: 20,
       userSearchMinLength: 2,
       interventionCollections: { default: 'interventions' },
-      interventionFaultOptions: [],
-      interventionErrorOptions: [],
+      interventionFaultOptions: {},
+      interventionErrorOptions: {},
     },
   };
 }

@@ -83,8 +83,8 @@ Vizuelna podešavanja aplikacije.
 | `partNote` | string | `''` | Napomena koja se prikazuje na detaljima dela |
 | `partPhotoFolder` | string | `''` | Folder u Firebase Storage za fotografije delova |
 | `interventionCollections` | Record | `{ default: 'interventions' }` | Mapiranje tip uređaja → ime kolekcije za intervencije |
-| `interventionFaultOptions` | array | `[]` | Opcije za tip kvara u intervenciji |
-| `interventionErrorOptions` | array | `[]` | Opcije za kod greške u intervenciji |
+| `interventionFaultOptions` | Record&lt;string, string[]&gt; | `{}` | Opisi kvarova po tipu uređaja (ključ = DeviceType, vrednost = lista opisa) |
+| `interventionErrorOptions` | Record&lt;string, string[]&gt; | `{}` | Kodovi grešaka po tipu uređaja (ključ = DeviceType, vrednost = lista kodova) |
 
 ---
 
@@ -114,10 +114,15 @@ Vizuelna podešavanja aplikacije.
       "default": "interventions",
       "BOILER": "interventions-boiler"
     },
-    "interventionFaultOptions": [
-      { "value": "no_heating", "label": "Nema grejanja" },
-      { "value": "leak", "label": "Curenje" }
-    ]
+    "interventionFaultOptions": {
+      "BOILER": ["NE GREJE, SIJA SIJALICA", "CURENJE GREJAČA", "..."],
+      "GAS_BOILER": ["BUKA PRILIKOM ZAGREVANJA", "CURI VODA IZ KOTLA", "..."],
+      "HEAT_PUMP": ["BUKA PRILIKOM ZAGREVANJA", "..."]
+    },
+    "interventionErrorOptions": {
+      "BOILER": ["BEZ GREŠKE", "101 - Pregrevanje", "..."],
+      "HEAT_PUMP": ["BEZ GREŠKE", "1 - Greška TD senzora", "..."]
+    }
   }
 }
 ```
