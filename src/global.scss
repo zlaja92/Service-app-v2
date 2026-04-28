@@ -78,6 +78,11 @@ ion-modal.fullscreen-modal {
 ion-action-sheet {
   .action-sheet-button {
     text-transform: uppercase;
+    color: var(--ion-color-dark) !important;
+  }
+
+  &.no-uppercase-sheet .action-sheet-button {
+    text-transform: none;
   }
 }
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
@@ -51,6 +51,7 @@ export class DeviceDetailPage implements ViewWillEnter {
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
   private transloco = inject(TranslocoService);
+  private cdr = inject(ChangeDetectorRef);
 
   protected sn = '';
   protected isInitializing = true;
@@ -105,6 +106,7 @@ export class DeviceDetailPage implements ViewWillEnter {
     }
 
     this.isInitializing = false;
+    this.cdr.detectChanges();
   }
 
   private async checkCommissioningDone(deviceType: string): Promise<void> {

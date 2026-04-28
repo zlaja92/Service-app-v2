@@ -69,7 +69,7 @@ export const MAX_SPARE_PARTS = 4;
 export const COMMISSIONING_DESCRIPTION = 'intervention_description_commissioning';
 export const ANNUAL_SERVICE_DESCRIPTION = 'intervention_description_annual_service';
 
-export const DEFAULT_ERROR = 'BEZ GREŠKE';
+export const DEFAULT_ERROR = 'error_no_error';
 export const DEFAULT_DISTANCE = '30';
 
 

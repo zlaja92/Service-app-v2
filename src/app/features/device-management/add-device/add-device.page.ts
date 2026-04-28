@@ -44,7 +44,7 @@ export class AddDevicePage implements ViewWillEnter {
 
   protected form = new FormGroup({
     installerName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    installerPhoneNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    installerPhoneNumber: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(9)] }),
     note: new FormControl('', { nonNullable: true }),
   });
 
@@ -65,7 +65,7 @@ export class AddDevicePage implements ViewWillEnter {
 
     const data: Record<string, unknown> = {
       interventionType: InterventionType.COMMISSIONING,
-      interventionDescription: this.transloco.translate(COMMISSIONING_DESCRIPTION),
+      interventionDescription: COMMISSIONING_DESCRIPTION,
       installerName: formValue.installerName,
       installerPhoneNumber: formValue.installerPhoneNumber,
       note: formValue.note,
@@ -133,6 +133,14 @@ export class AddDevicePage implements ViewWillEnter {
     if (missing.length > 0) {
       void this.showToast(
         this.transloco.translate('commissioning_validation_message', { fields: missing.join(', ') }),
+        'warning',
+      );
+      return false;
+    }
+
+    if (this.form.controls.installerPhoneNumber.hasError('minlength')) {
+      void this.showToast(
+        this.transloco.translate('commissioning_validation_phone_min_length'),
         'warning',
       );
       return false;

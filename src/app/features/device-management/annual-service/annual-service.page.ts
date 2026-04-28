@@ -95,7 +95,7 @@ export class AnnualServicePage implements ViewWillEnter {
     const formValue = this.form.getRawValue();
     const data: Record<string, unknown> = {
       interventionType: InterventionType.ANNUAL_SERVICE,
-      interventionDescription: this.transloco.translate(ANNUAL_SERVICE_DESCRIPTION),
+      interventionDescription: ANNUAL_SERVICE_DESCRIPTION,
       callAccepted: formValue.callAccepted,
       distance: formValue.distance,
       note: formValue.note,

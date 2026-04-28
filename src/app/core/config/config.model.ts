@@ -4,6 +4,8 @@ export interface AppConfig {
   theme: ThemeConfig;
   localization: LocalizationConfig;
   business: BusinessConfig;
+  interventionFaultOptions: Record<string, string[]>;
+  interventionErrorOptions: Record<string, string[]>;
 }
 
 export interface FeatureFlags {
@@ -42,8 +44,6 @@ export interface BusinessConfig {
   userSearchPageSize: number;
   userSearchMinLength: number;
   interventionCollections: Record<string, string>;
-  interventionFaultOptions: Record<string, string[]>;
-  interventionErrorOptions: Record<string, string[]>;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -90,8 +90,8 @@ export function getDefaultConfig(): AppConfig {
       userSearchPageSize: 20,
       userSearchMinLength: 2,
       interventionCollections: { default: 'interventions' },
-      interventionFaultOptions: {},
-      interventionErrorOptions: {},
     },
+    interventionFaultOptions: {},
+    interventionErrorOptions: {},
   };
 }

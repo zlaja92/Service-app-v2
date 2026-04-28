@@ -34,9 +34,9 @@ describe('ConfigStore', () => {
         userSearchPageSize: 20,
         userSearchMinLength: 2,
         interventionCollections: { default: 'interventions' },
-        interventionFaultOptions: {},
-        interventionErrorOptions: {},
       },
+      interventionFaultOptions: {},
+      interventionErrorOptions: {},
       ...overrides,
     };
   }

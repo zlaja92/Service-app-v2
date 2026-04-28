@@ -5,7 +5,7 @@ import {
   IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner,
   ViewWillEnter,
 } from '@ionic/angular/standalone';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import { InterventionService } from '../services/intervention.service';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
@@ -17,8 +17,10 @@ import {
 
 interface DisplayField {
   key: string;
-  label: string;
-  value: string;
+  labelKey: string;
+  labelSuffix?: string;
+  rawValue: unknown;
+  translatable: boolean;
 }
 
 const FIELD_LABEL_KEYS: Record<string, string> = {
@@ -57,11 +59,10 @@ export class InterventionDetailPage implements ViewWillEnter {
   private readonly interventionService = inject(InterventionService);
   private readonly lookupService = inject(DeviceLookupService);
   private readonly envInfoService = inject(DeviceEnvInfoService);
-  private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
 
   protected sn = '';
-  protected pageTitle = '';
+  protected pageTitleKey = '';
   protected fields: DisplayField[] = [];
   protected isLoading = false;
   protected notFound = false;
@@ -94,10 +95,10 @@ export class InterventionDetailPage implements ViewWillEnter {
     if (id === 'registration') {
       data = await this.interventionService.getRegistration(this.sn);
       isRegistration = true;
-      this.pageTitle = this.transloco.translate('history_type_purchase');
+      this.pageTitleKey = 'history_type_purchase';
     } else {
       data = await this.interventionService.getInterventionById(id, deviceType);
-      this.pageTitle = this.transloco.translate('history_detail_title');
+      this.pageTitleKey = 'history_detail_title';
     }
 
     if (!data) {
@@ -144,26 +145,38 @@ export class InterventionDetailPage implements ViewWillEnter {
   }
 
   private toDisplayField(key: string, value: unknown): DisplayField {
-    const labelKey = FIELD_LABEL_KEYS[key];
-    let label = labelKey ? this.transloco.translate(labelKey) : key;
-
+    const labelKey = FIELD_LABEL_KEYS[key] ?? key;
     const sparePartMatch = key.match(/^sparePart(\d)$/);
-    if (sparePartMatch) {
-      label = `${label} ${sparePartMatch[1]}`;
-    }
 
-    return { key, label, value: this.formatValue(key, value) };
+    return {
+      key,
+      labelKey,
+      labelSuffix: sparePartMatch ? sparePartMatch[1] : undefined,
+      rawValue: this.resolveRawValue(key, value),
+      translatable: this.isTranslatable(key),
+    };
   }
 
-  private formatValue(key: string, value: unknown): string {
+  private resolveRawValue(key: string, value: unknown): unknown {
     if (value == null) return '-';
 
     if (key === 'interventionType') {
       const deviceType = this.lookupService.device?.type;
       if (deviceType) {
-        const label = this.interventionService.getInterventionLabel(deviceType, String(value));
-        if (label) return this.transloco.translate(label);
+        return this.interventionService.getInterventionLabel(deviceType, String(value)) ?? String(value);
       }
+      return String(value);
+    }
+
+    if (key === 'callAccepted') {
+      if (value === true) return 'intervention_call_accepted_yes';
+      if (value === false) return 'intervention_call_accepted_no';
+      return '-';
+    }
+
+    if (key === 'warrantyStatus') {
+      if (value === 'in_warranty') return 'add_device_in_warranty';
+      if (value === 'out_of_warranty') return 'add_device_out_of_warranty';
       return String(value);
     }
 
@@ -172,23 +185,16 @@ export class InterventionDetailPage implements ViewWillEnter {
       return parts.length > 0 ? parts.join(', ') : '-';
     }
 
-    if (key === 'callAccepted') {
-      if (value === true) return this.transloco.translate('intervention_call_accepted_yes');
-      if (value === false) return this.transloco.translate('intervention_call_accepted_no');
-      return '-';
-    }
-
-    if (key === 'warrantyStatus') {
-      if (value === 'in_warranty') return this.transloco.translate('add_device_in_warranty');
-      if (value === 'out_of_warranty') return this.transloco.translate('add_device_out_of_warranty');
-    }
-
     const dateFields = ['date', 'addedDate', 'createdAt', 'registeredAt', 'warrantyDate', 'dateOfPurchase'];
     if (dateFields.includes(key)) {
       return this.formatDate(this.toDateString(value));
     }
 
     return String(value);
+  }
+
+  private isTranslatable(key: string): boolean {
+    return ['interventionType', 'interventionDescription', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
   }
 
   private toDateString(value: unknown): string {

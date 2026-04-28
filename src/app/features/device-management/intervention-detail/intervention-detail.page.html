@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button [defaultHref]="'/device-management/' + sn + '/history'" />
     </ion-buttons>
-    <ion-title>{{ pageTitle }}</ion-title>
+    <ion-title>{{ pageTitleKey | transloco }}</ion-title>
     <ion-buttons slot="end">
       <ion-menu-button />
     </ion-buttons>
@@ -24,11 +24,11 @@
       @for (field of fields; track field.key) {
         <ion-item [class.field-uppercase]="field.key === 'interventionType' || field.key === 'interventionDescription'">
           <ion-label class="ion-text-wrap">
-            <h3>{{ field.label }}</h3>
+            <h3>{{ field.labelKey | transloco }}{{ field.labelSuffix ? ' ' + field.labelSuffix : '' }}</h3>
             @if (field.key === 'note') {
-              <ion-textarea readonly [value]="field.value" [rows]="5" [autoGrow]="true" />
+              <ion-textarea readonly [value]="field.translatable ? ('' + field.rawValue | transloco) : '' + field.rawValue" [rows]="5" [autoGrow]="true" />
             } @else {
-              <p>{{ field.value }}</p>
+              <p>{{ field.translatable ? ('' + field.rawValue | transloco) : field.rawValue }}</p>
             }
           </ion-label>
         </ion-item>

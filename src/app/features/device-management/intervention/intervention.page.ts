@@ -23,7 +23,6 @@ import {
   InterventionTypeOption,
   INTERVENTION_OPTIONS,
   MAX_SPARE_PARTS,
-  DEFAULT_ERROR,
   DEFAULT_DISTANCE,
 } from '../models/intervention.model';
 
@@ -68,7 +67,7 @@ export class InterventionPage implements ViewWillEnter {
   protected form = new FormGroup({
     interventionType: new FormControl('', { nonNullable: true }),
     description: new FormControl('', { nonNullable: true }),
-    error: new FormControl(DEFAULT_ERROR, { nonNullable: true }),
+    error: new FormControl('', { nonNullable: true }),
     callAccepted: new FormControl<boolean | null>(null),
     distance: new FormControl(DEFAULT_DISTANCE, { nonNullable: true }),
     note: new FormControl('', { nonNullable: true }),
@@ -97,9 +96,9 @@ export class InterventionPage implements ViewWillEnter {
     this.deviceType = device.type;
     this.interventionTypes = INTERVENTION_OPTIONS[device.type] ?? [];
 
-    const business = this.configStore.business();
-    this.faultDescriptions = business?.interventionFaultOptions?.[device.type] ?? [];
-    this.errorCodes = business?.interventionErrorOptions?.[device.type] ?? [];
+    const config = this.configStore.config();
+    this.faultDescriptions = config?.interventionFaultOptions?.[device.type] ?? [];
+    this.errorCodes = config?.interventionErrorOptions?.[device.type] ?? [];
     this.resetForm();
   }
 
@@ -132,7 +131,7 @@ export class InterventionPage implements ViewWillEnter {
 
     const data: Record<string, unknown> = {
       interventionType: formValue.interventionType,
-      interventionDescription: formValue.description.toUpperCase(),
+      interventionDescription: formValue.description,
       error: formValue.error,
       distance: formValue.distance,
       note: formValue.note,
@@ -240,7 +239,7 @@ export class InterventionPage implements ViewWillEnter {
     this.form.reset({
       interventionType: '',
       description: '',
-      error: DEFAULT_ERROR,
+      error: this.errorCodes[0] ?? '',
       callAccepted: null,
       distance: DEFAULT_DISTANCE,
       note: '',

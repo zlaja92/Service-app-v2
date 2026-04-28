@@ -35,6 +35,8 @@
                       </ion-col>
                     </ion-row>
                   </ion-grid>
+                } @else if (field.type === 'select') {
+                  <ion-input [value]="form.get(field.key)?.value | transloco" readonly />
                 } @else {
                   <ion-input [value]="form.get(field.key)?.value" readonly />
                 }
@@ -46,7 +48,7 @@
                             [placeholder]="'env_info_select_placeholder' | transloco"
                             interface="action-sheet">
                   @for (option of field.options; track option) {
-                    <ion-select-option [value]="option | transloco">{{ option | transloco }}</ion-select-option>
+                    <ion-select-option [value]="option">{{ option | transloco }}</ion-select-option>
                   }
                 </ion-select>
               </ion-item>

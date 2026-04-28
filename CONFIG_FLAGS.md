@@ -83,8 +83,18 @@ Vizuelna podešavanja aplikacije.
 | `partNote` | string | `''` | Napomena koja se prikazuje na detaljima dela |
 | `partPhotoFolder` | string | `''` | Folder u Firebase Storage za fotografije delova |
 | `interventionCollections` | Record | `{ default: 'interventions' }` | Mapiranje tip uređaja → ime kolekcije za intervencije |
-| `interventionFaultOptions` | Record&lt;string, string[]&gt; | `{}` | Opisi kvarova po tipu uređaja (ključ = DeviceType, vrednost = lista opisa) |
-| `interventionErrorOptions` | Record&lt;string, string[]&gt; | `{}` | Kodovi grešaka po tipu uređaja (ključ = DeviceType, vrednost = lista kodova) |
+
+---
+
+## Intervencije — opisi kvarova i kodovi grešaka
+
+Ova polja su na root nivou config dokumenta (ne unutar `business`).
+Vrednosti su i18n ključevi — prevode se pri prikazu na aktivnom jeziku korisnika.
+
+| Polje | Tip | Default | Opis |
+|-------|-----|---------|------|
+| `interventionFaultOptions` | Record&lt;string, string[]&gt; | `{}` | Opisi kvarova po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
+| `interventionErrorOptions` | Record&lt;string, string[]&gt; | `{}` | Kodovi grešaka po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
 
 ---
 

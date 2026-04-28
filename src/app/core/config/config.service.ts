@@ -113,6 +113,8 @@ export class ConfigService {
       theme: { ...defaults.theme, ...config.theme },
       localization: { ...defaults.localization, ...config.localization },
       business: { ...defaults.business, ...config.business },
+      interventionFaultOptions: { ...defaults.interventionFaultOptions, ...config.interventionFaultOptions },
+      interventionErrorOptions: { ...defaults.interventionErrorOptions, ...config.interventionErrorOptions },
     };
   }
 
