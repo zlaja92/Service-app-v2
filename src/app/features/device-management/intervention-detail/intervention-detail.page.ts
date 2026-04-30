@@ -69,6 +69,7 @@ export class InterventionDetailPage implements ViewWillEnter {
   protected hasEnvInfo = false;
   private envInfoData: Record<string, string> | null = null;
   private interventionDeviceType: string | null = null;
+  private isRegistration = false;
 
   ionViewWillEnter(): void {
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
@@ -88,13 +89,13 @@ export class InterventionDetailPage implements ViewWillEnter {
     this.notFound = false;
 
     let data: Record<string, unknown> | null;
-    let isRegistration = false;
+    this.isRegistration = false;
 
     const deviceType = this.lookupService.device?.type ?? '';
 
     if (id === 'registration') {
       data = await this.interventionService.getRegistration(this.sn);
-      isRegistration = true;
+      this.isRegistration = true;
       this.pageTitleKey = 'history_type_purchase';
     } else {
       data = await this.interventionService.getInterventionById(id, deviceType);
@@ -107,9 +108,9 @@ export class InterventionDetailPage implements ViewWillEnter {
       return;
     }
 
-    this.fields = this.buildDisplayFields(data, isRegistration);
+    this.fields = this.buildDisplayFields(data, this.isRegistration);
 
-    if (!isRegistration) {
+    if (!this.isRegistration) {
       const envInfo = data['envInfo'] as Record<string, string> | undefined;
       this.envInfoData = envInfo && Object.keys(envInfo).length > 0 ? envInfo : null;
       this.hasEnvInfo = !!this.envInfoData;
@@ -175,8 +176,8 @@ export class InterventionDetailPage implements ViewWillEnter {
     }
 
     if (key === 'warrantyStatus') {
-      if (value === 'in_warranty') return 'add_device_in_warranty';
-      if (value === 'out_of_warranty') return 'add_device_out_of_warranty';
+      if (value === 'in_warranty') return 'intervention_warranty_in';
+      if (value === 'out_of_warranty') return 'intervention_warranty_out';
       return String(value);
     }
 

@@ -9,6 +9,7 @@ import {
 import { addIcons } from 'ionicons';
 import { add, remove, cartOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
+import { EmailComposer } from 'capacitor-email-composer';
 import { CartService } from './cart.service';
 import { ConfigStore } from '../../core/config/config.store';
 import { LoggerService } from '../../core/logger/logger.service';
@@ -40,13 +41,23 @@ export class CartPage {
     this.orderNote.set(event.detail.value ?? '');
   }
 
-  onOrder(): void {
-    this.logger.info('Order placed', {
-      items: this.cartService.cartItems(),
-      note: this.orderNote(),
-      total: this.cartService.totalPrice(),
+  async onOrder(): Promise<void> {
+    const items = this.cartService.cartItems();
+    const currency = this.configStore.business()?.currency ?? '';
+    const note = this.orderNote();
+
+    const body = items.map(item =>
+      `${item.name} (${item.partCode}) - ${item.quantity}x - ${item.price} ${currency}`,
+    ).join('\n') + (note ? `\n\nNapomena: ${note}` : '');
+
+    this.logger.info('Order email', { itemCount: items.length, total: this.cartService.totalPrice() });
+
+    await EmailComposer.open({
+      to: ['test@example.com'],
+      subject: 'Narudžbina rezervnih delova',
+      body,
+      isHtml: false,
     });
-    // TODO: integrate with backend order service
   }
 
   navigateTo(path: string): void {

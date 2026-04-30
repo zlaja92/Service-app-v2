@@ -9,5 +9,6 @@ export const environment = {
     appId: '1:399858868527:web:7048caeddb546e853681da',
   },
   cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
+  nativeStorageBucket: 'ariston-srb.firebasestorage.app',
   logLevel: 'INFO',
 };

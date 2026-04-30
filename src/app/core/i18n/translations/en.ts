@@ -150,6 +150,10 @@ export const en: Translation = {
   commissioning_validation_phone_min_length: 'Phone number is not valid.',
 
   intervention_title: 'Warranty Intervention',
+  intervention_warranty_label: 'Warranty status',
+  intervention_warranty_in: 'WARRANTY INTERVENTION',
+  intervention_warranty_out: 'OUT OF WARRANTY INTERVENTION',
+  intervention_validation_warranty: 'Select warranty status',
   intervention_type_label: 'Intervention type',
   intervention_description_label: 'Fault description',
   intervention_error_label: 'Error',
@@ -421,6 +425,22 @@ export const en: Translation = {
   connected_device_found: 'Found',
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_already_registered: 'Connected device is already registered',
+
+  // ─── Photo Upload ─────────────────────────────────────────────────
+  intervention_photos_button: 'Add photos',
+  intervention_validation_photos_required: 'At least {{required}} photos are required',
+  photo_title: 'Photos',
+  photo_take: 'Take photo',
+  photo_gallery: 'Add from gallery',
+  photo_ok: 'OK',
+  photo_added: 'Added',
+  photo_cancel: 'Cancel',
+  photo_no_photos_title: 'Confirmation',
+  photo_no_photos_message: 'I confirm that the device is installed according to the manufacturer instructions. Therefore, I have not added a photo of inadequate installation.',
+  photo_no_photos_cancel: 'No',
+  photo_no_photos_continue: 'Yes',
+  photo_desc_gas_boiler_repair: '- Upload heater photo\n- Upload replaced part\n- Upload device',
+  photo_desc_commissioning: '- Upload nameplate photo\n- Upload device photo',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────
   fault_boiler_no_heat_light_on: 'NOT HEATING, LIGHT IS ON',

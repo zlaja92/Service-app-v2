@@ -126,8 +126,6 @@ export class DeviceDetailPage implements ViewWillEnter {
   }
 
   get isAnnualServiceEnabled(): boolean {
-    const warrantyStatus = this.registrationService.userData?.['warrantyStatus'];
-    if (warrantyStatus === 'out_of_warranty') return true;
     return this.eligibilityService.isEligible && !this.eligibilityService.isChecking;
   }
 

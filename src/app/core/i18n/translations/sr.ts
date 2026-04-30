@@ -150,6 +150,10 @@ export const sr: Translation = {
   commissioning_validation_phone_min_length: 'Broj telefona nije validan.',
 
   intervention_title: 'Intervencija u garanciji',
+  intervention_warranty_label: 'Garantni status',
+  intervention_warranty_in: 'INTERVENCIJA U GARANCIJI',
+  intervention_warranty_out: 'INTERVENCIJA VAN GARANCIJE',
+  intervention_validation_warranty: 'Izaberite garantni status',
   intervention_type_label: 'Tip intervencije',
   intervention_description_label: 'Opis kvara',
   intervention_error_label: 'Greška',
@@ -421,6 +425,22 @@ export const sr: Translation = {
   connected_device_found: 'Pronađen',
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
+
+  // ─── Photo Upload ─────────────────────────────────────────────────
+  intervention_photos_button: 'Dodaj fotografije',
+  intervention_validation_photos_required: 'Potrebno je napraviti najmanje {{required}} fotografija',
+  photo_title: 'Fotografije',
+  photo_take: 'Slikaj',
+  photo_gallery: 'Dodaj iz galerije',
+  photo_ok: 'OK',
+  photo_added: 'Dodato',
+  photo_cancel: 'Otkaži',
+  photo_no_photos_title: 'Potvrda',
+  photo_no_photos_message: 'Saglasan sam da je uređaj instaliran po uputstvu proizvođača. Samim tim nisam dodao sliku neadekvatne instalacije.',
+  photo_no_photos_cancel: 'Ne',
+  photo_no_photos_continue: 'Da',
+  photo_desc_gas_boiler_repair: '- Unesite sliku grejača\n- Unesite zamenjeni deo\n- Unesite uređaj',
+  photo_desc_commissioning: '- Unesite sliku natpisne ploče\n- Unesite sliku uređaja',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────
   fault_boiler_no_heat_light_on: 'NE GREJE, SIJA SIJALICA',

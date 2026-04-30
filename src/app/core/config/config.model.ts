@@ -6,6 +6,7 @@ export interface AppConfig {
   business: BusinessConfig;
   interventionFaultOptions: Record<string, string[]>;
   interventionErrorOptions: Record<string, string[]>;
+  interventionPhotoConfig: Record<string, Record<string, PhotoRequirement>>;
 }
 
 export interface FeatureFlags {
@@ -18,6 +19,14 @@ export interface FeatureFlags {
   partPhoto: boolean;
   cartNote: boolean;
   deviceManagement: boolean;
+  interventionPhotos: boolean;
+}
+
+export interface PhotoRequirement {
+  maxPhotos: number;
+  requiredPhotos: number;
+  requireSparePartPhotos: boolean;
+  description: string;
 }
 
 export interface ThemeConfig {
@@ -44,6 +53,8 @@ export interface BusinessConfig {
   userSearchPageSize: number;
   userSearchMinLength: number;
   interventionCollections: Record<string, string>;
+  photoQuality: number;
+  photoMaxWidth: number;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -57,6 +68,7 @@ export function getDefaultFeatures(): FeatureFlags {
     partPhoto: false,
     cartNote: false,
     deviceManagement: true,
+    interventionPhotos: false,
   };
 }
 
@@ -90,8 +102,11 @@ export function getDefaultConfig(): AppConfig {
       userSearchPageSize: 20,
       userSearchMinLength: 2,
       interventionCollections: { default: 'interventions' },
+      photoQuality: 70,
+      photoMaxWidth: 1280,
     },
     interventionFaultOptions: {},
     interventionErrorOptions: {},
+    interventionPhotoConfig: {},
   };
 }

@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="onDismiss()">
+        <ion-icon slot="icon-only" name="arrow-back-outline" />
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ 'photo_title' | transloco }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Thumbnails + Add button -->
+  <ion-grid>
+    <ion-row>
+      @for (photo of photoService.photos; track photo.id) {
+        <ion-col size="4">
+          <div class="photo-thumbnail">
+            <img [src]="photo.webPath" />
+            <ion-button fill="clear" color="danger" size="small" class="delete-button"
+                        (click)="onRemovePhoto(photo.id)">
+              <ion-icon name="trash-outline" slot="icon-only" />
+            </ion-button>
+          </div>
+        </ion-col>
+      }
+
+      @if (photoService.canTakeMore) {
+        <ion-col size="4">
+          <div class="add-photo-button" (click)="onAddPhoto()">
+            <ion-icon name="add-outline" />
+          </div>
+        </ion-col>
+      }
+    </ion-row>
+  </ion-grid>
+
+  <!-- Description -->
+  @if (photoService.requirement; as req) {
+    <p class="photo-description">{{ req.description | transloco }}</p>
+    <p class="photo-count">{{ 'photo_added' | transloco }}: {{ photoService.photos.length }}/{{ req.maxPhotos }}</p>
+  }
+
+  <!-- OK button -->
+  <div class="action-buttons">
+    <ion-button expand="block" fill="solid" color="primary" class="ok-button"
+                (click)="onOk()">
+      {{ 'photo_ok' | transloco }}
+    </ion-button>
+  </div>
+</ion-content>

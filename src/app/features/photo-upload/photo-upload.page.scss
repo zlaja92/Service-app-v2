@@ -1,0 +1,62 @@
+.photo-thumbnail {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+
+  img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+
+  .delete-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    --padding-start: 4px;
+    --padding-end: 4px;
+    font-size: 22px;
+  }
+}
+
+.add-photo-button {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px dashed var(--ion-color-medium);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 48px;
+    color: var(--ion-color-medium);
+  }
+}
+
+.photo-description {
+  padding: 16px;
+  text-align: left;
+  color: var(--ion-color-dark);
+  font-size: 18px;
+  white-space: pre-line;
+}
+
+.photo-count {
+  padding: 0 16px;
+  font-size: 15px;
+  color: var(--ion-color-medium);
+}
+
+.action-buttons {
+  padding: 0 16px;
+}
+
+.ok-button {
+  margin-top: 16px;
+  margin-bottom: 50px;
+}

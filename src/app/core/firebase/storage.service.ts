@@ -1,10 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { FirebaseStorage } from '@capacitor-firebase/storage';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { getStorage, ref, getDownloadURL, listAll } from 'firebase/storage';
 import { LoggerService } from '../logger/logger.service';
-import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class StorageService {
@@ -23,53 +21,73 @@ export class StorageService {
 
   async listFolder(path: string): Promise<{ folders: string[]; files: { name: string; fullPath: string }[] }> {
     if (this.isNative) {
-      return this.listFolderViaRestApi(path);
+      const result = await FirebaseStorage.listFiles({ path });
+      const files = result.items
+        .filter((item) => item.name !== '_folders.txt')
+        .map((item) => ({ name: item.name, fullPath: item.path }));
+
+      const folders = await this.readFoldersFile(path);
+      return { folders, files };
     }
 
     const storage = getStorage();
     const folderRef = ref(storage, path);
     const result = await listAll(folderRef);
     const folders = result.prefixes.map((p) => p.name);
-    const files = result.items.map((item) => ({
-      name: item.name,
-      fullPath: item.fullPath,
-    }));
+    const files = result.items
+      .filter((item) => item.name !== '_folders.txt')
+      .map((item) => ({ name: item.name, fullPath: item.fullPath }));
     return { folders, files };
   }
 
-  /**
-   * Lists folder contents via Firebase Storage REST API (native HTTP).
-   * Native plugin's listFiles() doesn't return folder prefixes,
-   * so we call the REST API directly with delimiter=/ to get both files and folders.
-   */
-  private async listFolderViaRestApi(path: string): Promise<{ folders: string[]; files: { name: string; fullPath: string }[] }> {
-    const bucket = environment.firebase.storageBucket;
-    const prefix = path.endsWith('/') ? path : `${path}/`;
+  private async readFoldersFile(path: string): Promise<string[]> {
+    try {
+      const url = await this.getFileUrl(`${path}/_folders.txt`);
+      const response = await CapacitorHttp.get({ url });
+      const text = typeof response.data === 'string' ? response.data : '';
+      return text.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
+    } catch {
+      return [];
+    }
+  }
 
-    const tokenResult = await FirebaseAuthentication.getIdToken();
+  async uploadFile(storagePath: string, fileUri: string): Promise<void> {
+    if (this.isNative) {
+      return new Promise<void>((resolve, reject) => {
+        FirebaseStorage.uploadFile(
+          { path: storagePath, uri: fileUri, metadata: { contentType: 'image/jpeg' } },
+          (event, error) => {
+            if (error) {
+              this.logger.error('Storage upload error', { storagePath, error: String(error) });
+              reject(error);
+              return;
+            }
+            if (event?.completed) {
+              resolve();
+            }
+          },
+        );
+      });
+    }
 
-    const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?prefix=${encodeURIComponent(prefix)}&delimiter=${encodeURIComponent('/')}`;
-
-    const response = await CapacitorHttp.get({
-      url,
-      headers: { Authorization: `Bearer ${tokenResult.token}` },
+    // Web: fetch blob from URI and upload
+    const response = await fetch(fileUri);
+    const blob = await response.blob();
+    return new Promise<void>((resolve, reject) => {
+      FirebaseStorage.uploadFile(
+        { path: storagePath, blob, metadata: { contentType: 'image/jpeg' } },
+        (event, error) => {
+          if (error) {
+            this.logger.error('Storage upload error', { storagePath, error: String(error) });
+            reject(error);
+            return;
+          }
+          if (event?.completed) {
+            resolve();
+          }
+        },
+      );
     });
-
-    const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-
-    const rawPrefixes: string[] = data.prefixes ?? [];
-    const folders = rawPrefixes.map((p) => {
-      const trimmed = p.endsWith('/') ? p.slice(0, -1) : p;
-      return trimmed.split('/').pop() ?? trimmed;
-    });
-
-    const rawItems: { name: string }[] = data.items ?? [];
-    const files = rawItems.map((item) => ({
-      name: item.name.split('/').pop() ?? item.name,
-      fullPath: item.name,
-    }));
-
-    return { folders, files };
   }
 
   async resolveFileUrl(folder: string, fileName: string, extensions: string[]): Promise<string> {

@@ -3,10 +3,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonButton, IonItem, IonInput, IonTextarea, IonSpinner,
-  IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
-  ViewWillEnter, AlertController, ToastController,
+  IonButton, IonItem, IonInput, IonTextarea, IonSpinner, IonIcon, IonNote,
+  IonMenuButton, IonLabel, IonCard, IonCardContent,
+  ViewWillEnter, AlertController, ToastController, ModalController,
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { cameraOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
@@ -14,6 +16,10 @@ import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { InterventionType, COMMISSIONING_DESCRIPTION } from '../models/intervention.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { ConfigStore } from '../../../core/config/config.store';
+import { PhotoRequirement } from '../../../core/config/config.model';
+import { PhotoService } from '../../photo-upload/services/photo.service';
+import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
 
 @Component({
   selector: 'app-add-device',
@@ -22,8 +28,8 @@ import { LoggerService } from '../../../core/logger/logger.service';
   imports: [
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonButton, IonItem, IonInput, IonTextarea, IonSpinner,
-    IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
+    IonButton, IonItem, IonInput, IonTextarea, IonSpinner, IonIcon, IonNote,
+    IonMenuButton, IonLabel, IonCard, IonCardContent,
     TranslocoModule,
   ],
 })
@@ -37,10 +43,23 @@ export class AddDevicePage implements ViewWillEnter {
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
+  private readonly modalCtrl = inject(ModalController);
+  private readonly configStore = inject(ConfigStore);
+  protected readonly photoService = inject(PhotoService);
 
   protected sn = '';
   protected isSaving = false;
   private connectedSn = '';
+  protected photoRequirement: PhotoRequirement | null = null;
+
+  constructor() {
+    addIcons({ cameraOutline });
+  }
+
+  get showPhotosButton(): boolean {
+    return this.configStore.isFeatureEnabled('interventionPhotos')
+      && this.photoRequirement !== null;
+  }
 
   protected form = new FormGroup({
     installerName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -52,7 +71,28 @@ export class AddDevicePage implements ViewWillEnter {
     this.isSaving = false;
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
     this.connectedSn = this.route.snapshot.queryParamMap.get('connectedSn') ?? '';
+
+    if (this.configStore.isFeatureEnabled('interventionPhotos')) {
+      const device = this.lookupService.device;
+      const photoConfig = this.configStore.config()?.interventionPhotoConfig ?? {};
+      this.photoRequirement = device ? (photoConfig[device.type]?.['commissioning'] ?? null) : null;
+
+      if (this.photoRequirement) {
+        this.photoService.setRequirement(this.photoRequirement);
+      } else {
+        this.photoService.clear();
+      }
+    }
+
     this.form.reset();
+  }
+
+  async onAddPhotos(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: PhotoUploadPage,
+      cssClass: 'fullscreen-modal',
+    });
+    await modal.present();
   }
 
   async onSave(): Promise<void> {
@@ -64,12 +104,20 @@ export class AddDevicePage implements ViewWillEnter {
     const formValue = this.form.getRawValue();
 
     const data: Record<string, unknown> = {
+      warrantyStatus: 'in_warranty',
       interventionType: InterventionType.COMMISSIONING,
       interventionDescription: COMMISSIONING_DESCRIPTION,
       installerName: formValue.installerName,
       installerPhoneNumber: formValue.installerPhoneNumber,
       note: formValue.note,
     };
+
+    if (this.configStore.isFeatureEnabled('interventionPhotos')
+      && this.photoRequirement
+      && this.photoService.photos.length === 0) {
+      const proceed = await this.showNoPhotosAlert();
+      if (!proceed) return;
+    }
 
     if (requiresEnvInfo(device.type)) {
       const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, null);
@@ -81,6 +129,10 @@ export class AddDevicePage implements ViewWillEnter {
     }
 
     this.isSaving = true;
+
+    if (this.configStore.isFeatureEnabled('interventionPhotos') && this.photoService.photos.length > 0) {
+      await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.COMMISSIONING);
+    }
 
     let success: boolean;
 
@@ -94,12 +146,34 @@ export class AddDevicePage implements ViewWillEnter {
     }
 
     if (success) {
+      this.photoService.clear();
       void this.showToast(this.transloco.translate('commissioning_success'), 'success');
       void this.router.navigate(['/device-management', this.sn]);
     } else {
       this.isSaving = false;
       void this.showToast(this.transloco.translate('commissioning_error'), 'danger');
     }
+  }
+
+  private async showNoPhotosAlert(): Promise<boolean> {
+    return new Promise<boolean>(async (resolve) => {
+      const alert = await this.alertCtrl.create({
+        header: this.transloco.translate('photo_no_photos_title'),
+        message: this.transloco.translate('photo_no_photos_message'),
+        buttons: [
+          {
+            text: this.transloco.translate('photo_no_photos_cancel'),
+            role: 'cancel',
+            handler: () => resolve(false),
+          },
+          {
+            text: this.transloco.translate('photo_no_photos_continue'),
+            handler: () => resolve(true),
+          },
+        ],
+      });
+      await alert.present();
+    });
   }
 
   private async showConfirmAlert(): Promise<boolean> {
@@ -141,6 +215,18 @@ export class AddDevicePage implements ViewWillEnter {
     if (this.form.controls.installerPhoneNumber.hasError('minlength')) {
       void this.showToast(
         this.transloco.translate('commissioning_validation_phone_min_length'),
+        'warning',
+      );
+      return false;
+    }
+
+    if (this.configStore.isFeatureEnabled('interventionPhotos')
+      && this.photoRequirement
+      && this.photoService.photos.length < this.photoRequirement.requiredPhotos) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_photos_required', {
+          required: this.photoRequirement.requiredPhotos,
+        }),
         'warning',
       );
       return false;

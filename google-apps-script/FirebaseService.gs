@@ -119,6 +119,7 @@ var FirebaseService = (function () {
 
     return {
       getProjectId: function () { return projectId; },
+      getAccessToken: function () { return getAccessToken_(); },
 
       createDocument: function (collection, documentId, data) {
         var token = getAccessToken_();

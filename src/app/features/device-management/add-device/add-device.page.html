@@ -33,6 +33,18 @@
     </ion-card-content>
   </ion-card>
 
+  @if (showPhotosButton) {
+    <ion-card class="photos-card" (click)="onAddPhotos()" button>
+      <ion-item lines="none" detail>
+        <ion-icon name="camera-outline" slot="start" />
+        <ion-label>{{ 'intervention_photos_button' | transloco }}</ion-label>
+        @if (photoService.photos.length > 0) {
+          <ion-note slot="end">{{ photoService.photos.length }}</ion-note>
+        }
+      </ion-item>
+    </ion-card>
+  }
+
   <ion-button expand="block" fill="solid" color="primary" class="save-button"
               (click)="onSave()" [disabled]="isSaving">
     @if (isSaving) {

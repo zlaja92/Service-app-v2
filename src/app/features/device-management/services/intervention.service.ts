@@ -32,13 +32,9 @@ export class InterventionService implements Clearable {
         return null;
       }
 
-      const registration = await this.getRegistration(sn);
-      const warrantyStatus = registration?.['warrantyStatus'] as string ?? '';
-
       const data: Record<string, unknown> = {
         sn,
         ...formData,
-        warrantyStatus,
         addedBy: this.authStore.userEmail(),
         addedDate: serverTime,
         exported: false,
@@ -128,13 +124,9 @@ export class InterventionService implements Clearable {
 
       const operations = await Promise.all(
         entries.map(async (entry) => {
-          const registration = await this.getRegistration(entry.sn);
-          const warrantyStatus = registration?.['warrantyStatus'] as string ?? '';
-
           const data: Record<string, unknown> = {
             sn: entry.sn,
             ...entry.formData,
-            warrantyStatus,
             addedBy: this.authStore.userEmail(),
             addedDate: serverTime,
             exported: false,

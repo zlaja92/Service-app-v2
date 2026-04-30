@@ -20,6 +20,7 @@ import { DeviceLookupService } from './app/features/device-management/services/d
 import { DeviceRegistrationService } from './app/features/device-management/services/device-registration.service';
 import { InterventionService } from './app/features/device-management/services/intervention.service';
 import { AnnualServiceEligibilityService } from './app/features/device-management/services/annual-service-eligibility.service';
+import { PhotoService } from './app/features/photo-upload/services/photo.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -46,5 +47,6 @@ bootstrapApplication(AppComponent, {
     { provide: CLEARABLE_SERVICES, useExisting: DeviceRegistrationService, multi: true },
     { provide: CLEARABLE_SERVICES, useExisting: InterventionService, multi: true },
     { provide: CLEARABLE_SERVICES, useExisting: AnnualServiceEligibilityService, multi: true },
+    { provide: CLEARABLE_SERVICES, useExisting: PhotoService, multi: true },
   ],
 });

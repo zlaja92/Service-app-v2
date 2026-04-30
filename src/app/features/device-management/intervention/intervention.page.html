@@ -18,10 +18,21 @@
   } @else {
     <form [formGroup]="form">
 
+      <!-- Garantni status -->
+      <ion-item>
+        <ion-label position="stacked">{{ 'intervention_warranty_label' | transloco }}</ion-label>
+        <ion-select formControlName="warrantyStatus" interface="action-sheet"
+                    (ionChange)="updateInterventionTypes()">
+          <ion-select-option value="in_warranty">{{ 'intervention_warranty_in' | transloco }}</ion-select-option>
+          <ion-select-option value="out_of_warranty">{{ 'intervention_warranty_out' | transloco }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+
       <!-- Tip intervencije -->
       <ion-item>
         <ion-label position="stacked">{{ 'intervention_type_label' | transloco }}</ion-label>
-        <ion-select formControlName="interventionType" interface="action-sheet">
+        <ion-select formControlName="interventionType" interface="action-sheet"
+                    (ionChange)="updatePhotoRequirement()">
           @for (type of interventionTypes; track type.key) {
             <ion-select-option [value]="type.key">{{ type.label | transloco }}</ion-select-option>
           }
@@ -128,6 +139,19 @@
       </ion-card>
 
     </form>
+
+    <!-- Fotografije -->
+    @if (showPhotosButton) {
+      <ion-card class="photos-card" (click)="onAddPhotos()" button>
+        <ion-item lines="none" detail>
+          <ion-icon name="camera-outline" slot="start" />
+          <ion-label>{{ 'intervention_photos_button' | transloco }}</ion-label>
+          @if (photoService.photos.length > 0) {
+            <ion-note slot="end">{{ photoService.photos.length }}</ion-note>
+          }
+        </ion-item>
+      </ion-card>
+    }
 
     <!-- Sačuvaj -->
     <ion-button expand="block" fill="outline" color="primary" class="save-button"
