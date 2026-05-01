@@ -9,9 +9,20 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface CartContext {
+  source: 'intervention' | 'home';
+  deviceCode?: string;
+  deviceName?: string;
+  warrantyStatus?: string;
+  userName?: string;
+  userAddress?: string;
+  userPhone?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CartService implements Clearable {
   private items = signal<CartItem[]>([]);
+  context: CartContext | null = null;
 
   readonly cartItems = this.items.asReadonly();
   readonly itemCount = computed(() => this.items().reduce((sum, item) => sum + item.quantity, 0));
@@ -56,7 +67,12 @@ export class CartService implements Clearable {
     }
   }
 
+  clearItems(): void {
+    this.items.set([]);
+  }
+
   clear(): void {
     this.items.set([]);
+    this.context = null;
   }
 }

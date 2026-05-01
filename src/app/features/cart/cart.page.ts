@@ -10,8 +10,10 @@ import { addIcons } from 'ionicons';
 import { add, remove, cartOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
 import { EmailComposer } from 'capacitor-email-composer';
+import { TranslocoService } from '@jsverse/transloco';
 import { CartService } from './cart.service';
 import { ConfigStore } from '../../core/config/config.store';
+import { AuthStore } from '../../core/auth/auth.store';
 import { LoggerService } from '../../core/logger/logger.service';
 
 @Component({
@@ -28,6 +30,8 @@ import { LoggerService } from '../../core/logger/logger.service';
 export class CartPage {
   protected cartService = inject(CartService);
   protected configStore = inject(ConfigStore);
+  private authStore = inject(AuthStore);
+  private transloco = inject(TranslocoService);
   private router = inject(Router);
   private logger = inject(LoggerService);
 
@@ -43,18 +47,59 @@ export class CartPage {
 
   async onOrder(): Promise<void> {
     const items = this.cartService.cartItems();
+    const ctx = this.cartService.context ?? { source: 'home' as const };
     const currency = this.configStore.business()?.currency ?? '';
-    const note = this.orderNote();
+    const total = this.cartService.totalPrice();
 
-    const body = items.map(item =>
-      `${item.name} (${item.partCode}) - ${item.quantity}x - ${item.price} ${currency}`,
-    ).join('\n') + (note ? `\n\nNapomena: ${note}` : '');
+    const deviceLabel = ctx.deviceCode && ctx.deviceName
+      ? `${ctx.deviceCode} - ${ctx.deviceName}` : '';
 
-    this.logger.info('Order email', { itemCount: items.length, total: this.cartService.totalPrice() });
+    const itemLines = items.map(item =>
+      this.transloco.translate('order_item_template', {
+        name: item.name,
+        code: item.partCode,
+        quantity: item.quantity,
+        price: (item.price ?? 0).toFixed(2),
+        currency,
+        device: deviceLabel,
+      }),
+    ).join('\n\n');
+
+    let warrantyLine = '';
+    if (ctx.source === 'intervention' && ctx.warrantyStatus) {
+      warrantyLine = ctx.warrantyStatus === 'in_warranty'
+        ? this.transloco.translate('order_warranty_in')
+        : this.transloco.translate('order_warranty_out');
+    }
+
+    let userLine: string;
+    if (ctx.source === 'intervention' && ctx.userName) {
+      userLine = this.transloco.translate('order_user_info', {
+        name: ctx.userName,
+        address: ctx.userAddress ?? '',
+        phone: ctx.userPhone ?? '',
+      });
+    } else {
+      userLine = this.transloco.translate('order_no_user');
+    }
+
+    const body = this.transloco.translate('order_email_body', {
+      items: itemLines,
+      total: total.toFixed(2),
+      currency,
+      servicer: this.authStore.userEmail(),
+      warrantyLine,
+      userLine,
+      appTitle: this.configStore.appTitle(),
+    });
+
+    this.logger.info('Order email', { itemCount: items.length, total });
+    console.log('ORDER CONTEXT:', JSON.stringify(ctx));
+    console.log('ORDER EMAIL BODY:\n' + body);
 
     await EmailComposer.open({
       to: ['test@example.com'],
-      subject: 'Narudžbina rezervnih delova',
+      subject: this.transloco.translate('order_email_subject'),
       body,
       isHtml: false,
     });

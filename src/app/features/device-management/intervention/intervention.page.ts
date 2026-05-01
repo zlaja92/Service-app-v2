@@ -21,6 +21,8 @@ import { PhotoRequirement } from '../../../core/config/config.model';
 import { DeviceType } from '../../../shared/models/device.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
 import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
+import { DeviceRegistrationService } from '../services/device-registration.service';
+import { CartService } from '../../cart/cart.service';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
   InterventionType,
@@ -58,6 +60,8 @@ export class InterventionPage implements ViewWillEnter {
   private readonly logger = inject(LoggerService);
   protected readonly configStore = inject(ConfigStore);
   protected readonly photoService = inject(PhotoService);
+  private readonly registrationService = inject(DeviceRegistrationService);
+  private readonly cartService = inject(CartService);
 
   protected sn = '';
   protected noDevice = false;
@@ -238,6 +242,27 @@ export class InterventionPage implements ViewWillEnter {
   onExplodedView(): void {
     const device = this.lookupService.device;
     if (!device) return;
+
+    const warrantyStatus = this.form.controls.warrantyStatus.value;
+    if (!warrantyStatus) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_warranty'),
+        'warning',
+      );
+      return;
+    }
+
+    const registration = this.registrationService.userData;
+    this.cartService.context = {
+      source: 'intervention',
+      deviceCode: device.code,
+      deviceName: device.name,
+      warrantyStatus,
+      userName: registration ? `${registration['firstName'] ?? ''} ${registration['lastName'] ?? ''}`.trim() : undefined,
+      userAddress: registration ? `${registration['streetName'] ?? ''} ${registration['homeNumber'] ?? ''}, ${registration['postCode'] ?? ''} ${registration['city'] ?? ''}`.trim() : undefined,
+      userPhone: registration?.['phoneNumber'] as string | undefined,
+    };
+
     void this.router.navigate(['/device', device.code, 'device-groups']);
   }
 

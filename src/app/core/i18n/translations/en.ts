@@ -426,6 +426,15 @@ export const en: Translation = {
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_already_registered: 'Connected device is already registered',
 
+  // ─── Order Email ──────────────────────────────────────────────────
+  order_email_subject: 'Spare Parts Order',
+  order_email_body: 'Order:\n\n{{items}}\n\nTotal: {{total}} {{currency}}\n\nServicer: {{servicer}}\n\n{{warrantyLine}}\n{{userLine}}\n\nThis message was automatically generated.\n\nBest regards,\n{{appTitle}}',
+  order_item_template: '{{name}}\nCode: {{code}}\nQuantity: {{quantity}}\nPrice: {{price}} {{currency}}\nDevice: {{device}}',
+  order_warranty_in: 'Order is under warranty.',
+  order_warranty_out: 'Order is out of warranty.',
+  order_user_info: 'Customer: {{name}}\nAddress: {{address}}\nPhone: {{phone}}',
+  order_no_user: 'Order was made without customer information.',
+
   // ─── Photo Upload ─────────────────────────────────────────────────
   intervention_photos_button: 'Add photos',
   intervention_validation_photos_required: 'At least {{required}} photos are required',

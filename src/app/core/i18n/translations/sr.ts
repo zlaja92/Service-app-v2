@@ -426,6 +426,15 @@ export const sr: Translation = {
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
 
+  // ─── Order Email ──────────────────────────────────────────────────
+  order_email_subject: 'Narudžbina rezervnih delova',
+  order_email_body: 'Porudžbina:\n\n{{items}}\n\nUkupno: {{total}} {{currency}}\n\nServiser: {{servicer}}\n\n{{warrantyLine}}\n{{userLine}}\n\nOva poruka je automatski generisana.\n\nPozdrav,\n{{appTitle}}',
+  order_item_template: '{{name}}\nKod: {{code}}\nKoličina: {{quantity}}\nCena Mp: {{price}} {{currency}}\nUređaj: {{device}}',
+  order_warranty_in: 'Porudžbina je u garanciji.',
+  order_warranty_out: 'Porudžbina je van garancije.',
+  order_user_info: 'Korisnik: {{name}}\nAdresa: {{address}}\nTelefon: {{phone}}',
+  order_no_user: 'Porudžbina je napravljena bez podataka o korisniku.',
+
   // ─── Photo Upload ─────────────────────────────────────────────────
   intervention_photos_button: 'Dodaj fotografije',
   intervention_validation_photos_required: 'Potrebno je napraviti najmanje {{required}} fotografija',

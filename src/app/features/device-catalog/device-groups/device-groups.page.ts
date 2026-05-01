@@ -36,7 +36,7 @@ export class DeviceGroupsPage implements ViewWillEnter {
     this.groupsService.load(this.deviceCode);
 
     if (!this.hasNavigatedToParts) {
-      this.cartService.clear();
+      this.cartService.clearItems();
     }
     this.hasNavigatedToParts = false;
   }
