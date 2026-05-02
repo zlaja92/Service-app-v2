@@ -11,6 +11,7 @@ export interface CartItem {
 
 export interface CartContext {
   source: 'intervention' | 'home';
+  deviceType?: string;
   deviceCode?: string;
   deviceName?: string;
   warrantyStatus?: string;

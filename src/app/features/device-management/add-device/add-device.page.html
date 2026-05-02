@@ -11,6 +11,20 @@
 </ion-header>
 
 <ion-content>
+  <ng-container *transloco="let t">
+    @if (warrantyInfo) {
+      <div class="warranty-notification">
+        <ion-icon name="information-circle-outline" class="warranty-icon" />
+        <div class="warranty-text">
+          <p class="warranty-message">{{ t(warrantyInfo.messageKey, warrantyInfo.messageParams) }}</p>
+          @if (warrantyInfo.noteKey) {
+            <p class="warranty-note">{{ t(warrantyInfo.noteKey) }}</p>
+          }
+        </div>
+      </div>
+    }
+  </ng-container>
+
   <ion-card>
     <ion-card-content>
       <form [formGroup]="form">
@@ -22,6 +36,18 @@
         <ion-item>
           <ion-label position="stacked">{{ 'commissioning_installer_phone' | transloco }}</ion-label>
           <ion-input formControlName="installerPhoneNumber" inputmode="tel" />
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_call_accepted_label' | transloco }}</ion-label>
+          <ion-select formControlName="callAccepted" interface="action-sheet">
+            <ion-select-option [value]="true">
+              {{ 'intervention_call_accepted_yes' | transloco }}
+            </ion-select-option>
+            <ion-select-option [value]="false">
+              {{ 'intervention_call_accepted_no' | transloco }}
+            </ion-select-option>
+          </ion-select>
         </ion-item>
 
         <ion-item>
@@ -46,10 +72,7 @@
   }
 
   <ion-button expand="block" fill="solid" color="primary" class="save-button"
-              (click)="onSave()" [disabled]="isSaving">
-    @if (isSaving) {
-      <ion-spinner name="crescent" slot="start" />
-    }
+              (click)="onSave()">
     {{ 'commissioning_save' | transloco }}
   </ion-button>
 </ion-content>

@@ -12,9 +12,15 @@
 
 <ion-content>
   @if (isLoading) {
-    <div class="loading-state">
-      <ion-spinner name="crescent" />
-    </div>
+    <ion-list>
+      @for (i of [1,2,3,4,5,6]; track i) {
+        <ion-item>
+          <ion-label>
+            <ion-skeleton-text [animated]="true" style="width: 70%" />
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
   } @else if (items.length === 0) {
     <div class="empty-state">
       <p>{{ 'history_empty' | transloco }}</p>

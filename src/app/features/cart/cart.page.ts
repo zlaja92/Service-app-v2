@@ -94,11 +94,12 @@ export class CartPage {
     });
 
     this.logger.info('Order email', { itemCount: items.length, total });
-    console.log('ORDER CONTEXT:', JSON.stringify(ctx));
-    console.log('ORDER EMAIL BODY:\n' + body);
+
+    const recipients = this.configStore.business()?.orderEmailRecipients ?? {};
+    const toEmail = ctx.deviceType ? recipients[ctx.deviceType] ?? '' : '';
 
     await EmailComposer.open({
-      to: ['test@example.com'],
+      to: toEmail ? [toEmail] : [],
       subject: this.transloco.translate('order_email_subject'),
       body,
       isHtml: false,

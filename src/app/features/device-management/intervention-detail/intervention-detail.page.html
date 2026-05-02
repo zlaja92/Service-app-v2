@@ -12,9 +12,16 @@
 
 <ion-content>
   @if (isLoading) {
-    <div class="loading-state">
-      <ion-spinner name="crescent" />
-    </div>
+    <ion-list>
+      @for (i of [1,2,3,4,5,6]; track i) {
+        <ion-item>
+          <ion-label>
+            <h3><ion-skeleton-text [animated]="true" style="width: 30%" /></h3>
+            <p><ion-skeleton-text [animated]="true" style="width: 60%" /></p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
   } @else if (notFound) {
     <div class="empty-state">
       <p>{{ 'history_detail_not_found' | transloco }}</p>

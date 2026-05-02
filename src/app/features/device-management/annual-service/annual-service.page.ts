@@ -7,12 +7,14 @@ import {
   IonMenuButton, IonLabel, IonCard,
   IonGrid, IonRow, IonCol,
   IonSpinner,
-  ViewWillEnter, AlertController, ToastController,
+  ViewWillEnter, ToastController,
 } from '@ionic/angular/standalone';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
+import { ConfirmService } from '../../../shared/services/confirm.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
@@ -44,10 +46,11 @@ export class AnnualServicePage implements ViewWillEnter {
   private readonly envInfoService = inject(DeviceEnvInfoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly loadingAlert = inject(LoadingAlertService);
 
   protected sn = '';
   protected noDevice = false;
@@ -103,7 +106,9 @@ export class AnnualServicePage implements ViewWillEnter {
     };
 
     if (requiresEnvInfo(device.type)) {
+      await this.loadingAlert.show();
       const prefill = await this.envInfoService.getLastEnvInfo(this.sn, device.type);
+      await this.loadingAlert.hide();
       const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
       if (!envInfo) return;
       data['envInfo'] = envInfo;
@@ -112,19 +117,21 @@ export class AnnualServicePage implements ViewWillEnter {
       if (!confirmed) return;
     }
 
-    this.isSaving = true;
+    await this.loadingAlert.show();
     const docId = await this.interventionService.saveIntervention(this.sn, device, data);
 
     if (!docId) {
-      this.isSaving = false;
+      await this.loadingAlert.hide();
       await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
       return;
     }
 
     await this.saveForConnectedDevice(device, data);
 
-    void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
-    void this.router.navigate(['/device-management', this.sn]);
+    void this.router.navigate(['/device-management', this.sn]).then(() => {
+      void this.loadingAlert.hide();
+      void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
+    });
   }
 
   private async saveForConnectedDevice(device: Device, data: Record<string, unknown>): Promise<void> {
@@ -161,25 +168,13 @@ export class AnnualServicePage implements ViewWillEnter {
     return true;
   }
 
-  private async showConfirmAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('annual_service_confirm_title'),
-        message: this.transloco.translate('annual_service_confirm_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('annual_service_confirm_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
-          },
-          {
-            text: this.transloco.translate('annual_service_confirm_save'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
-    });
+  private showConfirmAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'annual_service_confirm_title',
+      'annual_service_confirm_message',
+      'annual_service_confirm_save',
+      'annual_service_confirm_cancel',
+    );
   }
 
   private async showToast(message: string, color: string): Promise<void> {

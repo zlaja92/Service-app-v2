@@ -22,6 +22,7 @@ export type DisableReason =
   | 'missed_annual_service'
   | 'already_serviced'
   | 'outside_window'
+  | 'no_commissioning'
   | 'server_time_unavailable'
   | null;
 
@@ -68,6 +69,18 @@ export class AnnualServiceEligibilityService implements Clearable {
         this.disableReason = 'not_in_warranty';
         this.logger.warn('Eligibility: device not in warranty', { sn, warrantyStatus });
         return;
+      }
+
+      if (device.commissioning) {
+        const interventions = await this.interventionService.getInterventionsBySn(sn, device.type);
+        const hasCommissioning = interventions.some(
+          i => i.data['interventionType'] === InterventionType.COMMISSIONING,
+        );
+        if (!hasCommissioning) {
+          this.disableReason = 'no_commissioning';
+          this.logger.warn('Eligibility: commissioning not done', { sn });
+          return;
+        }
       }
 
       const commissioningDate = this.toDate(registration['dateOfPurchase']);

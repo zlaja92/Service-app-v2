@@ -4,18 +4,22 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonButton, IonItem, IonInput, IonTextarea, IonSpinner, IonIcon, IonNote,
+  IonSelect, IonSelectOption,
   IonMenuButton, IonLabel, IonCard, IonCardContent,
-  ViewWillEnter, AlertController, ToastController, ModalController,
+  ViewWillEnter, ToastController, ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { cameraOutline } from 'ionicons/icons';
+import { cameraOutline, informationCircleOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { InterventionType, COMMISSIONING_DESCRIPTION } from '../models/intervention.model';
+import { DeviceType } from '../../../shared/models/device.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { ConfirmService } from '../../../shared/services/confirm.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { PhotoRequirement } from '../../../core/config/config.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
@@ -29,6 +33,7 @@ import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonButton, IonItem, IonInput, IonTextarea, IonSpinner, IonIcon, IonNote,
+    IonSelect, IonSelectOption,
     IonMenuButton, IonLabel, IonCard, IonCardContent,
     TranslocoModule,
   ],
@@ -39,8 +44,9 @@ export class AddDevicePage implements ViewWillEnter {
   private readonly lookupService = inject(DeviceLookupService);
   private readonly interventionService = inject(InterventionService);
   private readonly envInfoService = inject(DeviceEnvInfoService);
-  private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly loadingAlert = inject(LoadingAlertService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly modalCtrl = inject(ModalController);
@@ -51,9 +57,10 @@ export class AddDevicePage implements ViewWillEnter {
   protected isSaving = false;
   private connectedSn = '';
   protected photoRequirement: PhotoRequirement | null = null;
+  protected warrantyInfo: { messageKey: string; messageParams: Record<string, string>; noteKey: string } | null = null;
 
   constructor() {
-    addIcons({ cameraOutline });
+    addIcons({ cameraOutline, informationCircleOutline });
   }
 
   get showPhotosButton(): boolean {
@@ -64,6 +71,7 @@ export class AddDevicePage implements ViewWillEnter {
   protected form = new FormGroup({
     installerName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     installerPhoneNumber: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(9)] }),
+    callAccepted: new FormControl<boolean | null>(null),
     note: new FormControl('', { nonNullable: true }),
   });
 
@@ -72,8 +80,14 @@ export class AddDevicePage implements ViewWillEnter {
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
     this.connectedSn = this.route.snapshot.queryParamMap.get('connectedSn') ?? '';
 
+    this.warrantyInfo = null;
+    const device = this.lookupService.device;
+
+    if (device?.type === DeviceType.GAS_BOILER) {
+      this.warrantyInfo = this.getWarrantyInfo();
+    }
+
     if (this.configStore.isFeatureEnabled('interventionPhotos')) {
-      const device = this.lookupService.device;
       const photoConfig = this.configStore.config()?.interventionPhotoConfig ?? {};
       this.photoRequirement = device ? (photoConfig[device.type]?.['commissioning'] ?? null) : null;
 
@@ -109,6 +123,7 @@ export class AddDevicePage implements ViewWillEnter {
       interventionDescription: COMMISSIONING_DESCRIPTION,
       installerName: formValue.installerName,
       installerPhoneNumber: formValue.installerPhoneNumber,
+      callAccepted: formValue.callAccepted,
       note: formValue.note,
     };
 
@@ -128,7 +143,7 @@ export class AddDevicePage implements ViewWillEnter {
       if (!confirmed) return;
     }
 
-    this.isSaving = true;
+    await this.loadingAlert.show();
 
     if (this.configStore.isFeatureEnabled('interventionPhotos') && this.photoService.photos.length > 0) {
       await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.COMMISSIONING);
@@ -147,54 +162,32 @@ export class AddDevicePage implements ViewWillEnter {
 
     if (success) {
       this.photoService.clear();
-      void this.showToast(this.transloco.translate('commissioning_success'), 'success');
-      void this.router.navigate(['/device-management', this.sn]);
+      void this.router.navigate(['/device-management', this.sn]).then(() => {
+        void this.loadingAlert.hide();
+        void this.showToast(this.transloco.translate('commissioning_success'), 'success');
+      });
     } else {
-      this.isSaving = false;
+      await this.loadingAlert.hide();
       void this.showToast(this.transloco.translate('commissioning_error'), 'danger');
     }
   }
 
-  private async showNoPhotosAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('photo_no_photos_title'),
-        message: this.transloco.translate('photo_no_photos_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('photo_no_photos_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
-          },
-          {
-            text: this.transloco.translate('photo_no_photos_continue'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
-    });
+  private showNoPhotosAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'photo_no_photos_title',
+      'photo_no_photos_message',
+      'photo_no_photos_continue',
+      'photo_no_photos_cancel',
+    );
   }
 
-  private async showConfirmAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('commissioning_confirm_title'),
-        message: this.transloco.translate('commissioning_confirm_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('commissioning_confirm_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
-          },
-          {
-            text: this.transloco.translate('commissioning_confirm_save'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
-    });
+  private showConfirmAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'commissioning_confirm_title',
+      'commissioning_confirm_message',
+      'commissioning_confirm_save',
+      'commissioning_confirm_cancel',
+    );
   }
 
   private validateForm(): boolean {
@@ -233,6 +226,54 @@ export class AddDevicePage implements ViewWillEnter {
     }
 
     return true;
+  }
+
+  private getWarrantyInfo(): { messageKey: string; messageParams: Record<string, string>; noteKey: string } | null {
+    const manufactureDate = this.getManufactureDateFromSn();
+    if (!manufactureDate) return null;
+
+    const now = new Date();
+    const daysSince = (now.getTime() - manufactureDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysSince / 365 <= 1) {
+      return { messageKey: 'commissioning_warranty_from_start', messageParams: {}, noteKey: '' };
+    }
+
+    const warrantyStart = new Date(manufactureDate);
+    warrantyStart.setMonth(warrantyStart.getMonth() + 6);
+    const formatted = warrantyStart.toLocaleDateString('sr-RS', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    });
+
+    return {
+      messageKey: 'commissioning_warranty_from_date',
+      messageParams: { date: formatted },
+      noteKey: 'commissioning_warranty_upload_note',
+    };
+  }
+
+  private getManufactureDateFromSn(): Date | null {
+    const sn = this.sn;
+    const business = this.configStore.business();
+    const start = business?.snMfgDateStart ?? 9;
+    const length = business?.snMfgDateLength ?? 5;
+
+    if (!sn || sn.length < start + length) return null;
+
+    const dateStr = sn.substring(start, start + length);
+    const yearStr = dateStr.substring(0, 2);
+    const dayOfYearStr = dateStr.substring(2, length);
+
+    const year = 2000 + parseInt(yearStr, 10);
+    const dayOfYear = parseInt(dayOfYearStr, 10);
+
+    if (isNaN(year) || year < 2000 || year > 2100) return null;
+
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (isNaN(dayOfYear) || dayOfYear < 1 || dayOfYear > (isLeapYear ? 366 : 365)) return null;
+
+    const date = new Date(year, 0, dayOfYear);
+    return isNaN(date.getTime()) ? null : date;
   }
 
   private async showToast(message: string, color: string): Promise<void> {

@@ -75,6 +75,14 @@ ion-modal.fullscreen-modal {
   height: 100%;
 }
 
+ion-loading.fullscreen-loading {
+  --backdrop-opacity: 0.5;
+
+  .loading-wrapper {
+    box-shadow: none;
+  }
+}
+
 ion-action-sheet {
   .action-sheet-button {
     text-transform: uppercase;

@@ -26,14 +26,20 @@ export class DeviceGroupsPage implements ViewWillEnter {
   private router = inject(Router);
 
   private deviceCode = '';
-  // Tracks if user navigated forward to parts page.
-  // When returning from parts, cart is preserved.
-  // When entering fresh from search, cart is cleared.
   private hasNavigatedToParts = false;
+  private loadingTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ionViewWillEnter(): void {
     this.deviceCode = this.route.snapshot.paramMap.get('code') ?? '';
-    this.groupsService.load(this.deviceCode);
+    if (this.loadingTimeout) clearTimeout(this.loadingTimeout);
+
+    this.groupsService.load(this.deviceCode).then(() => {
+      if (this.loadingTimeout) clearTimeout(this.loadingTimeout);
+    });
+
+    this.loadingTimeout = setTimeout(() => {
+      this.groupsService.isLoading = false;
+    }, 30000);
 
     if (!this.hasNavigatedToParts) {
       this.cartService.clearItems();

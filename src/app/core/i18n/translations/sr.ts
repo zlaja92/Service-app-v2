@@ -143,6 +143,9 @@ export const sr: Translation = {
   commissioning_confirm_message: 'Nakon čuvanja nećete moći da menjate podatke. Da li želite da nastavite?',
   commissioning_confirm_save: 'Sačuvaj',
   commissioning_confirm_cancel: 'Odustani',
+  commissioning_warranty_from_start: 'Garancija počinje od datuma puštanja u rad.',
+  commissioning_warranty_from_date: 'Datum početka važenja garancije je {{date}}',
+  commissioning_warranty_upload_note: 'Da bi garancija važila od datuma puštanja u rad ubacite sliku računa kao dokaz na dnu strane.',
   commissioning_success: 'Puštanje u rad je uspešno sačuvano',
   commissioning_error: 'Greška pri čuvanju puštanja u rad',
   commissioning_server_time_error: 'Nije moguće proveriti vreme sa servera. Pokušajte ponovo.',
@@ -425,6 +428,7 @@ export const sr: Translation = {
   connected_device_found: 'Pronađen',
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
+  loading_please_wait: 'Molimo sačekajte...',
 
   // ─── Order Email ──────────────────────────────────────────────────
   order_email_subject: 'Narudžbina rezervnih delova',

@@ -6,12 +6,13 @@ import {
   IonButton, IonItem, IonInput, IonSelect, IonSelectOption,
   IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
   IonSpinner,
-  ViewWillEnter, AlertController, ToastController, PickerController, PickerColumn,
+  ViewWillEnter, ToastController, PickerController, PickerColumn,
 } from '@ionic/angular/standalone';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
 import { ServerTimeService } from '../../../core/firebase/server-time.service';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 
 @Component({
   selector: 'app-add-user',
@@ -31,8 +32,8 @@ export class AddUserPage implements ViewWillEnter {
   private readonly router = inject(Router);
   protected readonly lookupService = inject(DeviceLookupService);
   private readonly registrationService = inject(DeviceRegistrationService);
-  private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
+  private readonly confirmService = inject(ConfirmService);
   private readonly transloco = inject(TranslocoService);
   private readonly serverTimeService = inject(ServerTimeService);
   protected sn = '';
@@ -48,7 +49,6 @@ export class AddUserPage implements ViewWillEnter {
     phoneNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     warrantyStatus: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     dateOfPurchase: new FormControl('', { nonNullable: true }),
-    callAccepted: new FormControl<boolean | null>(null),
   });
 
   private readonly pickerCtrl = inject(PickerController);
@@ -182,43 +182,13 @@ export class AddUserPage implements ViewWillEnter {
       data['dateOfPurchase'] = new Date(year, month - 1, day);
     }
 
-    const alert = await this.alertCtrl.create({
-      header: this.transloco.translate('add_user_confirm_title'),
-      message: this.transloco.translate('add_user_confirm_message'),
-      buttons: [
-        {
-          text: this.transloco.translate('add_user_confirm_cancel'),
-          role: 'cancel',
-        },
-        {
-          text: this.transloco.translate('add_user_confirm_save'),
-          handler: () => {
-            void this.saveAndNavigate(alert, data);
-            return false;
-          },
-        },
-      ],
-    });
-    await alert.present();
-  }
-
-  private async saveAndNavigate(
-    alert: HTMLIonAlertElement,
-    data: Record<string, unknown>,
-  ): Promise<void> {
-    const saveButton = alert.querySelector('.alert-button:last-child') as HTMLElement | null;
-    if (saveButton) {
-      saveButton.textContent = '';
-      const spinner = document.createElement('ion-spinner');
-      spinner.setAttribute('name', 'crescent');
-      saveButton.appendChild(spinner);
-    }
-
-    const device = this.lookupService.device;
-    if (!device) {
-      await alert.dismiss();
-      return;
-    }
+    const confirmed = await this.confirmService.confirm(
+      'add_user_confirm_title',
+      'add_user_confirm_message',
+      'add_user_confirm_save',
+      'add_user_confirm_cancel',
+    );
+    if (!confirmed) return;
 
     let success: boolean;
 
@@ -232,8 +202,6 @@ export class AddUserPage implements ViewWillEnter {
     } else {
       success = await this.registrationService.register(this.sn, device, data);
     }
-
-    await alert.dismiss();
 
     if (success) {
       void this.showToast(this.transloco.translate('add_user_success'), 'success');
@@ -254,9 +222,6 @@ export class AddUserPage implements ViewWillEnter {
     if (!value.city.trim()) missing.push(this.transloco.translate('add_user_city'));
     if (!value.postCode.trim()) missing.push(this.transloco.translate('add_user_post_code'));
     if (!value.phoneNumber.trim()) missing.push(this.transloco.translate('add_user_phone'));
-    if (this.lookupService.device?.annualService && value.callAccepted == null) {
-      missing.push(this.transloco.translate('add_user_call_accepted'));
-    }
     if (!value.warrantyStatus) missing.push(this.transloco.translate('add_user_warranty'));
     if (this.showDateOfPurchase && !value.dateOfPurchase) missing.push(this.transloco.translate('add_user_date_of_purchase'));
 

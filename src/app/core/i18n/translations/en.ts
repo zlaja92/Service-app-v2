@@ -143,6 +143,9 @@ export const en: Translation = {
   commissioning_confirm_message: 'After saving, data cannot be changed. Do you want to continue?',
   commissioning_confirm_save: 'Save',
   commissioning_confirm_cancel: 'Cancel',
+  commissioning_warranty_from_start: 'Warranty starts from the commissioning date.',
+  commissioning_warranty_from_date: 'Warranty start date is {{date}}',
+  commissioning_warranty_upload_note: 'To have the warranty valid from the purchase date, upload a receipt photo as proof at the bottom of the page.',
   commissioning_success: 'Commissioning saved successfully',
   commissioning_error: 'Failed to save commissioning',
   commissioning_server_time_error: 'Unable to verify server time. Please try again.',
@@ -425,6 +428,7 @@ export const en: Translation = {
   connected_device_found: 'Found',
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_already_registered: 'Connected device is already registered',
+  loading_please_wait: 'Please wait...',
 
   // ─── Order Email ──────────────────────────────────────────────────
   order_email_subject: 'Spare Parts Order',

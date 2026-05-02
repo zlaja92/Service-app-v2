@@ -53,20 +53,6 @@
           <ion-input formControlName="phoneNumber" inputmode="tel" />
         </ion-item>
 
-        @if (lookupService.device?.annualService) {
-          <ion-item>
-            <ion-label position="stacked">{{ 'add_user_call_accepted' | transloco }}</ion-label>
-            <ion-select formControlName="callAccepted" interface="action-sheet">
-              <ion-select-option [value]="true">
-                {{ 'add_user_call_accepted_yes' | transloco }}
-              </ion-select-option>
-              <ion-select-option [value]="false">
-                {{ 'add_user_call_accepted_no' | transloco }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-        }
-
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_warranty' | transloco }}</ion-label>
           <ion-select formControlName="warrantyStatus" interface="action-sheet">

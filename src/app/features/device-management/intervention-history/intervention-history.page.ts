@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonMenuButton, IonList, IonItem, IonLabel, IonSpinner,
+  IonMenuButton, IonList, IonItem, IonLabel, IonSpinner, IonSkeletonText,
   ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -18,7 +18,7 @@ import { InterventionHistoryItem, InterventionType } from '../models/interventio
   styleUrls: ['./intervention-history.page.scss'],
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonMenuButton, IonList, IonItem, IonLabel, IonSpinner,
+    IonMenuButton, IonList, IonItem, IonLabel, IonSpinner, IonSkeletonText,
     TranslocoModule,
   ],
 })

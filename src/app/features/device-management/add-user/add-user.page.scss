@@ -1,3 +1,11 @@
+ion-card-content ion-item {
+  --background: transparent;
+  --border-width: 0 0 0.55px 0;
+  --inner-border-width: 0;
+  --padding-start: 8px;
+  --inner-padding-end: 0;
+}
+
 ion-select {
   width: 100%;
   max-width: 100%;

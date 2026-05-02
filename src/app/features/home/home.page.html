@@ -20,12 +20,12 @@
     <ion-item *appFeatureFlag="'deviceManagement'">
       <ion-input [placeholder]="'home_sn_placeholder' | transloco"
                  [(ngModel)]="snInput"
-                 maxlength="21"
+                 [maxlength]="configStore.business()?.snMaxLength!"
                  [clearInput]="true" />
     </ion-item>
 
     <ion-button expand="block" fill="solid" color="primary"
-                (click)="searchBySn()" [disabled]="!snInput"
+                (click)="searchBySn()" [disabled]="snInput.length < (configStore.business()?.snMinLength ?? 0)"
                 *appFeatureFlag="'deviceManagement'">
       <ion-icon name="search-outline" slot="start" />
       {{ 'home_search' | transloco }}

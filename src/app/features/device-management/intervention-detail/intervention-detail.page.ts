@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner,
+  IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner, IonSkeletonText,
   ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -29,6 +29,8 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   interventionDescription: 'intervention_description_label',
   error: 'intervention_error_label',
   distance: 'intervention_distance_label',
+  installerName: 'commissioning_installer_name',
+  installerPhoneNumber: 'commissioning_installer_phone',
   callAccepted: 'intervention_call_accepted_label',
   sparePart1: 'intervention_spare_part_label',
   sparePart2: 'intervention_spare_part_label',
@@ -50,7 +52,7 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   styleUrls: ['./intervention-detail.page.scss'],
   imports: [
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner,
+    IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner, IonSkeletonText,
     TranslocoModule,
   ],
 })

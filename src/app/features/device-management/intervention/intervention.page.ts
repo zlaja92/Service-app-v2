@@ -7,7 +7,7 @@ import {
   IonMenuButton, IonLabel, IonCard, IonNote,
   IonGrid, IonRow, IonCol,
   IonSpinner,
-  ViewWillEnter, AlertController, ToastController, ModalController,
+  ViewWillEnter, ToastController, ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { addOutline, removeOutline, cameraOutline } from 'ionicons/icons';
@@ -23,6 +23,8 @@ import { PhotoService } from '../../photo-upload/services/photo.service';
 import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
 import { DeviceRegistrationService } from '../services/device-registration.service';
 import { CartService } from '../../cart/cart.service';
+import { ConfirmService } from '../../../shared/services/confirm.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
   InterventionType,
@@ -53,9 +55,10 @@ export class InterventionPage implements ViewWillEnter {
   private readonly envInfoService = inject(DeviceEnvInfoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly alertCtrl = inject(AlertController);
   private readonly toastCtrl = inject(ToastController);
   private readonly modalCtrl = inject(ModalController);
+  private readonly confirmService = inject(ConfirmService);
+  private readonly loadingAlert = inject(LoadingAlertService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   protected readonly configStore = inject(ConfigStore);
@@ -81,7 +84,6 @@ export class InterventionPage implements ViewWillEnter {
     interventionType: new FormControl('', { nonNullable: true }),
     description: new FormControl('', { nonNullable: true }),
     error: new FormControl('', { nonNullable: true }),
-    callAccepted: new FormControl<boolean | null>(null),
     distance: new FormControl(DEFAULT_DISTANCE, { nonNullable: true }),
     note: new FormControl('', { nonNullable: true }),
   });
@@ -136,11 +138,6 @@ export class InterventionPage implements ViewWillEnter {
     this.interventionTypes = types;
     this.form.controls.interventionType.setValue('');
     this.updatePhotoRequirement();
-  }
-
-  get showCallAccepted(): boolean {
-    return this.deviceType === DeviceType.HEAT_PUMP
-      || this.deviceType === DeviceType.GAS_BOILER;
   }
 
   get showPhotosButton(): boolean {
@@ -206,7 +203,9 @@ export class InterventionPage implements ViewWillEnter {
     parts.forEach((part, i) => { data[`sparePart${i + 1}`] = part; });
 
     if (requiresEnvInfo(device.type)) {
+      await this.loadingAlert.show();
       const prefill = await this.envInfoService.getLastEnvInfo(this.sn, device.type);
+      await this.loadingAlert.hide();
       const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
       if (!envInfo) return;
       data['envInfo'] = envInfo;
@@ -215,7 +214,7 @@ export class InterventionPage implements ViewWillEnter {
       if (!confirmed) return;
     }
 
-    this.isSaving = true;
+    await this.loadingAlert.show();
 
     if (this.photoService.photos.length > 0) {
       await this.photoService.uploadPhotos(this.sn, device.type, formValue.interventionType);
@@ -225,13 +224,12 @@ export class InterventionPage implements ViewWillEnter {
 
     if (docId) {
       this.photoService.clear();
-      await this.showToast(
-        this.transloco.translate('intervention_save_success'),
-        'success',
-      );
-      void this.router.navigate(['/device-management', this.sn]);
+      void this.router.navigate(['/device-management', this.sn]).then(() => {
+        void this.loadingAlert.hide();
+        void this.showToast(this.transloco.translate('intervention_save_success'), 'success');
+      });
     } else {
-      this.isSaving = false;
+      await this.loadingAlert.hide();
       await this.showToast(
         this.transloco.translate('intervention_save_error'),
         'danger',
@@ -255,6 +253,7 @@ export class InterventionPage implements ViewWillEnter {
     const registration = this.registrationService.userData;
     this.cartService.context = {
       source: 'intervention',
+      deviceType: device.type,
       deviceCode: device.code,
       deviceName: device.name,
       warrantyStatus,
@@ -293,13 +292,6 @@ export class InterventionPage implements ViewWillEnter {
       return false;
     }
 
-    if (this.showCallAccepted && value.callAccepted == null) {
-      void this.showToast(
-        this.transloco.translate('intervention_validation_call_accepted'),
-        'warning',
-      );
-      return false;
-    }
 
     if (this.photoRequirement) {
       const sparePartCount = this.photoRequirement.requireSparePartPhotos
@@ -321,25 +313,13 @@ export class InterventionPage implements ViewWillEnter {
     return true;
   }
 
-  private async showConfirmAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('intervention_confirm_title'),
-        message: this.transloco.translate('intervention_confirm_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('intervention_confirm_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
-          },
-          {
-            text: this.transloco.translate('intervention_confirm_save'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
-    });
+  private showConfirmAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'intervention_confirm_title',
+      'intervention_confirm_message',
+      'intervention_confirm_save',
+      'intervention_confirm_cancel',
+    );
   }
 
   private async showToast(message: string, color: string): Promise<void> {
@@ -358,7 +338,6 @@ export class InterventionPage implements ViewWillEnter {
       interventionType: '',
       description: '',
       error: this.errorCodes[0] ?? '',
-      callAccepted: null,
       distance: DEFAULT_DISTANCE,
       note: '',
     });

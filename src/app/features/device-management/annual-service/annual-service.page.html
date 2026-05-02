@@ -68,7 +68,7 @@
       <!-- Napomena -->
       <ion-card>
         <ion-item>
-          <ion-label position="floating">{{ 'annual_service_note_label' | transloco }}</ion-label>
+          <ion-label position="stacked">{{ 'annual_service_note_label' | transloco }}</ion-label>
           <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
                         [placeholder]="'annual_service_note_placeholder' | transloco" />
         </ion-item>
@@ -78,10 +78,7 @@
 
     <!-- Sačuvaj -->
     <ion-button expand="block" fill="outline" color="primary" class="save-button"
-                (click)="onSave()" [disabled]="isSaving">
-      @if (isSaving) {
-        <ion-spinner name="crescent" slot="start" />
-      }
+                (click)="onSave()">
       {{ 'annual_service_save' | transloco }}
     </ion-button>
   }

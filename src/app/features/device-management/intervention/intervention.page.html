@@ -60,21 +60,6 @@
         </ion-select>
       </ion-item>
 
-      <!-- Obaveštenje o produženju garancije (HP/GB only) -->
-      @if (showCallAccepted) {
-        <ion-item>
-          <ion-label position="stacked">{{ 'intervention_call_accepted_label' | transloco }}</ion-label>
-          <ion-select formControlName="callAccepted" interface="action-sheet">
-            <ion-select-option [value]="true">
-              {{ 'intervention_call_accepted_yes' | transloco }}
-            </ion-select-option>
-            <ion-select-option [value]="false">
-              {{ 'intervention_call_accepted_no' | transloco }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-      }
-
       <!-- Kilometraža + Datum -->
       <ion-grid>
         <ion-row>
@@ -155,10 +140,7 @@
 
     <!-- Sačuvaj -->
     <ion-button expand="block" fill="outline" color="primary" class="save-button"
-                (click)="onSave()" [disabled]="isSaving">
-      @if (isSaving) {
-        <ion-spinner name="crescent" slot="start" />
-      }
+                (click)="onSave()">
       {{ 'intervention_save' | transloco }}
     </ion-button>
 

@@ -43,8 +43,8 @@
       @for (user of searchService.results; track user.sn) {
         <ion-item button (click)="onResultClick(user.sn)" detail>
           <ion-label>
-            <h2>{{ user.lastName }} {{ user.firstName }}</h2>
-            <p>{{ user.streetName }}, {{ user.city }}</p>
+            <h2>{{ user.firstName }} {{ user.lastName }}</h2>
+            <p>{{ user.streetName }} {{ user.homeNumber }}, {{ user.city }}</p>
             <p class="sn-label">{{ user.sn }}</p>
           </ion-label>
         </ion-item>

@@ -106,7 +106,7 @@ export class DeviceDetailPage implements ViewWillEnter {
     }
 
     this.isInitializing = false;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   private async checkCommissioningDone(deviceType: string): Promise<void> {

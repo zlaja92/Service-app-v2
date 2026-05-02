@@ -20,7 +20,7 @@
 </ion-header>
 
 <ion-content>
-  @if (partsService.isLoading) {
+  @if (!isReady) {
     <div class="group-photo-skeleton">
       <ion-skeleton-text [animated]="true" style="width: 100%; height: 200px" />
     </div>
@@ -35,13 +35,13 @@
     </ion-list>
   }
 
-  @if (!partsService.isLoading) {
-    @if (partsService.groupPhoto) {
-      <div class="group-photo">
-        <img [src]="partsService.groupPhoto" alt="Group photo" />
-      </div>
-    }
+  @if (!partsService.isLoading && partsService.groupPhoto) {
+    <div class="group-photo" [class.hidden]="!isReady">
+      <img [src]="partsService.groupPhoto" alt="Group photo" (load)="onImageLoaded()" (error)="onImageLoaded()" />
+    </div>
+  }
 
+  @if (isReady) {
     @if (partsService.parts.length > 0) {
       <ion-list>
         @for (part of partsService.parts; track part.id) {

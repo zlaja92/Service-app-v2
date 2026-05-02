@@ -1,5 +1,63 @@
+.warranty-notification {
+  margin: 16px;
+  margin-bottom: 12px;
+  animation: slideDown 0.8s ease-out;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+  border-left: 4px solid #2196F3;
+
+  .warranty-icon {
+    font-size: 28px;
+    color: #1976D2;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  .warranty-text {
+    flex: 1;
+  }
+
+  .warranty-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #1565C0;
+    font-weight: 500;
+  }
+
+  .warranty-note {
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1976D2;
+    font-weight: 400;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 ion-card-content {
-  padding-inline-start: 0;
+
+  ion-item {
+    --background: transparent;
+    --border-width: 0 0 0.55px 0;
+    --inner-border-width: 0;
+    --padding-start: 8px;
+    --inner-padding-end: 0;
+  }
 }
 
 .save-button {

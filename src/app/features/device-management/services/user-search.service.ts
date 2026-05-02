@@ -10,6 +10,7 @@ export interface UserSearchResult {
   firstName: string;
   lastName: string;
   streetName: string;
+  homeNumber: string;
   city: string;
   deviceType: string;
 }
@@ -21,6 +22,7 @@ interface UserDoc {
   firstNameSrch: string;
   lastNameSrch: string;
   streetName: string;
+  homeNumber: string;
   city: string;
   deviceType: string;
   [key: string]: unknown;
@@ -229,6 +231,7 @@ export class UserSearchService implements Clearable {
       firstName: data.firstName ?? '',
       lastName: data.lastName ?? '',
       streetName: data.streetName ?? '',
+      homeNumber: data.homeNumber ?? '',
       city: data.city ?? '',
       deviceType: data.deviceType ?? '',
     };

@@ -50,11 +50,16 @@ export interface BusinessConfig {
   partPhotoFolder: string;
   snModelStart: number;
   snModelLength: number;
+  snMfgDateStart: number;
+  snMfgDateLength: number;
+  snMinLength: number;
+  snMaxLength: number;
   userSearchPageSize: number;
   userSearchMinLength: number;
   interventionCollections: Record<string, string>;
   photoQuality: number;
   photoMaxWidth: number;
+  orderEmailRecipients: Record<string, string>;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -99,11 +104,16 @@ export function getDefaultConfig(): AppConfig {
       partPhotoFolder: '',
       snModelStart: 0,
       snModelLength: 7,
+      snMfgDateStart: 9,
+      snMfgDateLength: 5,
+      snMinLength: 21,
+      snMaxLength: 21,
       userSearchPageSize: 20,
       userSearchMinLength: 2,
       interventionCollections: { default: 'interventions' },
       photoQuality: 70,
       photoMaxWidth: 1280,
+      orderEmailRecipients: {},
     },
     interventionFaultOptions: {},
     interventionErrorOptions: {},

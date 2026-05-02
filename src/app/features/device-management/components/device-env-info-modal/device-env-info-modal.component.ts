@@ -5,11 +5,12 @@ import {
   IonItem, IonInput, IonSelect, IonSelectOption, IonLabel,
   IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
   IonGrid, IonRow, IonCol,
-  ModalController, ToastController, AlertController,
+  ModalController, ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { ConfirmService } from '../../../../shared/services/confirm.service';
 import { DeviceType } from '../../../../shared/models/device.model';
 import {
   EnvInfoFieldConfig,
@@ -38,8 +39,8 @@ export class DeviceEnvInfoModalComponent implements OnInit {
 
   private readonly modalController = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
-  private readonly alertCtrl = inject(AlertController);
   private readonly transloco = inject(TranslocoService);
+  private readonly confirmService = inject(ConfirmService);
 
   protected sections: EnvInfoSectionConfig[] = [];
   protected fieldsPerSection = new Map<string, EnvInfoFieldConfig[]>();
@@ -79,25 +80,13 @@ export class DeviceEnvInfoModalComponent implements OnInit {
     this.modalController.dismiss(this.form.getRawValue(), 'save');
   }
 
-  private async showConfirmAlert(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      const alert = await this.alertCtrl.create({
-        header: this.transloco.translate('env_info_confirm_title'),
-        message: this.transloco.translate('env_info_confirm_message'),
-        buttons: [
-          {
-            text: this.transloco.translate('env_info_confirm_cancel'),
-            role: 'cancel',
-            handler: () => resolve(false),
-          },
-          {
-            text: this.transloco.translate('env_info_confirm_save'),
-            handler: () => resolve(true),
-          },
-        ],
-      });
-      await alert.present();
-    });
+  private showConfirmAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'env_info_confirm_title',
+      'env_info_confirm_message',
+      'env_info_confirm_save',
+      'env_info_confirm_cancel',
+    );
   }
 
   protected onDismiss(): void {
