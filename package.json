@@ -1,18 +1,29 @@
 {
   "name": "aristonv3",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
+    "prestart": "node scripts/sync-version.js",
     "start": "ng serve",
+    "prebuild": "node scripts/sync-version.js",
     "build": "ng build",
+    "release": "node scripts/sync-version.js --check-tag && ng build",
+    "prewatch": "node scripts/sync-version.js",
     "watch": "ng build --watch --configuration development",
+    "cap:sync": "node scripts/sync-version.js && npx cap sync",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "npx playwright test --config=e2e/playwright.config.ts",
     "e2e:ui": "npx playwright test --config=e2e/playwright.config.ts --ui",
-    "e2e:report": "npx playwright show-report"
+    "e2e:report": "npx playwright show-report",
+    "version:bump:patch": "npm version patch --no-git-tag-version",
+    "version:bump:minor": "npm version minor --no-git-tag-version",
+    "version:bump:major": "npm version major --no-git-tag-version",
+    "version:sync": "node scripts/sync-version.js",
+    "release:commit": "git add -A && git commit -m \"Release v$npm_package_version\" && git tag \"v$npm_package_version\"",
+    "postinstall": "patch-package"
   },
   "private": true,
   "dependencies": {
@@ -28,6 +39,7 @@
     "@capacitor-firebase/firestore": "^8.1.0",
     "@capacitor-firebase/functions": "^8.2.0",
     "@capacitor-firebase/storage": "^8.1.0",
+    "@capacitor/android": "^8.1.0",
     "@capacitor/app": "8.0.1",
     "@capacitor/barcode-scanner": "^3.0.2",
     "@capacitor/browser": "^8.0.1",
@@ -45,6 +57,7 @@
     "firebase": "^12.9.0",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
+    "swiper": "^12.1.4",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
@@ -75,6 +88,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.0"
   },
   "description": "An Ionic project"

@@ -107,6 +107,7 @@ export class DeviceSearchService implements Clearable {
       const allowedTypes = this.tenantService.getAllowedDeviceTypes();
       const newDevices = result.documents
         .map((doc) => this.mapToDevice(doc.id, doc.data))
+        .filter((device): device is Device => device !== null)
         .filter((device) => allowedTypes.includes(device.type));
       this.devices = [...this.devices, ...newDevices];
 
@@ -125,11 +126,16 @@ export class DeviceSearchService implements Clearable {
     }
   }
 
-  private mapToDevice(id: string, data: DeviceDoc): Device {
+  private mapToDevice(id: string, data: DeviceDoc): Device | null {
+    const type = data['Device type'] as Device['type'] | undefined;
+    if (!type) {
+      this.logger.warn('DeviceSearchService: skipping device with missing type', { id });
+      return null;
+    }
     return {
       code: data['Device code'] ?? id,
       name: data['Device Name'] ?? '',
-      type: (data['Device type'] as Device['type']) ?? undefined!,
+      type,
       subType: '',
       unitCount: 0,
       exists: true,

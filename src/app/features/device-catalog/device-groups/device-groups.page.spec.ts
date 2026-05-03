@@ -16,7 +16,7 @@ describe('DeviceGroupsPage', () => {
     reset: jasmine.Spy;
   };
   let mockCartService: {
-    clear: jasmine.Spy;
+    clearItems: jasmine.Spy;
   };
   let router: Router;
 
@@ -30,11 +30,11 @@ describe('DeviceGroupsPage', () => {
     mockGroupsService = {
       groups: [],
       isLoading: false,
-      load: jasmine.createSpy('load'),
+      load: jasmine.createSpy('load').and.resolveTo(undefined),
       reset: jasmine.createSpy('reset'),
     };
     mockCartService = {
-      clear: jasmine.createSpy('clear'),
+      clearItems: jasmine.createSpy('clearItems'),
     };
 
     await TestBed.configureTestingModule({
@@ -95,7 +95,7 @@ describe('DeviceGroupsPage', () => {
 
     it('should clear cart on first entry', () => {
       component.ionViewWillEnter();
-      expect(mockCartService.clear).toHaveBeenCalled();
+      expect(mockCartService.clearItems).toHaveBeenCalled();
     });
 
     it('should not clear cart when returning from parts page', () => {
@@ -104,9 +104,9 @@ describe('DeviceGroupsPage', () => {
       component.onGroupClick(createGroup('G1', 'Group'));
 
       // Now simulate returning
-      mockCartService.clear.calls.reset();
+      mockCartService.clearItems.calls.reset();
       component.ionViewWillEnter();
-      expect(mockCartService.clear).not.toHaveBeenCalled();
+      expect(mockCartService.clearItems).not.toHaveBeenCalled();
     });
 
     it('should clear cart again on subsequent fresh entries', () => {
@@ -115,13 +115,13 @@ describe('DeviceGroupsPage', () => {
       component.onGroupClick(createGroup('G1', 'Group'));
 
       // Return from parts
-      mockCartService.clear.calls.reset();
+      mockCartService.clearItems.calls.reset();
       component.ionViewWillEnter();
-      expect(mockCartService.clear).not.toHaveBeenCalled();
+      expect(mockCartService.clearItems).not.toHaveBeenCalled();
 
       // Second fresh entry
       component.ionViewWillEnter();
-      expect(mockCartService.clear).toHaveBeenCalled();
+      expect(mockCartService.clearItems).toHaveBeenCalled();
     });
 
     it('should use empty string when code param is missing', async () => {

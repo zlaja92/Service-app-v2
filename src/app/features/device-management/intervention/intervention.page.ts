@@ -147,14 +147,12 @@ export class InterventionPage implements ViewWillEnter {
 
   updatePhotoRequirement(): void {
     const intType = this.form.controls.interventionType.value;
-    console.log('DEBUG_INT: updatePhotoRequirement intType=' + intType + ' deviceType=' + this.deviceType);
     if (!this.deviceType || !intType) {
       this.photoRequirement = null;
       return;
     }
     const photoConfig = this.configStore.config()?.interventionPhotoConfig ?? {};
     this.photoRequirement = photoConfig[this.deviceType]?.[intType] ?? null;
-    console.log('DEBUG_INT: photoRequirement=', this.photoRequirement, 'showPhotosButton=' + this.showPhotosButton);
 
     if (this.photoRequirement) {
       this.photoService.setRequirement(this.photoRequirement);

@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec-models",
+    "types": [
+      "jasmine"
+    ]
+  },
+  "files": [
+    "src/test.ts",
+    "src/polyfills.ts"
+  ],
+  "include": [
+    "src/app/shared/models/**/*.spec.ts",
+    "src/app/shared/models/**/*.ts",
+    "src/app/features/device-management/models/**/*.spec.ts",
+    "src/app/features/device-management/models/**/*.ts",
+    "src/app/testing/**/*.ts",
+    "src/app/core/config/config.model.ts",
+    "src/app/core/auth/auth.model.ts",
+    "src/app/features/cart/cart.service.ts",
+    "src/**/*.d.ts"
+  ]
+}

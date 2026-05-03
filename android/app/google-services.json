@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802839306",
+    "project_id": "ariston-srb",
+    "storage_bucket": "ariston-srb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802839306:android:c2b067f677f85d702678f3",
+        "android_client_info": {
+          "package_name": "io.ionic.Ariston"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWG10v1jAWQtrhFWWBucltkNpssjnNNbQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -392,4 +392,202 @@ describe('DevicePartsService', () => {
       expect(callOrder).toEqual(['photo', 'parts']);
     });
   });
+
+  // ── EXPANSION — part count variations ───────────────────────────────────────
+
+  describe('load() — part count variations (parameterized)', () => {
+    const partCounts = [0, 1, 2, 5, 10, 25, 50, 100, 500, 1000];
+
+    partCounts.forEach((count) => {
+      it(`should handle ${count} parts`, async () => {
+        const parts = Array.from({ length: count }, (_, i) => ({ id: `P${i}`, code: `C${i}`, name: `Part ${i}` }));
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(createPartResult(parts));
+
+        await service.load('DEV1', 'G1', '');
+
+        expect(service.parts.length).toBe(count);
+      });
+    });
+  });
+
+  // ── EXPANSION — part code variations ────────────────────────────────────────
+
+  describe('part mapping — code variations (parameterized)', () => {
+    const partCodeVariations = [
+      { code: 'RD-001', name: 'Standard code' },
+      { code: 'ABC123', name: 'Alphanumeric code' },
+      { code: 'PART_WITH_UNDERSCORES', name: 'Underscores code' },
+      { code: 'part-lowercase', name: 'Lowercase code' },
+      { code: '12345678', name: 'Numeric code' },
+      { code: 'VERY-LONG-PART-CODE-WITH-MANY-SEGMENTS', name: 'Long code' },
+      { code: 'P', name: 'Single char code' },
+    ];
+
+    partCodeVariations.forEach(({ code, name: desc }) => {
+      it(`should map part code "${code}" (${desc})`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+          createPartResult([{ id: 'P1', code, name: 'Test Part' }]),
+        );
+
+        await service.load('DEV1', 'G1', '');
+
+        expect(service.parts[0].code).toBe(code);
+      });
+    });
+  });
+
+  // ── EXPANSION — part name variations ────────────────────────────────────────
+
+  describe('part mapping — name variations (parameterized)', () => {
+    const partNames = [
+      'Simple Name',
+      'Klipnjača kompresora',
+      'UPPERCASE PART NAME',
+      'part-with-hyphens',
+      'part_with_underscores',
+      'Клапан вентила',
+      '弁バルブ',
+      '',
+      'Part (version 2.0)',
+      'Part with a very very very very very very long name that could exceed typical UI field lengths',
+    ];
+
+    partNames.forEach((name) => {
+      it(`should map part name "${name}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+          createPartResult([{ id: 'P1', code: 'C1', name }]),
+        );
+
+        await service.load('DEV1', 'G1', '');
+
+        expect(service.parts[0].name).toBe(name);
+      });
+    });
+  });
+
+  // ── EXPANSION — group photo variations ──────────────────────────────────────
+
+  describe('group photo — photo name variations (parameterized)', () => {
+    const photoNames = [
+      'photo123',
+      'group-photo-001',
+      'PHOTO_UPPERCASE',
+      'my.photo',
+      'group photo with spaces',
+    ];
+
+    photoNames.forEach((photoName) => {
+      it(`should resolve photo URL for photo name "${photoName}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
+        mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/photo.png');
+
+        await service.load('DEV1', 'G1', photoName);
+
+        expect(mockStorageService.resolveFileUrl).toHaveBeenCalledWith('Photos', photoName, jasmine.any(Array));
+        expect(service.groupPhoto).toBe('https://cdn.example.com/photo.png');
+      });
+    });
+
+    it('should NOT resolve photo when photo name is empty string', async () => {
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
+
+      await service.load('DEV1', 'G1', '');
+
+      expect(mockStorageService.resolveFileUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── EXPANSION — device/group code combinations ──────────────────────────────
+
+  describe('load() — device+group combinations (parameterized)', () => {
+    const combinations: Array<{ deviceCode: string; groupId: string }> = [
+      { deviceCode: 'DEV1', groupId: 'G1' },
+      { deviceCode: 'DEV1', groupId: 'G2' },
+      { deviceCode: 'DEV2', groupId: 'G1' },
+      { deviceCode: 'HEAT-PUMP-001', groupId: 'COMPRESSOR' },
+      { deviceCode: 'GAS-BOILER-24', groupId: 'BURNER-ASSY' },
+    ];
+
+    combinations.forEach(({ deviceCode, groupId }) => {
+      it(`should query subcollection for device="${deviceCode}" group="${groupId}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
+
+        await service.load(deviceCode, groupId, '');
+
+        expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith(
+          `devices/${deviceCode}/Sklopovi/${groupId}`,
+          'Rezervni delovi',
+        );
+      });
+    });
+  });
+
+  // ── EXPANSION — error logging variations ────────────────────────────────────
+
+  describe('error handling — various error messages (parameterized)', () => {
+    const errorMessages = [
+      'Firestore error',
+      'Network timeout',
+      'Permission denied',
+      'Quota exceeded',
+    ];
+
+    errorMessages.forEach((msg) => {
+      it(`should log error containing "${msg}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error(msg));
+
+        await service.load('DEV1', 'G1', '');
+
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'Failed to load device parts',
+          jasmine.objectContaining({ error: jasmine.stringContaining(msg) }),
+        );
+      });
+    });
+  });
+
+  // ── EXPANSION — reset() state consistency ──────────────────────────────────
+
+  describe('reset() — state consistency after various states', () => {
+    it('should reset all fields after successful load', async () => {
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+        createPartResult([{ id: 'P1', code: 'C1', name: 'Part' }]),
+      );
+      mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/photo.png');
+      await service.load('DEV1', 'G1', 'photo.png');
+
+      service.reset();
+
+      expect(service.parts).toEqual([]);
+      expect(service.groupPhoto).toBe('');
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('should reset all fields after failed load', async () => {
+      mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error('fail'));
+      await service.load('DEV1', 'G1', '');
+
+      service.reset();
+
+      expect(service.parts).toEqual([]);
+      expect(service.groupPhoto).toBe('');
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('should allow reload after reset', async () => {
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+        createPartResult([{ id: 'P1', code: 'C1', name: 'First Load' }]),
+      );
+      await service.load('DEV1', 'G1', '');
+
+      service.reset();
+
+      mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+        createPartResult([{ id: 'P2', code: 'C2', name: 'After Reset' }]),
+      );
+      await service.load('DEV1', 'G1', '');
+
+      expect(service.parts[0].name).toBe('After Reset');
+    });
+  });
 });

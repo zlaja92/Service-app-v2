@@ -5,6 +5,7 @@ initializeApp();
 
 export const getServerTime = onCall(
   {
+    minInstances: 0,
     maxInstances: 2,
     enforceAppCheck: true,
   },

@@ -142,7 +142,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     if (!connectedSn) return;
 
-    const connectedDevice = await this.lookupService.lookup(connectedSn);
+    const connectedDevice = await this.lookupService.lookupSilent(connectedSn);
 
     if (!connectedDevice) {
       this.logger.warn('AnnualServicePage: connected device not found', { connectedSn });

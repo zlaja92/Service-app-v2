@@ -372,4 +372,197 @@ describe('PartDetailService', () => {
       expect(detail.price).toBe(-10);
     });
   });
+
+  // ── EXPANSION — part code variations ────────────────────────────────────────
+
+  describe('loadPartDetail() — part code variations (parameterized)', () => {
+    const partCodes = [
+      'RD-001',
+      'ABC123',
+      'PART_WITH_UNDERSCORES',
+      'part-lowercase',
+      '12345678',
+      'VERY-LONG-PART-CODE-WITH-MANY-CHARACTERS',
+      'P001',
+      '',
+    ];
+
+    partCodes.forEach((code) => {
+      it(`should call getTenantDocument with code="${code}"`, async () => {
+        await service.loadPartDetail(code, 'Part Name');
+        expect(mockFirestoreService.getTenantDocument).toHaveBeenCalledWith('priceList', code);
+      });
+
+      it(`should return PartDetail with partCode="${code}"`, async () => {
+        const detail = await service.loadPartDetail(code, 'Part Name');
+        expect(detail.partCode).toBe(code);
+      });
+    });
+  });
+
+  // ── EXPANSION — part name variations ────────────────────────────────────────
+
+  describe('loadPartDetail() — part name variations (parameterized)', () => {
+    const partNames = [
+      'Simple Part',
+      'Klipnjača kompresora',
+      'UPPERCASE PART NAME',
+      'part-with-hyphens',
+      'Клапан вентила',
+      '弁バルブ',
+      '',
+      'Part (v2.0)',
+      'A very very very very long part name with many words and characters',
+    ];
+
+    partNames.forEach((name) => {
+      it(`should return PartDetail with name="${name}"`, async () => {
+        const detail = await service.loadPartDetail('P1', name);
+        expect(detail.name).toBe(name);
+      });
+    });
+  });
+
+  // ── EXPANSION — price values (parameterized) ─────────────────────────────────
+
+  describe('price handling — price value variations (parameterized)', () => {
+    const priceValues: Array<{ price: any; expectedPrice: number | null }> = [
+      { price: 0, expectedPrice: 0 },
+      { price: 1, expectedPrice: 1 },
+      { price: 0.01, expectedPrice: 0.01 },
+      { price: 0.99, expectedPrice: 0.99 },
+      { price: 99.99, expectedPrice: 99.99 },
+      { price: 100, expectedPrice: 100 },
+      { price: 1000, expectedPrice: 1000 },
+      { price: 9999.99, expectedPrice: 9999.99 },
+      { price: 100000, expectedPrice: 100000 },
+      { price: -1, expectedPrice: -1 },
+      { price: null, expectedPrice: null },
+      { price: undefined, expectedPrice: null },
+    ];
+
+    priceValues.forEach(({ price, expectedPrice }) => {
+      it(`document.Price=${JSON.stringify(price)} should yield detail.price=${expectedPrice}`, async () => {
+        mockFirestoreService.getTenantDocument.and.resolveTo(price !== undefined ? { Price: price } : {});
+        const detail = await service.loadPartDetail('P1', 'Part');
+        expect(detail.price).toBe(expectedPrice);
+      });
+    });
+  });
+
+  // ── EXPANSION — currency variations ─────────────────────────────────────────
+
+  describe('currency — currency code variations (parameterized)', () => {
+    const currencies = ['EUR', 'RSD', 'USD', 'GBP', 'CHF', 'HRK', 'BAM'];
+
+    currencies.forEach((currency) => {
+      it(`should use currency="${currency}" from config`, async () => {
+        mockConfigStore.config.and.returnValue({ business: { currency } });
+        const detail = await service.loadPartDetail('P1', 'Part');
+        expect(detail.currency).toBe(currency);
+      });
+    });
+  });
+
+  // ── EXPANSION — multiple sequential calls ────────────────────────────────────
+
+  describe('loadPartDetail() — multiple sequential calls', () => {
+    it('should handle 5 sequential calls independently', async () => {
+      const codes = ['P1', 'P2', 'P3', 'P4', 'P5'];
+      const prices = [10, 20, 30, 40, 50];
+
+      for (let i = 0; i < codes.length; i++) {
+        mockFirestoreService.getTenantDocument.and.resolveTo({ Price: prices[i] });
+        const detail = await service.loadPartDetail(codes[i], `Part ${i}`);
+        expect(detail.partCode).toBe(codes[i]);
+        expect(detail.price).toBe(prices[i]);
+      }
+    });
+
+    it('should call getTenantDocument once per loadPartDetail call', async () => {
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 100 });
+
+      await service.loadPartDetail('P1', 'Part 1');
+      await service.loadPartDetail('P2', 'Part 2');
+      await service.loadPartDetail('P3', 'Part 3');
+
+      expect(mockFirestoreService.getTenantDocument).toHaveBeenCalledTimes(3);
+    });
+
+    it('should set isLoading=false between sequential calls', async () => {
+      mockFirestoreService.getTenantDocument.and.resolveTo({ Price: 100 });
+
+      await service.loadPartDetail('P1', 'Part');
+      expect(service.isLoading).toBeFalse();
+
+      await service.loadPartDetail('P2', 'Part');
+      expect(service.isLoading).toBeFalse();
+    });
+  });
+
+  // ── EXPANSION — error handling for various errors ────────────────────────────
+
+  describe('error handling — various error types (parameterized)', () => {
+    const errorMessages = [
+      'Firestore error',
+      'Network timeout',
+      'Permission denied',
+      'Not found',
+      'Internal server error',
+    ];
+
+    errorMessages.forEach((msg) => {
+      it(`should log error containing "${msg}"`, async () => {
+        mockFirestoreService.getTenantDocument.and.rejectWith(new Error(msg));
+
+        await service.loadPartDetail('P1', 'Part');
+
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'Failed to load part detail',
+          jasmine.objectContaining({ error: jasmine.stringContaining(msg) }),
+        );
+      });
+
+      it(`should return fallback PartDetail for error "${msg}"`, async () => {
+        mockFirestoreService.getTenantDocument.and.rejectWith(new Error(msg));
+
+        const detail = await service.loadPartDetail('P-ERR', 'Error Part');
+
+        expect(detail.partCode).toBe('P-ERR');
+        expect(detail.name).toBe('Error Part');
+        expect(detail.price).toBeNull();
+        expect(detail.showPhoto).toBeFalse();
+        expect(detail.photoUrl).toBe('');
+      });
+    });
+  });
+
+  // ── EXPANSION — partPhoto feature flag matrix ────────────────────────────────
+
+  describe('partPhoto feature — enabled/disabled matrix', () => {
+    const photoFolders = ['PartPhotos', 'Photos', 'CustomFolder', 'parts/photos'];
+
+    photoFolders.forEach((folder) => {
+      it(`should resolve photo from folder "${folder}" when feature enabled`, async () => {
+        mockConfigStore.isFeatureEnabled.and.callFake((f: string) => f === 'partPhoto');
+        mockConfigStore.config.and.returnValue({ business: { currency: 'EUR', partPhotoFolder: folder } });
+        mockStorageService.resolveFileUrl.and.resolveTo('https://cdn.example.com/p.png');
+
+        await service.loadPartDetail('P1', 'Part');
+
+        expect(mockStorageService.resolveFileUrl).toHaveBeenCalledWith(
+          folder, 'P1', jasmine.any(Array),
+        );
+      });
+    });
+
+    it('should not resolve photo when feature disabled regardless of folder', async () => {
+      mockConfigStore.isFeatureEnabled.and.returnValue(false);
+      mockConfigStore.config.and.returnValue({ business: { currency: 'EUR', partPhotoFolder: 'PartPhotos' } });
+
+      await service.loadPartDetail('P1', 'Part');
+
+      expect(mockStorageService.resolveFileUrl).not.toHaveBeenCalled();
+    });
+  });
 });

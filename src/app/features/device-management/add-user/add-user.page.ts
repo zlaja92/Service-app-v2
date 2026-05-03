@@ -61,7 +61,9 @@ export class AddUserPage implements ViewWillEnter {
   ];
 
   get showDateOfPurchase(): boolean {
-    return !this.lookupService.device?.commissioning
+    const device = this.lookupService.device;
+    if (!device) return false;
+    return !device.commissioning
       && this.form.get('warrantyStatus')?.value === 'in_warranty';
   }
 

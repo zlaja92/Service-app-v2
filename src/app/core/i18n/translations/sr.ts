@@ -8,6 +8,7 @@ export const sr: Translation = {
   menu_logout: 'Odjavi se',
   menu_dark_mode: 'Tamni režim',
   menu_language: 'Jezik',
+  menu_version: 'Verzija',
 
   login_subtitle: 'Prijavite se na vaš nalog',
   login_email_required: 'Email je obavezan',

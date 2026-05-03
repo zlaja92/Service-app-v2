@@ -1062,30 +1062,30 @@ describe('DocsService', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
     });
 
-    it('should log error when getFileUrl fails', async () => {
-      mockStorageService.getFileUrl.and.returnValue(Promise.reject(new Error('Not found')));
+    it('should log error when getFileUrl returns null (no URL)', async () => {
+      mockStorageService.getFileUrl.and.resolveTo(null);
 
       await service.openFile({ name: 'missing.pdf', fullPath: 'Documents/missing.pdf', isFolder: false });
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'Failed to open document',
+        'Failed to open document — no URL',
         jasmine.objectContaining({ path: 'Documents/missing.pdf' }),
       );
     });
 
-    it('should include error string in log on failure', async () => {
-      mockStorageService.getFileUrl.and.returnValue(Promise.reject(new Error('Permission denied')));
+    it('should log error without error key when getFileUrl returns null', async () => {
+      mockStorageService.getFileUrl.and.resolveTo(null);
 
       await service.openFile({ name: 'secret.pdf', fullPath: 'Documents/secret.pdf', isFolder: false });
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'Failed to open document',
-        jasmine.objectContaining({ error: jasmine.stringContaining('Permission denied') }),
+        'Failed to open document — no URL',
+        { path: 'Documents/secret.pdf' },
       );
     });
 
-    it('should not throw when getFileUrl rejects', async () => {
-      mockStorageService.getFileUrl.and.returnValue(Promise.reject(new Error('fail')));
+    it('should not throw when getFileUrl returns null', async () => {
+      mockStorageService.getFileUrl.and.resolveTo(null);
 
       await expectAsync(
         service.openFile({ name: 'x.pdf', fullPath: 'Documents/x.pdf', isFolder: false }),
@@ -1256,6 +1256,446 @@ describe('DocsService', () => {
       expect(service.isLoading).toBeFalse();
       expect(service.currentPath).toBe('Documents');
       expect(service.isRoot).toBeTrue();
+    });
+  });
+
+  // ==========================================
+  // clear() — implementacija Clearable interfejsa
+  // ==========================================
+
+  describe('clear()', () => {
+    it('should clear entries via clear()', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({
+        folders: ['Test'],
+        files: [],
+      }));
+      await service.loadFolder();
+      expect(service.entries.length).toBe(1);
+
+      service.clear();
+
+      expect(service.entries).toEqual([]);
+    });
+
+    it('should reset currentPath to root via clear()', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+      await service.loadFolder('Documents/Sub');
+
+      service.clear();
+
+      expect(service.currentPath).toBe('Documents');
+    });
+
+    it('should set isLoading to false via clear()', () => {
+      service.clear();
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('should restore isRoot to true via clear()', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+      await service.loadFolder('Documents/Sub');
+
+      service.clear();
+
+      expect(service.isRoot).toBeTrue();
+    });
+
+    it('should behave identically to reset()', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: ['A'], files: [] }));
+      await service.loadFolder('Documents/Sub');
+
+      service.clear();
+
+      expect(service.entries).toEqual([]);
+      expect(service.currentPath).toBe('Documents');
+      expect(service.isLoading).toBeFalse();
+    });
+  });
+
+  // ==========================================
+  // loadFolder isLoading guard — edge cases
+  // ==========================================
+
+  describe('loadFolder isLoading guard edge cases', () => {
+    it('should not update currentPath when skipping due to isLoading', async () => {
+      let resolveFirst!: (value: any) => void;
+      const firstPromise = new Promise((resolve) => { resolveFirst = resolve; });
+      mockStorageService.listFolder.and.returnValue(firstPromise);
+
+      const firstLoad = service.loadFolder('Documents/First');
+      expect(service.currentPath).toBe('Documents/First');
+
+      // Second call is blocked — currentPath should NOT change to 'Documents/Second'
+      await service.loadFolder('Documents/Second');
+      expect(service.currentPath).toBe('Documents/First');
+
+      resolveFirst({ folders: [], files: [] });
+      await firstLoad;
+    });
+
+    it('should not call storage when called while loading', async () => {
+      let resolveFirst!: (value: any) => void;
+      const firstPromise = new Promise((resolve) => { resolveFirst = resolve; });
+      mockStorageService.listFolder.and.returnValue(firstPromise);
+
+      const firstLoad = service.loadFolder();
+      mockStorageService.listFolder.calls.reset();
+
+      await service.loadFolder('Documents/Other');
+
+      expect(mockStorageService.listFolder).not.toHaveBeenCalled();
+
+      resolveFirst({ folders: [], files: [] });
+      await firstLoad;
+    });
+  });
+
+  // ==========================================
+  // goBack — isLoading guard
+  // ==========================================
+
+  describe('goBack isLoading guard', () => {
+    it('should still trigger goBack even when isLoading is true', async () => {
+      // goBack calls loadFolder internally — the isLoading guard in loadFolder
+      // will prevent the nested call from executing if already loading
+      service.currentPath = 'Documents/Sub';
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+
+      service.goBack();
+
+      expect(mockStorageService.listFolder).toHaveBeenCalled();
+    });
+
+    it('should not go back when at root (parts.length === 1)', () => {
+      service.currentPath = 'Documents';
+      mockStorageService.listFolder.calls.reset();
+
+      service.goBack();
+
+      expect(mockStorageService.listFolder).not.toHaveBeenCalled();
+    });
+
+    it('should correctly split path on goBack from two-level path', () => {
+      service.currentPath = 'Documents/Uputstva';
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+
+      service.goBack();
+
+      expect(mockStorageService.listFolder).toHaveBeenCalledWith('Documents');
+    });
+  });
+
+  // ==========================================
+  // openFile — isLoading state unchanged
+  // ==========================================
+
+  describe('openFile state invariants', () => {
+    it('should not change isLoading state when opening a file', async () => {
+      mockStorageService.getFileUrl.and.returnValue(Promise.resolve('https://example.com/file.pdf'));
+      expect(service.isLoading).toBeFalse();
+
+      await service.openFile({ name: 'a.pdf', fullPath: 'Documents/a.pdf', isFolder: false });
+
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('should not change entries when opening a file', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({
+        folders: ['Folder'],
+        files: [],
+      }));
+      await service.loadFolder();
+      const entriesSnapshot = [...service.entries];
+
+      mockStorageService.getFileUrl.and.returnValue(Promise.resolve('https://example.com/url'));
+      await service.openFile({ name: 'a.pdf', fullPath: 'Documents/a.pdf', isFolder: false });
+
+      expect(service.entries).toEqual(entriesSnapshot);
+    });
+
+    it('should log error with correct path when getFileUrl returns null on subfolder file', async () => {
+      mockStorageService.getFileUrl.and.resolveTo(null);
+
+      await service.openFile({ name: 'sub.pdf', fullPath: 'Documents/Sub/sub.pdf', isFolder: false });
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'Failed to open document — no URL',
+        jasmine.objectContaining({ path: 'Documents/Sub/sub.pdf' }),
+      );
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — loadFolder path depth variations
+  // ==========================================
+
+  describe('loadFolder — folder depth variations (parameterized)', () => {
+    const depthPaths: Array<{ path: string; depth: number }> = [
+      { path: 'Documents', depth: 1 },
+      { path: 'Documents/Level1', depth: 2 },
+      { path: 'Documents/Level1/Level2', depth: 3 },
+      { path: 'Documents/Level1/Level2/Level3', depth: 4 },
+      { path: 'Documents/Level1/Level2/Level3/Level4', depth: 5 },
+      { path: 'Documents/A/B/C/D/E/F/G/H/I/J', depth: 11 },
+    ];
+
+    depthPaths.forEach(({ path, depth }) => {
+      it(`should correctly set currentPath for depth=${depth}: "${path}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+
+        await service.loadFolder(path);
+
+        expect(service.currentPath).toBe(path);
+      });
+
+      it(`isRoot should be ${depth === 1} for depth=${depth}`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+
+        await service.loadFolder(path);
+
+        expect(service.isRoot).toBe(depth === 1);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — folder/file count variations
+  // ==========================================
+
+  describe('loadFolder — entry count variations (parameterized)', () => {
+    const countCases = [0, 1, 5, 10, 50, 100];
+
+    countCases.forEach((count) => {
+      it(`should handle ${count} folders correctly`, async () => {
+        const folders = Array.from({ length: count }, (_, i) => `Folder${i}`);
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders, files: [] }));
+
+        await service.loadFolder();
+
+        expect(service.entries.length).toBe(count);
+        expect(service.entries.every((e) => e.isFolder)).toBeTrue();
+      });
+
+      it(`should handle ${count} files correctly`, async () => {
+        const files = Array.from({ length: count }, (_, i) => ({
+          name: `file${i}.pdf`,
+          fullPath: `Documents/file${i}.pdf`,
+        }));
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files }));
+
+        await service.loadFolder();
+
+        expect(service.entries.length).toBe(count);
+        expect(service.entries.every((e) => !e.isFolder)).toBeTrue();
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — folder names with special chars
+  // ==========================================
+
+  describe('loadFolder — special characters in folder names', () => {
+    const specialFolderNames = [
+      'Folder With Spaces',
+      'Folder (2024)',
+      'Folder-with-hyphens',
+      'Folder_with_underscores',
+      'Folder.with.dots',
+      'UPPERCASE FOLDER',
+      'lowercase folder',
+      'Folder123',
+      'šumski dokumenti',
+      'Документация',
+    ];
+
+    specialFolderNames.forEach((name) => {
+      it(`should preserve folder name "${name}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({
+          folders: [name],
+          files: [],
+        }));
+
+        await service.loadFolder();
+
+        expect(service.entries[0].name).toBe(name);
+      });
+
+      it(`should construct correct fullPath for folder "${name}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({
+          folders: [name],
+          files: [],
+        }));
+
+        await service.loadFolder();
+
+        expect(service.entries[0].fullPath).toBe(`Documents/${name}`);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — file names with special chars
+  // ==========================================
+
+  describe('loadFolder — special characters in file names', () => {
+    const specialFileNames = [
+      'report.pdf',
+      'document with spaces.pdf',
+      'file-with-hyphens.docx',
+      'file_with_underscores.pdf',
+      'UPPERCASE.PDF',
+      'file.v2.1.pdf',
+      'šema čišćenja.pdf',
+      'Документ.pdf',
+      'very_long_file_name_with_many_characters_that_could_potentially_cause_issues.pdf',
+    ];
+
+    specialFileNames.forEach((name) => {
+      it(`should preserve file name "${name}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({
+          folders: [],
+          files: [{ name, fullPath: `Documents/${name}` }],
+        }));
+
+        await service.loadFolder();
+
+        expect(service.entries[0].name).toBe(name);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — currentFolderName for various paths
+  // ==========================================
+
+  describe('currentFolderName — parameterized path variations', () => {
+    const pathCases: Array<{ path: string; expectedName: string }> = [
+      { path: 'Documents', expectedName: 'Documents' },
+      { path: 'Documents/A', expectedName: 'A' },
+      { path: 'Documents/Alpha Beta', expectedName: 'Alpha Beta' },
+      { path: 'Documents/Level1/Level2/DeepFolder', expectedName: 'DeepFolder' },
+      { path: 'Documents/Katalozi (2024)', expectedName: 'Katalozi (2024)' },
+      { path: 'Documents/šema_čišćenja', expectedName: 'šema_čišćenja' },
+      { path: 'Documents/A/B', expectedName: 'B' },
+      { path: 'Documents/x', expectedName: 'x' },
+    ];
+
+    pathCases.forEach(({ path, expectedName }) => {
+      it(`path="${path}" should have currentFolderName="${expectedName}"`, () => {
+        service.currentPath = path;
+        expect(service.currentFolderName).toBe(expectedName);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — goBack from various depths
+  // ==========================================
+
+  describe('goBack — from various path depths (parameterized)', () => {
+    const goBackCases: Array<{ from: string; expectedParent: string }> = [
+      { from: 'Documents/A', expectedParent: 'Documents' },
+      { from: 'Documents/A/B', expectedParent: 'Documents/A' },
+      { from: 'Documents/A/B/C', expectedParent: 'Documents/A/B' },
+      { from: 'Documents/A/B/C/D', expectedParent: 'Documents/A/B/C' },
+      { from: 'Documents/Uputstva (2024)', expectedParent: 'Documents' },
+      { from: 'Documents/Special Folder/Sub', expectedParent: 'Documents/Special Folder' },
+    ];
+
+    goBackCases.forEach(({ from, expectedParent }) => {
+      it(`goBack from "${from}" should navigate to "${expectedParent}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: [], files: [] }));
+        service.currentPath = from;
+
+        service.goBack();
+
+        expect(mockStorageService.listFolder).toHaveBeenCalledWith(expectedParent);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — openFile with various file types
+  // ==========================================
+
+  describe('openFile — various file types (parameterized)', () => {
+    const fileTypes = [
+      { name: 'document.pdf', fullPath: 'Documents/document.pdf' },
+      { name: 'spreadsheet.xlsx', fullPath: 'Documents/spreadsheet.xlsx' },
+      { name: 'image.jpg', fullPath: 'Documents/image.jpg' },
+      { name: 'image.png', fullPath: 'Documents/image.png' },
+      { name: 'word.docx', fullPath: 'Documents/word.docx' },
+      { name: 'archive.zip', fullPath: 'Documents/archive.zip' },
+      { name: 'text.txt', fullPath: 'Documents/text.txt' },
+    ];
+
+    fileTypes.forEach(({ name, fullPath }) => {
+      it(`should call getFileUrl with correct path for "${name}"`, async () => {
+        mockStorageService.getFileUrl.and.returnValue(Promise.resolve('https://example.com/url'));
+
+        await service.openFile({ name, fullPath, isFolder: false });
+
+        expect(mockStorageService.getFileUrl).toHaveBeenCalledWith(fullPath);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — error messages logged
+  // ==========================================
+
+  describe('loadFolder — various error messages logged', () => {
+    const errorMessages = [
+      'Network error',
+      'Storage quota exceeded',
+      'Permission denied',
+      'Not found',
+      'Internal server error',
+      'Timeout',
+    ];
+
+    errorMessages.forEach((msg) => {
+      it(`should log error containing "${msg}"`, async () => {
+        mockStorageService.listFolder.and.returnValue(Promise.reject(new Error(msg)));
+
+        await service.loadFolder();
+
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'Failed to load docs folder',
+          jasmine.objectContaining({ error: jasmine.stringContaining(msg) }),
+        );
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — reset() idempotency
+  // ==========================================
+
+  describe('reset() — idempotency and state after multiple calls', () => {
+    it('should remain in clean state after 3 consecutive resets', async () => {
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: ['A'], files: [] }));
+      await service.loadFolder('Documents/Sub');
+
+      service.reset();
+      service.reset();
+      service.reset();
+
+      expect(service.entries).toEqual([]);
+      expect(service.currentPath).toBe('Documents');
+      expect(service.isRoot).toBeTrue();
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('should be able to load after multiple resets', async () => {
+      service.reset();
+      service.reset();
+
+      mockStorageService.listFolder.and.returnValue(Promise.resolve({ folders: ['X'], files: [] }));
+      await service.loadFolder();
+
+      expect(service.entries.length).toBe(1);
     });
   });
 });

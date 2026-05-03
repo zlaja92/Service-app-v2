@@ -9,14 +9,19 @@ export class StorageService {
   private logger = inject(LoggerService);
   private isNative = Capacitor.isNativePlatform();
 
-  async getFileUrl(path: string): Promise<string> {
-    if (this.isNative) {
-      const result = await FirebaseStorage.getDownloadUrl({ path });
-      return result.downloadUrl;
+  async getFileUrl(path: string): Promise<string | null> {
+    try {
+      if (this.isNative) {
+        const result = await FirebaseStorage.getDownloadUrl({ path });
+        return result.downloadUrl;
+      }
+      const storage = getStorage();
+      const fileRef = ref(storage, path);
+      return await getDownloadURL(fileRef);
+    } catch (error) {
+      this.logger.warn('Storage getFileUrl failed', { path, error: String(error) });
+      return null;
     }
-    const storage = getStorage();
-    const fileRef = ref(storage, path);
-    return getDownloadURL(fileRef);
   }
 
   async listFolder(path: string): Promise<{ folders: string[]; files: { name: string; fullPath: string }[] }> {
@@ -43,6 +48,7 @@ export class StorageService {
   private async readFoldersFile(path: string): Promise<string[]> {
     try {
       const url = await this.getFileUrl(`${path}/_folders.txt`);
+      if (!url) return [];
       const response = await CapacitorHttp.get({ url });
       const text = typeof response.data === 'string' ? response.data : '';
       return text.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
@@ -92,12 +98,8 @@ export class StorageService {
 
   async resolveFileUrl(folder: string, fileName: string, extensions: string[]): Promise<string> {
     for (const ext of extensions) {
-      try {
-        const url = await this.getFileUrl(`${folder}/${fileName}.${ext}`);
-        return url;
-      } catch {
-        continue;
-      }
+      const url = await this.getFileUrl(`${folder}/${fileName}.${ext}`);
+      if (url) return url;
     }
 
     this.logger.debug('No file found for any extension', { folder, fileName, extensions });

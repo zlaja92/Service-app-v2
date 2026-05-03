@@ -5,6 +5,7 @@
  * Koriscenje:
  *   - FirebaseService.prod()  — instanca za produkcionu bazu (ariston-srb)
  *   - FirebaseService.test()  — instanca za test bazu (aristonboilersmk-af027)
+ *   - FirebaseService.old()   — instanca za staru bazu (za migracije)
  *   - FirebaseService.forProject(projectId, email, key) — custom instanca
  */
 
@@ -159,6 +160,82 @@ var FirebaseService = (function () {
         });
       },
 
+      /**
+       * Upisuje do 500 dokumenata u JEDAN HTTP poziv preko Firestore :batchWrite endpoint-a.
+       * Drasticno stedi UrlFetch quota u poredjenju sa batchSetDocumentsRaw (1 call po dokumentu).
+       *
+       * @param {Array<{collection: string, documentId: string, fields: Object}>} items — max 500
+       * @return {Array<{success: boolean, error: string|null}>}
+       */
+      batchWriteSets: function (items) {
+        if (!items.length) return [];
+        if (items.length > 500) {
+          throw new Error("batchWriteSets supports max 500 items per call (got " + items.length + ")");
+        }
+        var token = getAccessToken_();
+        var url = "https://firestore.googleapis.com/v1/projects/" + projectId + "/databases/(default)/documents:batchWrite";
+
+        var writes = items.map(function (item) {
+          return {
+            update: {
+              name: "projects/" + projectId + "/databases/(default)/documents/" + item.collection + "/" + item.documentId,
+              fields: item.fields
+            }
+          };
+        });
+
+        var response = UrlFetchApp.fetch(url, {
+          method: "post",
+          contentType: "application/json",
+          headers: { Authorization: "Bearer " + token },
+          payload: JSON.stringify({ writes: writes }),
+          muteHttpExceptions: true
+        });
+
+        var code = response.getResponseCode();
+        if (code !== 200) {
+          var errText = response.getContentText();
+          return items.map(function () {
+            return { success: false, error: errText };
+          });
+        }
+
+        var body = JSON.parse(response.getContentText());
+        var statuses = body.status || [];
+        return items.map(function (_, i) {
+          var st = statuses[i] || {};
+          var ok = !st.code || st.code === 0;
+          return { success: ok, error: ok ? null : (st.message || JSON.stringify(st)) };
+        });
+      },
+
+      /**
+       * Paralelni upsert (PATCH) sa raw Firestore fields.
+       * NAPOMENA: Trosi 1 UrlFetch call po dokumentu — za masovnu migraciju koristi batchWriteSets.
+       * @param {Array<{collection: string, documentId: string, fields: Object}>} items
+       * @return {Array<{success: boolean, error: string|null}>}
+       */
+      batchSetDocumentsRaw: function (items) {
+        if (!items.length) return [];
+        var token = getAccessToken_();
+        var requests = items.map(function (item) {
+          return {
+            url: buildDocumentUrl_(item.collection, item.documentId),
+            method: "patch",
+            contentType: "application/json",
+            headers: { Authorization: "Bearer " + token },
+            payload: JSON.stringify({ fields: item.fields }),
+            muteHttpExceptions: true
+          };
+        });
+        var responses = UrlFetchApp.fetchAll(requests);
+        return responses.map(function (resp) {
+          var code = resp.getResponseCode();
+          if (code === 200) return { success: true, error: null };
+          return { success: false, error: resp.getContentText() };
+        });
+      },
+
       setDocument: function (collection, documentId, data) {
         var token = getAccessToken_();
         var url = buildDocumentUrl_(collection, documentId);
@@ -228,6 +305,43 @@ var FirebaseService = (function () {
       },
 
       /**
+       * Paralelno lista dokumente iz vise kolekcija (jedna stranica po putanji).
+       * Koristi UrlFetchApp.fetchAll — sve putanje se citaju paralelno.
+       *
+       * @param {string[]} paths — niz putanja do kolekcija
+       * @param {number} [pageSize=300] — max dokumenata po putanji
+       * @return {Array<{path: string, docs: Array<{id: string, fields: Object}>, nextPageToken: string|null, error: string|null}>}
+       */
+      batchListDocuments: function (paths, pageSize) {
+        if (!paths.length) return [];
+        var token = getAccessToken_();
+        var size = pageSize || 300;
+        var requests = paths.map(function (p) {
+          // URL-enkoduj svaki segment putanje (npr. "Rezervni delovi" → "Rezervni%20delovi")
+          var encoded = p.split("/").map(encodeURIComponent).join("/");
+          return {
+            url: baseUrl_() + encoded + "?pageSize=" + size,
+            method: "get",
+            headers: { Authorization: "Bearer " + token },
+            muteHttpExceptions: true
+          };
+        });
+        var responses = UrlFetchApp.fetchAll(requests);
+        return responses.map(function (resp, i) {
+          var code = resp.getResponseCode();
+          if (code !== 200) {
+            return { path: paths[i], docs: [], nextPageToken: null, error: resp.getContentText() };
+          }
+          var body = JSON.parse(resp.getContentText());
+          var docs = (body.documents || []).map(function (doc) {
+            var nameParts = doc.name.split("/");
+            return { id: nameParts[nameParts.length - 1], fields: doc.fields || {} };
+          });
+          return { path: paths[i], docs: docs, nextPageToken: body.nextPageToken || null, error: null };
+        });
+      },
+
+      /**
        * Lista dokumente iz kolekcije sa paginacijom.
        * @param {string} collection — putanja do kolekcije
        * @param {number} [pageSize] — max dokumenata (default: svi)
@@ -266,6 +380,55 @@ var FirebaseService = (function () {
       },
 
       /**
+       * Izvrsava Firestore StructuredQuery (server-side filter).
+       * Naplacuje SAMO dokumente koji odgovaraju filteru, ne sve u kolekciji.
+       *
+       * @param {string} parent — putanja parent dokumenta (prazno za root)
+       * @param {Object} structuredQuery — Firestore StructuredQuery objekat
+       * @return {Array<{id: string, fields: Object}>}
+       */
+      runQuery: function (parent, structuredQuery) {
+        var token = getAccessToken_();
+        var url = baseUrl_().replace(/\/$/, "");
+        if (parent) {
+          url += "/" + parent.split("/").map(encodeURIComponent).join("/");
+        }
+        url += ":runQuery";
+
+        var response = UrlFetchApp.fetch(url, {
+          method: "post",
+          contentType: "application/json",
+          headers: { Authorization: "Bearer " + token },
+          payload: JSON.stringify({ structuredQuery: structuredQuery }),
+          muteHttpExceptions: true
+        });
+
+        var code = response.getResponseCode();
+        if (code !== 200) throw new Error("runQuery failed: " + response.getContentText());
+
+        var body = JSON.parse(response.getContentText());
+        var results = [];
+        for (var i = 0; i < body.length; i++) {
+          var item = body[i];
+          if (item.document) {
+            var nameParts = item.document.name.split("/");
+            results.push({ id: nameParts[nameParts.length - 1], fields: item.document.fields || {} });
+          }
+        }
+        return results;
+      },
+
+      /**
+       * Vraca puni Firestore reference path za dokument (za startAt/startAfter cursor).
+       * @param {string} collection — putanja kolekcije
+       * @param {string} documentId
+       * @return {string}
+       */
+      buildReferencePath: function (collection, documentId) {
+        return "projects/" + projectId + "/databases/(default)/documents/" + collection + "/" + documentId;
+      },
+
+      /**
        * Lista subkolekcije dokumenta.
        * @param {string} documentPath — puna putanja (npr. "tenants/xyz/devices/ABC123")
        * @return {string[]}
@@ -287,7 +450,10 @@ var FirebaseService = (function () {
       },
 
       /** Dekodira Firestore raw fields u JS objekat. */
-      decodeFields: function (fields) { return decodeFields_(fields); }
+      decodeFields: function (fields) { return decodeFields_(fields); },
+
+      /** Enkodira JS objekat u Firestore raw fields. */
+      encodeFields: function (data) { return encodeFields_(data); }
     };
   }
 
@@ -295,6 +461,7 @@ var FirebaseService = (function () {
 
   var prod_ = null;
   var test_ = null;
+  var old_ = null;
 
   // ── Module public API ────────────────────────────────────────────────
 
@@ -318,6 +485,14 @@ var FirebaseService = (function () {
         test_ = createInstance_(Config.getTestProjectId(), Config.getTestEmail(), Config.getTestKey());
       }
       return test_;
+    },
+
+    /** Vraca instancu za staru bazu (za migracije). Kesira se. */
+    old: function () {
+      if (!old_) {
+        old_ = createInstance_(Config.getOldProjectId(), Config.getOldEmail(), Config.getOldKey());
+      }
+      return old_;
     }
   };
 })();

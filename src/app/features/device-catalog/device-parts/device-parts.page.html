@@ -37,7 +37,13 @@
 
   @if (!partsService.isLoading && partsService.groupPhoto) {
     <div class="group-photo" [class.hidden]="!isReady">
-      <img [src]="partsService.groupPhoto" alt="Group photo" (load)="onImageLoaded()" (error)="onImageLoaded()" />
+      <swiper-container zoom="true">
+        <swiper-slide>
+          <div class="swiper-zoom-container">
+            <img [src]="partsService.groupPhoto" alt="Group photo" (load)="onImageLoaded()" (error)="onImageLoaded()" />
+          </div>
+        </swiper-slide>
+      </swiper-container>
     </div>
   }
 

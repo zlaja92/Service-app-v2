@@ -3,6 +3,9 @@ import { RouteReuseStrategy, provideRouter } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
 import { isDevMode, provideAppInitializer } from '@angular/core';
 import { provideTransloco } from '@jsverse/transloco';
+import { register as registerSwiperElements } from 'swiper/element/bundle';
+
+registerSwiperElements();
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';

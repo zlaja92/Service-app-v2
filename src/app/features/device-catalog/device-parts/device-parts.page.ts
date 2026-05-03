@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
@@ -25,6 +25,7 @@ import { PartDetail } from '../services/part-detail.service';
     IonList, IonItem, IonLabel, IonSkeletonText, IonMenuButton, IonButton, IonIcon, IonSpinner,
     TranslocoModule,
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class DevicePartsPage implements ViewWillEnter {
   protected partsService = inject(DevicePartsService);

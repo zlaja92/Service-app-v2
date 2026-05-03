@@ -8,6 +8,7 @@ export const en: Translation = {
   menu_logout: 'Logout',
   menu_dark_mode: 'Dark Mode',
   menu_language: 'Language',
+  menu_version: 'Version',
 
   login_subtitle: 'Sign in to your account',
   login_email_required: 'Email is required',

@@ -16,6 +16,11 @@
  *        - TEST_PROJECT_ID
  *        - TEST_SERVICE_EMAIL
  *        - TEST_PRIVATE_KEY
+ *
+ *      Stara baza (za migracije):
+ *        - OLD_PROJECT_ID
+ *        - OLD_SERVICE_EMAIL
+ *        - OLD_PRIVATE_KEY
  */
 
 var Config = (function () {
@@ -43,6 +48,11 @@ var Config = (function () {
     getTestProjectId: function () { return getProps_().getProperty("TEST_PROJECT_ID"); },
     getTestEmail: function () { return getProps_().getProperty("TEST_SERVICE_EMAIL"); },
     getTestKey: function () { return getKey_("TEST_PRIVATE_KEY"); },
+
+    // ── Stara baza (za migracije) ────────────────────────────────────
+    getOldProjectId: function () { return getProps_().getProperty("OLD_PROJECT_ID"); },
+    getOldEmail: function () { return getProps_().getProperty("OLD_SERVICE_EMAIL"); },
+    getOldKey: function () { return getKey_("OLD_PRIVATE_KEY"); },
 
     /** Kolekcija u koju se upisuju odobreni SN-ovi */
     APPROVED_DEVICES_COLLECTION: "approvedLoyaltyDevices",

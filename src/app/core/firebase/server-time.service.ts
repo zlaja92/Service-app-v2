@@ -13,7 +13,7 @@ export class ServerTimeService {
       });
 
       const timestamp = result.data.timestamp;
-      if (!timestamp || typeof timestamp !== 'number') {
+      if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
         this.logger.error('ServerTimeService: invalid response', { data: result.data });
         return null;
       }

@@ -1062,4 +1062,124 @@ describe('DocsListPage', () => {
       expect(fixture.nativeElement.querySelector('.empty-state')).toBeFalsy();
     });
   });
+
+  // ==========================================
+  // EXPANSION — onEntryClick parameterized
+  // ==========================================
+
+  describe('onEntryClick — folder paths (parameterized)', () => {
+    const folderPaths: Array<{ name: string; fullPath: string }> = [
+      { name: 'Root Folder', fullPath: 'Documents/Root Folder' },
+      { name: 'Level1', fullPath: 'Documents/Level1' },
+      { name: 'Level2', fullPath: 'Documents/Level1/Level2' },
+      { name: 'Level3', fullPath: 'Documents/Level1/Level2/Level3' },
+      { name: 'Deep', fullPath: 'Documents/A/B/C/D/E/Deep' },
+      { name: 'Folder with spaces', fullPath: 'Documents/Folder with spaces' },
+      { name: 'Folder (2024)', fullPath: 'Documents/Folder (2024)' },
+      { name: 'šumski', fullPath: 'Documents/šumski' },
+    ];
+
+    folderPaths.forEach(({ name, fullPath }) => {
+      it(`should call loadFolder with "${fullPath}" when clicking folder "${name}"`, () => {
+        const folder: DocEntry = { name, fullPath, isFolder: true };
+        component.onEntryClick(folder);
+        expect(mockDocsService.loadFolder).toHaveBeenCalledWith(fullPath);
+      });
+
+      it(`should NOT call openFile when clicking folder "${name}"`, () => {
+        const folder: DocEntry = { name, fullPath, isFolder: true };
+        component.onEntryClick(folder);
+        expect(mockDocsService.openFile).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('onEntryClick — file paths (parameterized)', () => {
+    const filePaths: Array<{ name: string; fullPath: string }> = [
+      { name: 'document.pdf', fullPath: 'Documents/document.pdf' },
+      { name: 'manual.docx', fullPath: 'Documents/manual.docx' },
+      { name: 'image.jpg', fullPath: 'Documents/image.jpg' },
+      { name: 'deep-file.pdf', fullPath: 'Documents/A/B/C/deep-file.pdf' },
+      { name: 'file with spaces.pdf', fullPath: 'Documents/file with spaces.pdf' },
+      { name: 'šema.pdf', fullPath: 'Documents/šema.pdf' },
+      { name: 'file.v2.1.pdf', fullPath: 'Documents/file.v2.1.pdf' },
+    ];
+
+    filePaths.forEach(({ name, fullPath }) => {
+      it(`should call openFile for file "${name}"`, () => {
+        const file: DocEntry = { name, fullPath, isFolder: false };
+        component.onEntryClick(file);
+        expect(mockDocsService.openFile).toHaveBeenCalledWith(file);
+      });
+
+      it(`should NOT call loadFolder for file "${name}"`, () => {
+        const file: DocEntry = { name, fullPath, isFolder: false };
+        component.onEntryClick(file);
+        expect(mockDocsService.loadFolder).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — folder name in title (parameterized)
+  // ==========================================
+
+  describe('template — subfolder names in title (parameterized)', () => {
+    const folderNames = [
+      'Uputstva',
+      'Katalozi',
+      'My Documents',
+      'Folder (2024)',
+      'šumski dokumenti',
+      'UPPERCASE',
+      'mixedCase',
+    ];
+
+    folderNames.forEach((name) => {
+      it(`should show folder name "${name}" as title when in subfolder`, () => {
+        mockDocsService.isRoot = false;
+        mockDocsService.currentFolderName = name;
+        fixture.detectChanges();
+
+        const title = fixture.nativeElement.querySelector('ion-title');
+        expect(title.textContent).toContain(name);
+      });
+    });
+  });
+
+  // ==========================================
+  // EXPANSION — entry counts in template
+  // ==========================================
+
+  describe('template — various entry counts rendered', () => {
+    const entryCounts = [1, 2, 5, 10, 15, 20];
+
+    entryCounts.forEach((count) => {
+      it(`should render exactly ${count} folder items`, () => {
+        mockDocsService.isLoading = false;
+        mockDocsService.entries = Array.from({ length: count }, (_, i) => ({
+          name: `Folder${i}`,
+          fullPath: `Documents/Folder${i}`,
+          isFolder: true,
+        }));
+        fixture.detectChanges();
+
+        const items = fixture.nativeElement.querySelectorAll('ion-item[button]');
+        expect(items.length).toBe(count);
+      });
+
+      it(`should render exactly ${count} file items`, () => {
+        mockDocsService.isLoading = false;
+        mockDocsService.entries = Array.from({ length: count }, (_, i) => ({
+          name: `file${i}.pdf`,
+          fullPath: `Documents/file${i}.pdf`,
+          isFolder: false,
+        }));
+        fixture.detectChanges();
+
+        const items = fixture.nativeElement.querySelectorAll('ion-item[button]');
+        expect(items.length).toBe(count);
+      });
+    });
+  });
 });

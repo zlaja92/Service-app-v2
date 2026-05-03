@@ -13,13 +13,20 @@
         </ion-item>
       </ion-menu-toggle>
 
+      <ion-menu-toggle auto-hide="false">
+        <ion-item button (click)="logout()">
+          <ion-icon name="log-out-outline" slot="start" />
+          <ion-label>{{ 'menu_logout' | transloco }}</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+
       <ion-item>
         <ion-icon name="moon-outline" slot="start" />
         <ion-label>{{ 'menu_dark_mode' | transloco }}</ion-label>
         <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
       </ion-item>
 
-      <ion-item>
+      <ion-item lines="none">
         <ion-icon name="globe-outline" slot="start" />
         <ion-select [value]="translationService.currentLanguage()"
                     (ionChange)="onLanguageChange($event)"
@@ -29,20 +36,12 @@
           }
         </ion-select>
       </ion-item>
-
-      <ion-menu-toggle auto-hide="false">
-        <ion-item button (click)="logout()" lines="none">
-          <ion-icon name="log-out-outline" slot="start" />
-          <ion-label>{{ 'menu_logout' | transloco }}</ion-label>
-        </ion-item>
-      </ion-menu-toggle>
     </ion-list>
 
-    <div class="menu-footer">
-      @if (tenantStore.tenantId(); as tid) {
-        <p>Tenant: {{ tid }}</p>
-      }
-      <p>{{ authStore.userEmail() }}</p>
-    </div>
+    @if (appVersion(); as version) {
+      <div class="menu-footer">
+        <p>{{ 'menu_version' | transloco }} {{ version }}</p>
+      </div>
+    }
   </ion-content>
 </ion-menu>

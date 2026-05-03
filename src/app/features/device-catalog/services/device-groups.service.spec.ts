@@ -378,4 +378,166 @@ describe('DeviceGroupsService', () => {
       expect((service as any).loadedDeviceCode).toBe('DEV2');
     });
   });
+
+  // ── EXPANSION — device code variations ──────────────────────────────────────
+
+  describe('load() — device code variations (parameterized)', () => {
+    const deviceCodes = [
+      'DEV1',
+      'DEV-001',
+      'DEVICE_WITH_UNDERSCORE',
+      'D001',
+      'device-lowercase',
+      'HEAT-PUMP-XYZ-123',
+      'GAS_BOILER_24KW',
+      'Very Long Device Code With Many Characters',
+    ];
+
+    deviceCodes.forEach((code) => {
+      it(`should query subcollection with device code="${code}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
+
+        await service.load(code);
+
+        expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledWith(`devices/${code}`, 'Sklopovi');
+      });
+
+      it(`should store loadedDeviceCode="${code}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(emptyResult());
+
+        await service.load(code);
+
+        expect((service as any).loadedDeviceCode).toBe(code);
+      });
+    });
+  });
+
+  // ── EXPANSION — group count variations ──────────────────────────────────────
+
+  describe('load() — group count variations (parameterized)', () => {
+    const groupCounts = [0, 1, 2, 5, 10, 25, 50, 100];
+
+    groupCounts.forEach((count) => {
+      it(`should handle ${count} groups`, async () => {
+        const groups = Array.from({ length: count }, (_, i) => ({ id: `G${i}`, name: `Group ${i}`, photo: '' }));
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(createGroupResult(groups));
+
+        await service.load('DEV1');
+
+        expect(service.groups.length).toBe(count);
+      });
+    });
+  });
+
+  // ── EXPANSION — group name variations ───────────────────────────────────────
+
+  describe('group mapping — name variations (parameterized)', () => {
+    const groupNames = [
+      'Group A',
+      'Kompresor sklop',
+      'Pumpa i ventil',
+      'UPPERCASE GROUP',
+      'group-with-hyphen',
+      'group_with_underscore',
+      'Компресор',
+      '日本語グループ',
+      'Group (2024)',
+      '',
+    ];
+
+    groupNames.forEach((name) => {
+      it(`should map group name="${name}" correctly`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo({
+          documents: [{ id: 'G1', path: 'devices/DEV1/Sklopovi/G1', data: { 'Name': name, 'Group photo': '' } }],
+          lastDocumentPath: null,
+        });
+
+        await service.load('DEV1');
+
+        expect(service.groups[0].name).toBe(name);
+      });
+    });
+  });
+
+  // ── EXPANSION — caching with various scenarios ──────────────────────────────
+
+  describe('caching — parameterized scenarios', () => {
+    const deviceCodesToCache = ['DEV1', 'DEV-ALPHA', 'MY_DEVICE', 'HP-001'];
+
+    deviceCodesToCache.forEach((code) => {
+      it(`should skip second load for same device code "${code}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+          createGroupResult([{ id: 'G1', name: 'Cached', photo: '' }]),
+        );
+
+        await service.load(code);
+        const callCount1 = mockFirestoreService.queryTenantSubcollection.calls.count();
+
+        await service.load(code);
+        const callCount2 = mockFirestoreService.queryTenantSubcollection.calls.count();
+
+        expect(callCount2).toBe(callCount1);
+      });
+    });
+  });
+
+  // ── EXPANSION — error handling variations ───────────────────────────────────
+
+  describe('error handling — various error messages (parameterized)', () => {
+    const errorMessages = [
+      'Firestore error',
+      'Network timeout',
+      'Permission denied',
+      'Not found',
+      'Internal error',
+    ];
+
+    errorMessages.forEach((msg) => {
+      it(`should log error containing "${msg}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error(msg));
+
+        await service.load('DEV1');
+
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'Failed to load device groups',
+          jasmine.objectContaining({ error: jasmine.stringContaining(msg) }),
+        );
+      });
+
+      it(`should set isLoading=false after error "${msg}"`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.rejectWith(new Error(msg));
+
+        await service.load('DEV1');
+
+        expect(service.isLoading).toBeFalse();
+      });
+    });
+  });
+
+  // ── EXPANSION — reset() then reload scenarios ───────────────────────────────
+
+  describe('reset() — reload after reset (parameterized)', () => {
+    const reloadCodes = ['DEV1', 'DEV2', 'DEV-RESET'];
+
+    reloadCodes.forEach((code) => {
+      it(`should reload "${code}" after reset`, async () => {
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+          createGroupResult([{ id: 'G1', name: 'After Reset', photo: '' }]),
+        );
+
+        await service.load(code);
+        service.reset();
+
+        mockFirestoreService.queryTenantSubcollection.calls.reset();
+        mockFirestoreService.queryTenantSubcollection.and.resolveTo(
+          createGroupResult([{ id: 'G2', name: 'New Load', photo: '' }]),
+        );
+
+        await service.load(code);
+
+        expect(mockFirestoreService.queryTenantSubcollection).toHaveBeenCalledTimes(1);
+        expect(service.groups[0].name).toBe('New Load');
+      });
+    });
+  });
 });

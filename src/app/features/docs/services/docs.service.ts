@@ -63,8 +63,12 @@ export class DocsService implements Clearable {
   }
 
   async openFile(entry: DocEntry): Promise<void> {
+    const url = await this.storageService.getFileUrl(entry.fullPath);
+    if (!url) {
+      this.logger.error('Failed to open document — no URL', { path: entry.fullPath });
+      return;
+    }
     try {
-      const url = await this.storageService.getFileUrl(entry.fullPath);
       await Browser.open({ url });
     } catch (error) {
       this.logger.error('Failed to open document', { path: entry.fullPath, error: String(error) });

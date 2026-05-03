@@ -69,6 +69,9 @@ export class DeviceEnvInfoModalComponent implements OnInit {
       this.form.patchValue(this.prefillData);
     }
 
+    if (this.readOnly) {
+      this.form.disable();
+    }
   }
 
   protected async onSave(): Promise<void> {

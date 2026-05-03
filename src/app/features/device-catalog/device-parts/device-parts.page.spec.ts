@@ -43,7 +43,7 @@ describe('DevicePartsPage', () => {
       parts: [],
       groupPhoto: '',
       isLoading: false,
-      load: jasmine.createSpy('load'),
+      load: jasmine.createSpy('load').and.resolveTo(undefined),
       reset: jasmine.createSpy('reset'),
     };
     mockGroupsService = {
@@ -402,6 +402,7 @@ describe('DevicePartsPage', () => {
         createPart('P3', 'C3', 'Ventil'),
       ];
       mockPartsService.isLoading = false;
+      (component as any).isReady = true;
       fixture.detectChanges();
     });
 
@@ -475,6 +476,7 @@ describe('DevicePartsPage', () => {
     beforeEach(() => {
       mockPartsService.parts = [];
       mockPartsService.isLoading = false;
+      (component as any).isReady = true;
       fixture.detectChanges();
     });
 
@@ -502,11 +504,13 @@ describe('DevicePartsPage', () => {
   // ── State transitions ──
   describe('state transitions', () => {
     it('should transition from loading to parts', () => {
+      (component as any).isReady = false;
       mockPartsService.isLoading = true;
       mockPartsService.parts = [];
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelectorAll('ion-skeleton-text').length).toBeGreaterThan(0);
 
+      (component as any).isReady = true;
       mockPartsService.isLoading = false;
       mockPartsService.parts = [createPart('P1', 'C1', 'Part')];
       fixture.detectChanges();
@@ -514,9 +518,11 @@ describe('DevicePartsPage', () => {
     });
 
     it('should transition from loading to empty', () => {
+      (component as any).isReady = false;
       mockPartsService.isLoading = true;
       fixture.detectChanges();
 
+      (component as any).isReady = true;
       mockPartsService.isLoading = false;
       mockPartsService.parts = [];
       fixture.detectChanges();
@@ -527,6 +533,7 @@ describe('DevicePartsPage', () => {
   // ── Mutual exclusivity ──
   describe('mutual exclusivity', () => {
     it('loading: no parts, no empty', () => {
+      (component as any).isReady = false;
       mockPartsService.isLoading = true;
       mockPartsService.parts = [];
       fixture.detectChanges();
@@ -536,6 +543,7 @@ describe('DevicePartsPage', () => {
     });
 
     it('parts: no loading, no empty', () => {
+      (component as any).isReady = true;
       mockPartsService.isLoading = false;
       mockPartsService.parts = [createPart('P1', 'C1', 'P')];
       fixture.detectChanges();
@@ -545,6 +553,7 @@ describe('DevicePartsPage', () => {
     });
 
     it('empty: no loading, no parts', () => {
+      (component as any).isReady = true;
       mockPartsService.isLoading = false;
       mockPartsService.parts = [];
       fixture.detectChanges();
@@ -559,6 +568,7 @@ describe('DevicePartsPage', () => {
     it('should display part with unicode name', () => {
       mockPartsService.parts = [createPart('P1', 'C1', 'Клапна вентила')];
       mockPartsService.isLoading = false;
+      (component as any).isReady = true;
       fixture.detectChanges();
       const label = fixture.nativeElement.querySelector('ion-item[button] ion-label');
       expect(label.textContent).toContain('Клапна вентила');
@@ -567,6 +577,7 @@ describe('DevicePartsPage', () => {
     it('should display many parts', () => {
       mockPartsService.parts = Array.from({ length: 50 }, (_, i) => createPart(`P${i}`, `C${i}`, `Part ${i}`));
       mockPartsService.isLoading = false;
+      (component as any).isReady = true;
       fixture.detectChanges();
       const items = fixture.nativeElement.querySelectorAll('ion-item[button]');
       expect(items.length).toBe(50);
@@ -576,6 +587,7 @@ describe('DevicePartsPage', () => {
       mockPartsService.parts = [createPart('P1', 'C1', 'Part')];
       mockPartsService.groupPhoto = 'https://cdn.example.com/photo.png';
       mockPartsService.isLoading = false;
+      (component as any).isReady = true;
       fixture.detectChanges();
       const photo = fixture.nativeElement.querySelector('.group-photo');
       const items = fixture.nativeElement.querySelectorAll('ion-item[button]');
