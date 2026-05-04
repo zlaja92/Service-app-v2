@@ -10,9 +10,9 @@ const PAGE_SIZE = 20;
 const MIN_SEARCH_LENGTH = 2;
 
 interface DeviceDoc {
-  'Device Name': string;
-  'Device code': string;
-  'Device type': string;
+  deviceName?: string;
+  deviceCode?: string;
+  deviceType?: string;
   [key: string]: unknown;
 }
 
@@ -83,15 +83,15 @@ export class DeviceSearchService implements Clearable {
             {
               type: 'and',
               queryConstraints: [
-                { type: 'where', fieldPath: 'Device Name', opStr: '>=', value: this.searchTerm },
-                { type: 'where', fieldPath: 'Device Name', opStr: '<=', value: this.searchTerm + '\uf8ff' },
+                { type: 'where', fieldPath: 'deviceName', opStr: '>=', value: this.searchTerm },
+                { type: 'where', fieldPath: 'deviceName', opStr: '<=', value: this.searchTerm + '\uf8ff' },
               ],
             },
             {
               type: 'and',
               queryConstraints: [
-                { type: 'where', fieldPath: 'Device code', opStr: '>=', value: this.searchTerm },
-                { type: 'where', fieldPath: 'Device code', opStr: '<=', value: this.searchTerm + '\uf8ff' },
+                { type: 'where', fieldPath: 'deviceCode', opStr: '>=', value: this.searchTerm },
+                { type: 'where', fieldPath: 'deviceCode', opStr: '<=', value: this.searchTerm + '\uf8ff' },
               ],
             },
           ],
@@ -127,14 +127,14 @@ export class DeviceSearchService implements Clearable {
   }
 
   private mapToDevice(id: string, data: DeviceDoc): Device | null {
-    const type = data['Device type'] as Device['type'] | undefined;
+    const type = data.deviceType as Device['type'] | undefined;
     if (!type) {
       this.logger.warn('DeviceSearchService: skipping device with missing type', { id });
       return null;
     }
     return {
-      code: data['Device code'] ?? id,
-      name: data['Device Name'] ?? '',
+      code: data.deviceCode ?? id,
+      name: data.deviceName ?? '',
       type,
       subType: '',
       unitCount: 0,

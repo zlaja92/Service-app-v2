@@ -28,9 +28,9 @@ import {
 
 function buildDeviceDoc(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    'Device code': 'GENUS24',
-    'Device Name': 'Genus One 24',
-    'Device type': DeviceType.GAS_BOILER,
+    deviceCode: 'GENUS24',
+    deviceName: 'Genus One 24',
+    deviceType: DeviceType.GAS_BOILER,
     commissioning: false,
     annualService: true,
     connectedDevice: false,
@@ -271,7 +271,7 @@ describe('DeviceLookupService — EXPANSION: lookup() model code extraction inte
   lookupIntegrationCases.forEach(({ start, length, sn, expectedModelCode }) => {
     it(`LOOKUP-EXTRACT: start=${start} length=${length} SN="${sn}" → Firestore called with "${expectedModelCode}"`, async () => {
       mockConfigStore.setConfig(buildAppConfig(start, length));
-      mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ 'Device code': expectedModelCode }));
+      mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ deviceCode: expectedModelCode }));
 
       await service.lookup(sn);
 
@@ -303,7 +303,7 @@ describe('DeviceLookupService — EXPANSION: mapToDevice all DeviceType values',
 
   allDeviceTypes.forEach(dt => {
     it(`MAP-DEVICE-TYPE: maps "${dt}" correctly`, async () => {
-      const doc = buildDeviceDoc({ 'Device type': dt });
+      const doc = buildDeviceDoc({ deviceType: dt });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
 
       const device = await service.lookup('GENUS24EXTRA');
@@ -316,7 +316,7 @@ describe('DeviceLookupService — EXPANSION: mapToDevice all DeviceType values',
   // Test fallback when device type is missing
   it('MAP-DEVICE-TYPE: missing type → fallback to DeviceType.BOILER', async () => {
     const doc = buildDeviceDoc();
-    delete doc['Device type'];
+    delete doc['deviceType'];
     mockFirestore.getTenantDocument.and.resolveTo(doc);
 
     const device = await service.lookup('GENUS24EXTRA');
@@ -326,7 +326,7 @@ describe('DeviceLookupService — EXPANSION: mapToDevice all DeviceType values',
 
   // Unknown/invalid device type
   it('MAP-DEVICE-TYPE: unrecognized type string is passed through as-is', async () => {
-    const doc = buildDeviceDoc({ 'Device type': 'UNKNOWN_DEVICE_TYPE' });
+    const doc = buildDeviceDoc({ deviceType: 'UNKNOWN_DEVICE_TYPE' });
     mockFirestore.getTenantDocument.and.resolveTo(doc);
 
     const device = await service.lookup('GENUS24EXTRA');
@@ -440,7 +440,7 @@ describe('DeviceLookupService — EXPANSION: isDeviceTypeAllowed matrix', () => 
 
   allDeviceTypes.forEach(dt => {
     it(`ALLOWED: ${dt} allowed → lookup returns device`, async () => {
-      const doc = buildDeviceDoc({ 'Device type': dt });
+      const doc = buildDeviceDoc({ deviceType: dt });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(true);
 
@@ -451,7 +451,7 @@ describe('DeviceLookupService — EXPANSION: isDeviceTypeAllowed matrix', () => 
     });
 
     it(`ALLOWED: ${dt} disallowed → lookup returns null`, async () => {
-      const doc = buildDeviceDoc({ 'Device type': dt });
+      const doc = buildDeviceDoc({ deviceType: dt });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(false);
 
@@ -496,7 +496,7 @@ describe('DeviceLookupService — EXPANSION: lookup() SN boundary cases', () => 
 
   it('SN-BOUNDARY: SN shorter than start+length → Firestore called with truncated model', async () => {
     mockConfigStore.setConfig(buildAppConfig(0, 20));
-    mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ 'Device code': 'SHORT' }));
+    mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ deviceCode: 'SHORT' }));
 
     await service.lookup('SHORT');
 
@@ -516,7 +516,7 @@ describe('DeviceLookupService — EXPANSION: lookup() SN boundary cases', () => 
   it('SN-BOUNDARY: SN with special chars in model code position', async () => {
     mockConfigStore.setConfig(buildAppConfig(0, 5));
     const snWithSpecial = 'AB-CD-EFGH'; // model code: "AB-CD"
-    mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ 'Device code': 'AB-CD' }));
+    mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc({ deviceCode: 'AB-CD' }));
 
     await service.lookup(snWithSpecial);
 
@@ -539,8 +539,8 @@ describe('DeviceLookupService — EXPANSION: lookupSilent() state isolation', ()
   });
 
   it('SILENT: lookupSilent does not overwrite device set by lookup()', async () => {
-    const doc1 = buildDeviceDoc({ 'Device Name': 'Main Device' });
-    const doc2 = buildDeviceDoc({ 'Device Name': 'Silent Device' });
+    const doc1 = buildDeviceDoc({ deviceName: 'Main Device' });
+    const doc2 = buildDeviceDoc({ deviceName: 'Silent Device' });
 
     mockFirestore.getTenantDocument.and.resolveTo(doc1);
     await service.lookup('GENUS24FIRST');
@@ -554,7 +554,7 @@ describe('DeviceLookupService — EXPANSION: lookupSilent() state isolation', ()
   });
 
   it('SILENT: multiple lookupSilent calls do not accumulate state', async () => {
-    const doc = buildDeviceDoc({ 'Device Name': 'Test Device' });
+    const doc = buildDeviceDoc({ deviceName: 'Test Device' });
     mockFirestore.getTenantDocument.and.resolveTo(doc);
     service.device = null;
 
@@ -567,8 +567,8 @@ describe('DeviceLookupService — EXPANSION: lookupSilent() state isolation', ()
   });
 
   it('SILENT: returns device for each call independently', async () => {
-    const doc1 = buildDeviceDoc({ 'Device code': 'CODE1', 'Device Name': 'Device One' });
-    const doc2 = buildDeviceDoc({ 'Device code': 'CODE2', 'Device Name': 'Device Two' });
+    const doc1 = buildDeviceDoc({ deviceCode: 'CODE1', deviceName: 'Device One' });
+    const doc2 = buildDeviceDoc({ deviceCode: 'CODE2', deviceName: 'Device Two' });
 
     mockFirestore.getTenantDocument.and.resolveTo(doc1);
     const result1 = await service.lookupSilent('SN1111111');

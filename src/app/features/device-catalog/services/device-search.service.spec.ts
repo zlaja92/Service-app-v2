@@ -24,9 +24,9 @@ describe('DeviceSearchService', () => {
       id: d.id,
       path: `devices/${d.id}`,
       data: {
-        'Device Name': d.name,
-        'Device code': d.code,
-        'Device type': DeviceType.HEAT_PUMP,
+        deviceName: d.name,
+        deviceCode: d.code,
+        deviceType: DeviceType.HEAT_PUMP,
       },
     })),
     lastDocumentPath: lastPath,
@@ -177,10 +177,10 @@ describe('DeviceSearchService', () => {
       await service.search('TEST');
       const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
       const nameFilter = filter.queryConstraints[0].queryConstraints;
-      expect(nameFilter[0].fieldPath).toBe('Device Name');
+      expect(nameFilter[0].fieldPath).toBe("deviceName");
       expect(nameFilter[0].opStr).toBe('>=');
       expect(nameFilter[0].value).toBe('TEST');
-      expect(nameFilter[1].fieldPath).toBe('Device Name');
+      expect(nameFilter[1].fieldPath).toBe("deviceName");
       expect(nameFilter[1].opStr).toBe('<=');
       expect(nameFilter[1].value).toBe('TEST\uf8ff');
     });
@@ -190,10 +190,10 @@ describe('DeviceSearchService', () => {
       await service.search('TEST');
       const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
       const codeFilter = filter.queryConstraints[1].queryConstraints;
-      expect(codeFilter[0].fieldPath).toBe('Device code');
+      expect(codeFilter[0].fieldPath).toBe("deviceCode");
       expect(codeFilter[0].opStr).toBe('>=');
       expect(codeFilter[0].value).toBe('TEST');
-      expect(codeFilter[1].fieldPath).toBe('Device code');
+      expect(codeFilter[1].fieldPath).toBe("deviceCode");
       expect(codeFilter[1].opStr).toBe('<=');
       expect(codeFilter[1].value).toBe('TEST\uf8ff');
     });
@@ -232,7 +232,7 @@ describe('DeviceSearchService', () => {
 
     it('should use doc id as fallback when Device code is missing', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo({
-        documents: [{ id: 'doc-id-123', path: 'devices/doc-id-123', data: { 'Device Name': 'Test', 'Device type': DeviceType.HEAT_PUMP } }],
+        documents: [{ id: 'doc-id-123', path: 'devices/doc-id-123', data: { deviceName: 'Test', deviceType: DeviceType.HEAT_PUMP } }],
         lastDocumentPath: null,
       });
       await service.search('TE');
@@ -241,7 +241,7 @@ describe('DeviceSearchService', () => {
 
     it('should use empty string as fallback when Device Name is missing', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo({
-        documents: [{ id: '1', path: 'devices/1', data: { 'Device code': 'X1', 'Device type': DeviceType.HEAT_PUMP } }],
+        documents: [{ id: '1', path: 'devices/1', data: { deviceCode: 'X1', deviceType: DeviceType.HEAT_PUMP } }],
         lastDocumentPath: null,
       });
       await service.search('X1');
@@ -696,9 +696,9 @@ describe('DeviceSearchService', () => {
     it('should filter devices whose type is not in allowedTypes', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo({
         documents: [
-          { id: '1', path: 'devices/1', data: { 'Device Name': 'A', 'Device code': 'A1', 'Device type': DeviceType.HEAT_PUMP } },
-          { id: '2', path: 'devices/2', data: { 'Device Name': 'B', 'Device code': 'B1', 'Device type': 'unknown_type' } },
-          { id: '3', path: 'devices/3', data: { 'Device Name': 'C', 'Device code': 'C1', 'Device type': DeviceType.BOILER } },
+          { id: '1', path: 'devices/1', data: { deviceName: 'A', deviceCode: 'A1', deviceType: DeviceType.HEAT_PUMP } },
+          { id: '2', path: 'devices/2', data: { deviceName: 'B', deviceCode: 'B1', deviceType: 'unknown_type' } },
+          { id: '3', path: 'devices/3', data: { deviceName: 'C', deviceCode: 'C1', deviceType: DeviceType.BOILER } },
         ],
         lastDocumentPath: null,
       });
@@ -711,7 +711,7 @@ describe('DeviceSearchService', () => {
     it('should return empty array when no devices match allowedTypes', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo({
         documents: [
-          { id: '1', path: 'devices/1', data: { 'Device Name': 'A', 'Device code': 'A1', 'Device type': 'forbidden_type' } },
+          { id: '1', path: 'devices/1', data: { deviceName: 'A', deviceCode: 'A1', deviceType: 'forbidden_type' } },
         ],
         lastDocumentPath: null,
       });
@@ -746,8 +746,8 @@ describe('DeviceSearchService', () => {
       // Page 2 has mixed types — only allowed ones should be appended
       mockFirestoreService.queryTenantCollection.and.resolveTo({
         documents: [
-          { id: '20', path: 'devices/20', data: { 'Device Name': 'Allowed', 'Device code': 'A20', 'Device type': DeviceType.HEAT_PUMP } },
-          { id: '21', path: 'devices/21', data: { 'Device Name': 'Blocked', 'Device code': 'B21', 'Device type': 'forbidden' } },
+          { id: '20', path: 'devices/20', data: { deviceName: 'Allowed', deviceCode: 'A20', deviceType: DeviceType.HEAT_PUMP } },
+          { id: '21', path: 'devices/21', data: { deviceName: 'Blocked', deviceCode: 'B21', deviceType: 'forbidden' } },
         ],
         lastDocumentPath: null,
       });
@@ -757,12 +757,12 @@ describe('DeviceSearchService', () => {
       expect(service.devices[20].name).toBe('Allowed');
     });
 
-    // BUG-02 FIXED: mapToDevice returns null when 'Device type' field is absent,
+    // BUG-02 FIXED: mapToDevice returns null when deviceType field is absent,
     // device is excluded from results, warning is logged with device id.
     it('[BUG-02 fixed] should skip device with missing Device type field and log warning', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo({
         documents: [
-          { id: 'no-type', path: 'devices/no-type', data: { 'Device Name': 'NoType', 'Device code': 'NT1' } },
+          { id: 'no-type', path: 'devices/no-type', data: { deviceName: 'NoType', deviceCode: 'NT1' } },
         ],
         lastDocumentPath: null,
       });
@@ -1000,17 +1000,17 @@ describe('DeviceSearchService', () => {
       expectedCode: string;
     }> = [
       {
-        data: { 'Device Name': 'Full Device', 'Device code': 'FD-001', 'Device type': DeviceType.HEAT_PUMP },
+        data: { deviceName: 'Full Device', deviceCode: 'FD-001', deviceType: DeviceType.HEAT_PUMP },
         expectedName: 'Full Device',
         expectedCode: 'FD-001',
       },
       {
-        data: { 'Device Name': 'No Code', 'Device type': DeviceType.HEAT_PUMP },
+        data: { deviceName: 'No Code', deviceType: DeviceType.HEAT_PUMP },
         expectedName: 'No Code',
         expectedCode: 'doc-id',  // fallback to doc id
       },
       {
-        data: { 'Device code': 'CODE-ONLY', 'Device type': DeviceType.HEAT_PUMP },
+        data: { deviceCode: 'CODE-ONLY', deviceType: DeviceType.HEAT_PUMP },
         expectedName: '',  // empty fallback
         expectedCode: 'CODE-ONLY',
       },
@@ -1045,7 +1045,7 @@ describe('DeviceSearchService', () => {
     typeCases.forEach(({ type, expectedCount, desc }) => {
       it(`${desc}: type="${type}" should yield ${expectedCount} results`, async () => {
         mockFirestoreService.queryTenantCollection.and.resolveTo({
-          documents: [{ id: '1', path: 'devices/1', data: { 'Device Name': 'Test', 'Device code': 'T1', 'Device type': type } }],
+          documents: [{ id: '1', path: 'devices/1', data: { deviceName: 'Test', deviceCode: 'T1', deviceType: type } }],
           lastDocumentPath: null,
         });
 

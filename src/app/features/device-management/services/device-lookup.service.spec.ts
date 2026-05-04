@@ -19,9 +19,9 @@ import {
 
 function buildDeviceDoc(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    'Device code': 'GENUS24',
-    'Device Name': 'Genus One 24',
-    'Device type': DeviceType.GAS_BOILER,
+    deviceCode: 'GENUS24',
+    deviceName: 'Genus One 24',
+    deviceType: DeviceType.GAS_BOILER,
     commissioning: false,
     annualService: true,
     connectedDevice: false,
@@ -151,9 +151,9 @@ describe('DeviceLookupService', () => {
 
     it('should map Firestore document data to Device using mapToDevice', async () => {
       const doc = buildDeviceDoc({
-        'Device code': 'GEN24',
-        'Device Name': 'Genus One 24',
-        'Device type': DeviceType.GAS_BOILER,
+        deviceCode: 'GEN24',
+        deviceName: 'Genus One 24',
+        deviceType: DeviceType.GAS_BOILER,
       });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(true);
@@ -178,7 +178,7 @@ describe('DeviceLookupService', () => {
     });
 
     it('should return null and NOT set device when type is not in allowedDeviceTypes', async () => {
-      const doc = buildDeviceDoc({ 'Device type': DeviceType.HEAT_PUMP });
+      const doc = buildDeviceDoc({ deviceType: DeviceType.HEAT_PUMP });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(false);
 
@@ -197,7 +197,7 @@ describe('DeviceLookupService', () => {
     });
 
     it('should return null when device type is disallowed', async () => {
-      const doc = buildDeviceDoc({ 'Device type': DeviceType.AIR_CONDITION });
+      const doc = buildDeviceDoc({ deviceType: DeviceType.AIR_CONDITION });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(false);
 
@@ -268,9 +268,9 @@ describe('DeviceLookupService', () => {
 
     it('should return device using the same lookup logic as lookup()', async () => {
       const doc = buildDeviceDoc({
-        'Device code': 'GEN24',
-        'Device Name': 'Genus One 24',
-        'Device type': DeviceType.GAS_BOILER,
+        deviceCode: 'GEN24',
+        deviceName: 'Genus One 24',
+        deviceType: DeviceType.GAS_BOILER,
       });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(true);
@@ -291,7 +291,7 @@ describe('DeviceLookupService', () => {
     });
 
     it('should return null when device type is disallowed', async () => {
-      const doc = buildDeviceDoc({ 'Device type': DeviceType.HEAT_PUMP });
+      const doc = buildDeviceDoc({ deviceType: DeviceType.HEAT_PUMP });
       mockFirestore.getTenantDocument.and.resolveTo(doc);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(false);
 
@@ -329,14 +329,14 @@ describe('DeviceLookupService', () => {
     }
 
     it('should map "Device code" field from Firestore document', async () => {
-      const device = await performLookupWithDoc(buildDeviceDoc({ 'Device code': 'MY-CODE' }));
+      const device = await performLookupWithDoc(buildDeviceDoc({ deviceCode: 'MY-CODE' }));
 
       expect(device!.code).toBe('MY-CODE');
     });
 
     it('should fallback to model code (id) when "Device code" is missing', async () => {
       const doc = buildDeviceDoc();
-      delete doc['Device code'];
+      delete doc['deviceCode'];
       const device = await performLookupWithDoc(doc);
 
       // extractModelCode with start=0, length=7 on 'GENUS24ABCDE' => 'GENUS24'
@@ -344,20 +344,20 @@ describe('DeviceLookupService', () => {
     });
 
     it('should map "Device Name" field from Firestore document', async () => {
-      const device = await performLookupWithDoc(buildDeviceDoc({ 'Device Name': 'Aqua Thermo Plus' }));
+      const device = await performLookupWithDoc(buildDeviceDoc({ deviceName: 'Aqua Thermo Plus' }));
 
       expect(device!.name).toBe('Aqua Thermo Plus');
     });
 
     it('should map "Device type" field from Firestore document', async () => {
-      const device = await performLookupWithDoc(buildDeviceDoc({ 'Device type': DeviceType.BOILER }));
+      const device = await performLookupWithDoc(buildDeviceDoc({ deviceType: DeviceType.BOILER }));
 
       expect(device!.type).toBe(DeviceType.BOILER);
     });
 
     it('should fallback to DeviceType.BOILER when "Device type" is missing', async () => {
       const doc = buildDeviceDoc();
-      delete doc['Device type'];
+      delete doc['deviceType'];
       const device = await performLookupWithDoc(doc);
 
       expect(device!.type).toBe(DeviceType.BOILER);
@@ -433,8 +433,8 @@ describe('DeviceLookupService', () => {
 
   describe('edge cases', () => {
     it('should handle multiple sequential lookups independently', async () => {
-      const doc1 = buildDeviceDoc({ 'Device Name': 'First Device' });
-      const doc2 = buildDeviceDoc({ 'Device Name': 'Second Device' });
+      const doc1 = buildDeviceDoc({ deviceName: 'First Device' });
+      const doc2 = buildDeviceDoc({ deviceName: 'Second Device' });
 
       mockFirestore.getTenantDocument.and.resolveTo(doc1);
       mockTenantService.isDeviceTypeAllowed.and.returnValue(true);

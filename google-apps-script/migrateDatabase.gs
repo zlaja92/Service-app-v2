@@ -103,6 +103,9 @@ function migrateDevices() {
   for (var i = 0; i < sliced.length; i++) {
     var doc = sliced[i];
     var newData = mergeData_(sourceDataByDocId[doc.id], OVERRIDES);
+    // deviceCode mora biti string (app interface ga ocekuje kao string,
+    // a stari izvor ga ima kao int64 — pa rucno kastujemo).
+    if (newData.deviceCode != null) newData.deviceCode = String(newData.deviceCode);
     writes.push({
       collection: DEST_COLLECTION,
       documentId: doc.id,
@@ -225,6 +228,174 @@ function migrateDevices() {
   // Resume cursor — postavi ovaj ID kao START_AFTER_ID za sledeci run.
   var lastId = sliced[sliced.length - 1].id;
   Logger.log("Sledeci START_AFTER_ID = \"" + lastId + "\"");
+}
+
+// ── Patch: in-place fix postojecih device dokumenata u prod-u ────────────
+
+/**
+ * Prolazi kroz SVE device dokumente u produkcionoj bazi i:
+ *   1) konvertuje deviceCode iz number u string (ako vec nije string)
+ *   2) postavlja serviceWindowStart na 6
+ *
+ * Cita iz `tenants/arst-srb/devices` (target = prod), ne iz stare baze.
+ * Ostala polja ostaju netaknuta.
+ */
+function fixDeviceFields() {
+  var COLLECTION_PARENT = "tenants/arst-srb";
+  var COLLECTION_ID = "devices";
+  var FULL_COLLECTION = COLLECTION_PARENT + "/" + COLLECTION_ID;
+
+  var target = FirebaseService.prod();
+
+  // Povuci sve dokumente jednim runQuery-jem (376 << 5MB limit).
+  var query = {
+    from: [{ collectionId: COLLECTION_ID }],
+    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+    limit: 1000
+  };
+
+  var docs = target.runQuery(COLLECTION_PARENT, query);
+  Logger.log("Pronadjeno " + docs.length + " device dokumenata u " + FULL_COLLECTION);
+  if (docs.length === 0) return;
+
+  // Pripremi izmene — citamo polja, modifikujemo, pa ih vracamo
+  var writes = [];
+  var changed = 0;
+  var unchanged = 0;
+
+  for (var i = 0; i < docs.length; i++) {
+    var doc = docs[i];
+    var data = target.decodeFields(doc.fields);
+
+    var needsUpdate = false;
+    if (data.deviceCode != null && typeof data.deviceCode !== "string") {
+      data.deviceCode = String(data.deviceCode);
+      needsUpdate = true;
+    }
+    if (data.serviceWindowStart !== 6) {
+      data.serviceWindowStart = 6;
+      needsUpdate = true;
+    }
+
+    if (!needsUpdate) {
+      unchanged++;
+      continue;
+    }
+
+    writes.push({
+      collection: FULL_COLLECTION,
+      documentId: doc.id,
+      fields: target.encodeFields(data)
+    });
+    changed++;
+  }
+
+  Logger.log("Za update: " + changed + ", vec ispravnih: " + unchanged);
+  if (writes.length === 0) {
+    Logger.log("Nema sta da se ispravlja.");
+    return;
+  }
+
+  // Flush kroz :batchWrite (do 500 po HTTP call-u)
+  var BATCH_SIZE = 500;
+  var success = 0;
+  var errors = 0;
+
+  for (var b = 0; b < writes.length; b += BATCH_SIZE) {
+    var batch = writes.slice(b, b + BATCH_SIZE);
+    var results = target.batchWriteSets(batch);
+    for (var r = 0; r < results.length; r++) {
+      if (results[r].success) {
+        success++;
+      } else {
+        errors++;
+        Logger.log("GRESKA " + batch[r].documentId + ": " + results[r].error);
+      }
+    }
+    Logger.log("Batch " + (Math.floor(b / BATCH_SIZE) + 1) + ": " + batch.length + " upisa (1 HTTP call)");
+  }
+
+  Logger.log("Zavrseno. Updateovano: " + success + ", Gresaka: " + errors);
+}
+
+// ── Migracija: listPrice (flat copy, bez transformacije i podkolekcija) ──
+
+/**
+ * Cita dokumente iz listPrice kolekcije stare baze i upisuje ih u produkcionu bazu.
+ * Polja se prepisuju 1:1 (raw fields, bez camelCase rename-a i bez OVERRIDES).
+ * Document ID se cuva.
+ *
+ * 3k dokumenata, bez podkolekcija — sve staje u jedan run sa LIMIT = 3000.
+ */
+function migrateListPrice() {
+  // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
+  var SOURCE_COLLECTION = "listPrice";
+  var DEST_COLLECTION = "tenants/arst-srb/listPrice";
+
+  // Resume — postavi na ID poslednjeg uspesno migriranog dokumenta iz prethodnog run-a.
+  // Prvi run: ostavi prazno.
+  var START_AFTER_ID = "";
+  // Koliko dokumenata povuci u ovom run-u (Firestore runQuery max ~5MB po pozivu).
+  var LIMIT = 3000;
+
+  // ── EXECUTION ──────────────────────────────────────────────────────────
+  var source = FirebaseService.old();
+  var target = FirebaseService.prod();
+
+  var query = {
+    from: [{ collectionId: SOURCE_COLLECTION }],
+    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+    limit: LIMIT
+  };
+
+  if (START_AFTER_ID) {
+    query.startAt = {
+      values: [{ referenceValue: source.buildReferencePath(SOURCE_COLLECTION, START_AFTER_ID) }],
+      before: false
+    };
+  }
+
+  var docs = source.runQuery("", query);
+  Logger.log(
+    "Vraceno " + docs.length + " dokumenata iz " + SOURCE_COLLECTION +
+    (START_AFTER_ID ? " posle '" + START_AFTER_ID + "'" : " (od pocetka)") +
+    " — limit " + LIMIT
+  );
+  if (docs.length === 0) {
+    Logger.log("Nema vise dokumenata za migraciju.");
+    return;
+  }
+
+  // Queue upisa — raw fields, bez transformacije
+  var writes = docs.map(function (doc) {
+    return {
+      collection: DEST_COLLECTION,
+      documentId: doc.id,
+      fields: doc.fields
+    };
+  });
+
+  // Flush kroz :batchWrite (do 500 upisa po HTTP call-u)
+  var BATCH_SIZE = 500;
+  var migrated = 0;
+  var errors = 0;
+
+  for (var b = 0; b < writes.length; b += BATCH_SIZE) {
+    var batch = writes.slice(b, b + BATCH_SIZE);
+    var results = target.batchWriteSets(batch);
+    for (var r = 0; r < results.length; r++) {
+      if (results[r].success) {
+        migrated++;
+      } else {
+        errors++;
+        Logger.log("GRESKA " + batch[r].documentId + ": " + results[r].error);
+      }
+    }
+    Logger.log("Batch " + (Math.floor(b / BATCH_SIZE) + 1) + ": " + batch.length + " upisa (1 HTTP call)");
+  }
+
+  Logger.log("Zavrseno. Migrirano: " + migrated + ", Gresaka: " + errors);
+  Logger.log("Sledeci START_AFTER_ID = \"" + docs[docs.length - 1].id + "\"");
 }
 
 // ── Helperi ──────────────────────────────────────────────────────────────

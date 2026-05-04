@@ -7,9 +7,9 @@ import { Clearable } from '../../../core/session/clearable';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 
 interface DeviceDoc {
-  'Device Name': string;
-  'Device code': string;
-  'Device type': string;
+  deviceName?: string;
+  deviceCode?: string;
+  deviceType?: string;
   commissioning?: boolean;
   annualService?: boolean;
   connectedDevice?: boolean;
@@ -123,19 +123,19 @@ export class DeviceLookupService implements Clearable {
 
   private mapToDevice(id: string, data: DeviceDoc): Device {
     return {
-      code: data['Device code'] ?? id,
-      name: data['Device Name'] ?? '',
-      type: (data['Device type'] as DeviceType) ?? DeviceType.BOILER,
+      code: data.deviceCode ?? id,
+      name: data.deviceName ?? '',
+      type: (data.deviceType as DeviceType) ?? DeviceType.BOILER,
       subType: '',
       unitCount: 0,
       exists: true,
-      commissioning: data['commissioning'] ?? false,
-      annualService: data['annualService'] ?? false,
-      connectedDevice: data['connectedDevice'] ?? false,
-      firstServiceYear: data['firstServiceYear'],
-      serviceWindowStart: data['serviceWindowStart'],
-      serviceWindowEnd: data['serviceWindowEnd'],
-      warrantyMonths: data['warrantyMonths'],
+      commissioning: data.commissioning ?? false,
+      annualService: data.annualService ?? false,
+      connectedDevice: data.connectedDevice ?? false,
+      firstServiceYear: data.firstServiceYear,
+      serviceWindowStart: data.serviceWindowStart,
+      serviceWindowEnd: data.serviceWindowEnd,
+      warrantyMonths: data.warrantyMonths,
     };
   }
 }
