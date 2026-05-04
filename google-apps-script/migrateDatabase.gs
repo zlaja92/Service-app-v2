@@ -398,6 +398,139 @@ function migrateListPrice() {
   Logger.log("Sledeci START_AFTER_ID = \"" + docs[docs.length - 1].id + "\"");
 }
 
+// ── Migracija: users (~20k dokumenata, auto-paginacija unutar run-a) ─────
+
+/**
+ * Cita usere iz stare baze i upisuje ih u produkcionu bazu.
+ * Polja su vec u camelCase (firstName, lastName, addedDate, itd.) — kopiraju se 1:1.
+ * Document ID se cuva.
+ *
+ * Auto-paginira unutar jednog run-a — povlaci stranicu po stranicu sve dok ne potrosi
+ * sve usere ili ne dostigne MAX_ITERATIONS (sigurnosni limit). Apps Script ima
+ * 6-min time limit, sto je sasvim dovoljno za ~20k dokumenata kroz batchWrite.
+ */
+function migrateUsers() {
+  // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
+  var SOURCE_COLLECTION = "users";
+  var DEST_COLLECTION = "tenants/arst-srb/users";
+
+  // Resume — postavi ako je prethodni run zavrsio sa nedovrsenom listom.
+  var START_AFTER_ID = "";
+  // Stranica — koliko usera povuci po runQuery-ju (max ~5MB po pozivu).
+  var PAGE_SIZE = 1000;
+  // Sigurnosni cap — nikad nece nastaviti duze od ovoliko stranica u jednom run-u.
+  var MAX_ITERATIONS = 100;
+
+  // ── EXECUTION ──────────────────────────────────────────────────────────
+  var source = FirebaseService.old();
+  var target = FirebaseService.prod();
+
+  // Predobijaj sve devices iz prod-a u jednom pozivu i napravi map: modelCode → deviceType.
+  // Sluzi za resolvanje deviceType iz prvih 7 cifara SN-a svakog usera.
+  var deviceTypeByCode = {};
+  var deviceDocs = target.runQuery("tenants/arst-srb", {
+    from: [{ collectionId: "devices" }],
+    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+    limit: 1000
+  });
+  for (var dd = 0; dd < deviceDocs.length; dd++) {
+    var devData = target.decodeFields(deviceDocs[dd].fields);
+    deviceTypeByCode[deviceDocs[dd].id] = devData.deviceType || "";
+  }
+  Logger.log("Ucitano " + deviceDocs.length + " device-a u memoriju za lookup deviceType-a.");
+
+  var totalRead = 0;
+  var totalMigrated = 0;
+  var totalErrors = 0;
+  var unknownModelCount = 0;
+  var lastIdSeen = START_AFTER_ID;
+
+  for (var iter = 0; iter < MAX_ITERATIONS; iter++) {
+    var query = {
+      from: [{ collectionId: SOURCE_COLLECTION }],
+      orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+      limit: PAGE_SIZE
+    };
+
+    if (lastIdSeen) {
+      query.startAt = {
+        values: [{ referenceValue: source.buildReferencePath(SOURCE_COLLECTION, lastIdSeen) }],
+        before: false
+      };
+    }
+
+    var docs = source.runQuery("", query);
+    Logger.log(
+      "Iter " + (iter + 1) + ": vraceno " + docs.length + " usera" +
+      (lastIdSeen ? " posle '" + lastIdSeen + "'" : " (od pocetka)")
+    );
+    if (docs.length === 0) {
+      Logger.log("Nema vise dokumenata — kraj.");
+      break;
+    }
+
+    totalRead += docs.length;
+
+    // Pripremi upise — dekodiraj, ukloni lastWarrantyExtension,
+    // dodaj sn = doc.id, deviceType iz lookup mape (prvih 7 cifara SN-a = modelCode),
+    // i preimenuj additionType u warrantyStatus uz mapiranje:
+    //   commis   → in-warranty
+    //   bilo sta drugo (uklj. noCommis i nepoznate vrednosti) → out-of-warranty
+    var writes = docs.map(function (doc) {
+      var data = source.decodeFields(doc.fields);
+      delete data.lastWarrantyExtension;
+      data.sn = doc.id;
+      var modelCode = doc.id.substring(0, 7);
+      var deviceType = deviceTypeByCode[modelCode];
+      if (deviceType === undefined) {
+        unknownModelCount++;
+        deviceType = "";
+      }
+      data.deviceType = deviceType;
+      var addition = data.additionType;
+      delete data.additionType;
+      data.warrantyStatus = addition === "commis" ? "in-warranty" : "out-of-warranty";
+      return {
+        collection: DEST_COLLECTION,
+        documentId: doc.id,
+        fields: target.encodeFields(data)
+      };
+    });
+
+    // Flush kroz :batchWrite (do 500 po HTTP call-u)
+    var BATCH_SIZE = 500;
+    for (var b = 0; b < writes.length; b += BATCH_SIZE) {
+      var batch = writes.slice(b, b + BATCH_SIZE);
+      var results = target.batchWriteSets(batch);
+      for (var r = 0; r < results.length; r++) {
+        if (results[r].success) {
+          totalMigrated++;
+        } else {
+          totalErrors++;
+          Logger.log("GRESKA " + batch[r].documentId + ": " + results[r].error);
+        }
+      }
+    }
+
+    lastIdSeen = docs[docs.length - 1].id;
+
+    // Ako je stranica vratila manje od PAGE_SIZE, nema vise dokumenata.
+    if (docs.length < PAGE_SIZE) {
+      Logger.log("Poslednja stranica nije puna — kraj.");
+      break;
+    }
+  }
+
+  Logger.log("Zavrseno. Procitano: " + totalRead + ", Migrirano: " + totalMigrated + ", Gresaka: " + totalErrors);
+  if (unknownModelCount > 0) {
+    Logger.log("UPOZORENJE: " + unknownModelCount + " usera ima SN ciji modelCode (prvih 7 cifara) nije u devices kolekciji — deviceType je postavljen na prazan string.");
+  }
+  if (lastIdSeen) {
+    Logger.log("Poslednji obradjen ID = \"" + lastIdSeen + "\"" +
+               " (postavi kao START_AFTER_ID ako treba ponovo da pokrenes)");
+  }
+}
+
 // ── Helperi ──────────────────────────────────────────────────────────────
 
 /**

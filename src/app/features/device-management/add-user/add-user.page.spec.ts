@@ -143,7 +143,7 @@ function fillValidForm(page: AddUserPage): void {
     city: 'Beograd',
     postCode: '11000',
     phoneNumber: '+381601234567',
-    warrantyStatus: 'in_warranty',
+    warrantyStatus: 'in-warranty',
     dateOfPurchase: '15.06.2024',
   });
 }
@@ -251,19 +251,19 @@ describe('AddUserPage', () => {
   describe('showDateOfPurchase', () => {
     it('TC-AU-06: visible when device not commissioning and warrantyStatus=in_warranty', () => {
       (mockLookupService as unknown as { device: Device }).device = buildDevice({ annualService: true, commissioning: false });
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
       expect(page.showDateOfPurchase).toBeTrue();
     });
 
     it('TC-AU-07: hidden when warrantyStatus=out_of_warranty', () => {
       (mockLookupService as unknown as { device: Device }).device = buildDevice({ annualService: true, commissioning: false });
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
       expect(page.showDateOfPurchase).toBeFalse();
     });
 
     it('TC-AU-08: hidden when device commissioning=true', () => {
       (mockLookupService as unknown as { device: Device }).device = buildDevice({ annualService: true, commissioning: true });
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
       expect(page.showDateOfPurchase).toBeFalse();
     });
 
@@ -278,7 +278,7 @@ describe('AddUserPage', () => {
       // Before BUG-08 fix this returned true (because !null?.commissioning === true).
       // After fix: explicit null check returns false when device is not loaded.
       (mockLookupService as unknown as { device: Device | null }).device = null;
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
       expect(page.showDateOfPurchase).toBeFalse();
     });
   });
@@ -426,7 +426,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-21: prepares firstNameSrch as toLatinUpperCase of firstName', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
       internals(page).form.get('firstName').setValue('Marko');
 
       await page.onSave();
@@ -437,7 +437,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-22: prepares lastNameSrch as toLatinUpperCase of lastName', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
       internals(page).form.get('lastName').setValue('Markovic');
 
       await page.onSave();
@@ -448,7 +448,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-23: out_of_warranty — dateOfPurchase deleted from data', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -464,7 +464,7 @@ describe('AddUserPage', () => {
         annualService: false,
       });
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
 
       await page.onSave();
 
@@ -478,7 +478,7 @@ describe('AddUserPage', () => {
         annualService: true,
       });
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
       internals(page).form.get('dateOfPurchase').setValue('15.06.2023');
 
       await page.onSave();
@@ -493,7 +493,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-26: device without annualService — callAccepted deleted from data', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -516,7 +516,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-27: ConfirmService.confirm called before register', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -526,7 +526,7 @@ describe('AddUserPage', () => {
     it('TC-AU-28: cancel from confirm dialog — register not called', async () => {
       mockConfirmService.confirm.and.resolveTo(false);
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -550,7 +550,7 @@ describe('AddUserPage', () => {
       page.ionViewWillEnter();
 
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -568,7 +568,7 @@ describe('AddUserPage', () => {
       page.ionViewWillEnter();
 
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -586,7 +586,7 @@ describe('AddUserPage', () => {
       page.ionViewWillEnter();
 
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -618,7 +618,7 @@ describe('AddUserPage', () => {
       page.ionViewWillEnter();
 
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -632,7 +632,7 @@ describe('AddUserPage', () => {
       });
       mockRegistrationService.register.and.resolveTo(true);
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -648,7 +648,7 @@ describe('AddUserPage', () => {
       });
       mockRegistrationService.register.and.resolveTo(false);
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -746,7 +746,7 @@ describe('AddUserPage', () => {
         annualService: false,
       });
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('in_warranty');
+      internals(page).form.get('warrantyStatus').setValue('in-warranty');
 
       await page.onSave();
 
@@ -774,7 +774,7 @@ describe('AddUserPage', () => {
       fillValidForm(page);
       internals(page).form.get('city').setValue('Нови Сад');
       internals(page).form.get('streetName').setValue('Трг слободе');
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -786,7 +786,7 @@ describe('AddUserPage', () => {
     it('TC-AU-47: long phone number is stored without truncation', async () => {
       fillValidForm(page);
       internals(page).form.get('phoneNumber').setValue('+38160123456789012345');
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
 
       await page.onSave();
 
@@ -796,7 +796,7 @@ describe('AddUserPage', () => {
 
     it('TC-AU-48: out_of_warranty with empty dateOfPurchase — save succeeds and dateOfPurchase absent from data', async () => {
       fillValidForm(page);
-      internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
       internals(page).form.get('dateOfPurchase').setValue('');
 
       await page.onSave();
@@ -1218,10 +1218,10 @@ describe('AddUserPage', () => {
       expected: boolean;
       label: string;
     }> = [
-      { warrantyStatus: 'in_warranty', commissioning: false, expected: true, label: 'in_warranty non-commissioning → show' },
-      { warrantyStatus: 'in_warranty', commissioning: true, expected: false, label: 'in_warranty commissioning → hide' },
-      { warrantyStatus: 'out_of_warranty', commissioning: false, expected: false, label: 'out_of_warranty non-commissioning → hide' },
-      { warrantyStatus: 'out_of_warranty', commissioning: true, expected: false, label: 'out_of_warranty commissioning → hide' },
+      { warrantyStatus: 'in-warranty', commissioning: false, expected: true, label: 'in_warranty non-commissioning → show' },
+      { warrantyStatus: 'in-warranty', commissioning: true, expected: false, label: 'in_warranty commissioning → hide' },
+      { warrantyStatus: 'out-of-warranty', commissioning: false, expected: false, label: 'out_of_warranty non-commissioning → hide' },
+      { warrantyStatus: 'out-of-warranty', commissioning: true, expected: false, label: 'out_of_warranty commissioning → hide' },
       { warrantyStatus: '', commissioning: false, expected: false, label: 'empty status non-commissioning → hide' },
       { warrantyStatus: '', commissioning: true, expected: false, label: 'empty status commissioning → hide' },
       { warrantyStatus: 'unknown_value', commissioning: false, expected: false, label: 'unknown status → hide' },
@@ -1257,11 +1257,11 @@ describe('AddUserPage', () => {
       expectDateInData: boolean;
       expectDateAsDate: boolean;
     }> = [
-      { status: 'out_of_warranty', dateOfPurchase: '', label: 'out_of_warranty empty date', expectDateInData: false, expectDateAsDate: false },
-      { status: 'out_of_warranty', dateOfPurchase: '01.01.2020', label: 'out_of_warranty with date', expectDateInData: false, expectDateAsDate: false },
-      { status: 'in_warranty', dateOfPurchase: '15.06.2024', label: 'in_warranty with date', expectDateInData: true, expectDateAsDate: true },
-      { status: 'in_warranty', dateOfPurchase: '01.01.2020', label: 'in_warranty early date', expectDateInData: true, expectDateAsDate: true },
-      { status: 'in_warranty', dateOfPurchase: '31.12.2025', label: 'in_warranty late date', expectDateInData: true, expectDateAsDate: true },
+      { status: 'out-of-warranty', dateOfPurchase: '', label: 'out_of_warranty empty date', expectDateInData: false, expectDateAsDate: false },
+      { status: 'out-of-warranty', dateOfPurchase: '01.01.2020', label: 'out_of_warranty with date', expectDateInData: false, expectDateAsDate: false },
+      { status: 'in-warranty', dateOfPurchase: '15.06.2024', label: 'in_warranty with date', expectDateInData: true, expectDateAsDate: true },
+      { status: 'in-warranty', dateOfPurchase: '01.01.2020', label: 'in_warranty early date', expectDateInData: true, expectDateAsDate: true },
+      { status: 'in-warranty', dateOfPurchase: '31.12.2025', label: 'in_warranty late date', expectDateInData: true, expectDateAsDate: true },
     ];
 
     warrantyVariants.forEach(({ status, dateOfPurchase, label, expectDateInData, expectDateAsDate }) => {
@@ -1307,7 +1307,7 @@ describe('AddUserPage', () => {
           annualService: false,
         });
         fillValidForm(page);
-        internals(page).form.get('warrantyStatus').setValue('out_of_warranty');
+        internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
         internals(page).sn = mainSn;
         internals(page).connectedSn = connectedSn;
 

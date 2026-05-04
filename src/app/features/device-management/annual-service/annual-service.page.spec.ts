@@ -555,7 +555,7 @@ describe('AnnualServicePage', () => {
       mockEnvInfoService.getLastEnvInfo.and.resolveTo(null);
       mockEnvInfoService.collectEnvInfo.and.resolveTo({ freonSysTested: 'yes' });
       mockInterventionService.saveIntervention.and.resolveTo('doc-hp');
-      mockInterventionService.getRegistration.and.resolveTo({ warrantyStatus: 'in_warranty' }); // no connectedDevice
+      mockInterventionService.getRegistration.and.resolveTo({ warrantyStatus: 'in-warranty' }); // no connectedDevice
 
       await component.onSave();
 
@@ -690,7 +690,7 @@ describe('AnnualServicePage', () => {
         mockEnvInfoService.getLastEnvInfo.and.resolveTo(null);
         mockEnvInfoService.collectEnvInfo.and.resolveTo({ someField: 'val' });
         mockInterventionService.saveIntervention.and.resolveTo('doc-id');
-        mockInterventionService.getRegistration.and.resolveTo({ warrantyStatus: 'in_warranty' });
+        mockInterventionService.getRegistration.and.resolveTo({ warrantyStatus: 'in-warranty' });
 
         await component.onSave();
 

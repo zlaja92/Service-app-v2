@@ -110,7 +110,7 @@ describe('AnnualServiceEligibilityService', () => {
       expect(service.disableReason).toBe('no_warranty_document_field');
     });
 
-    // TC-ASE-04: warrantyStatus is not 'in_warranty'
+    // TC-ASE-04: warrantyStatus is not 'in-warranty'
     it('TC-ASE-04: sets disableReason=not_in_warranty when warrantyStatus !== in_warranty', async () => {
       const device = buildDevice();
       mockInterventionService.getRegistration.and.resolveTo(
@@ -127,7 +127,7 @@ describe('AnnualServiceEligibilityService', () => {
     it('TC-ASE-05: sets disableReason=no_purchase_date when dateOfPurchase is null', async () => {
       const device = buildDevice();
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'in_warranty', dateOfPurchase: null }),
+        buildRegistrationData({ warrantyStatus: 'in-warranty', dateOfPurchase: null }),
       );
       mockInterventionService.getInterventionsBySn.and.resolveTo([]);
       mockServerTimeService.getServerTime.and.resolveTo(new Date('2024-06-15'));
@@ -142,7 +142,7 @@ describe('AnnualServiceEligibilityService', () => {
     it('TC-ASE-06: sets disableReason=server_time_unavailable when server time returns null', async () => {
       const device = buildDevice();
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'in_warranty' }),
+        buildRegistrationData({ warrantyStatus: 'in-warranty' }),
       );
       mockInterventionService.getInterventionsBySn.and.resolveTo([]);
       mockServerTimeService.getServerTime.and.resolveTo(null);
@@ -160,7 +160,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -188,7 +188,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -216,7 +216,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -245,7 +245,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -271,7 +271,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -300,7 +300,7 @@ describe('AnnualServiceEligibilityService', () => {
       mockInterventionService.getRegistration.and.callFake(async () => {
         isCheckingDuringExecution = service.isChecking;
         return buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         });
@@ -325,7 +325,7 @@ describe('AnnualServiceEligibilityService', () => {
         commissioning: true,
       });
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'in_warranty' }),
+        buildRegistrationData({ warrantyStatus: 'in-warranty' }),
       );
       // No commissioning intervention
       mockInterventionService.getInterventionsBySn.and.resolveTo([]);
@@ -349,7 +349,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -624,7 +624,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate), // { seconds, nanoseconds }
           extendedWarrantyMonths: 0,
         }),
@@ -644,7 +644,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: purchaseDate,
           extendedWarrantyMonths: 0,
         }),
@@ -662,7 +662,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: '2023-06-15T00:00:00.000Z',
           extendedWarrantyMonths: 0,
         }),
@@ -680,7 +680,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: null,
           extendedWarrantyMonths: 0,
         }),
@@ -698,7 +698,7 @@ describe('AnnualServiceEligibilityService', () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: 'not-a-date',
           extendedWarrantyMonths: 0,
         }),
@@ -852,7 +852,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -971,11 +971,11 @@ describe('AnnualServiceEligibilityService', () => {
       expect(result.eligible).toBeTrue();
     });
 
-    // TC-ASE-54: warrantyStatus = 'out_of_warranty' → not_in_warranty
+    // TC-ASE-54: warrantyStatus = 'out-of-warranty' → not_in_warranty
     it('TC-ASE-54: not_in_warranty for out_of_warranty status string', async () => {
       const device = buildDevice();
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'out_of_warranty' }),
+        buildRegistrationData({ warrantyStatus: 'out-of-warranty' }),
       );
 
       await service.checkEligibility(DEFAULT_SN, device);
@@ -997,7 +997,7 @@ describe('AnnualServiceEligibilityService', () => {
       });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: '6', // string, should coerce to 6
         }),
@@ -1023,7 +1023,7 @@ describe('AnnualServiceEligibilityService', () => {
         firstServiceYear: 1,
       });
       const reg = buildRegistrationData({
-        warrantyStatus: 'in_warranty',
+        warrantyStatus: 'in-warranty',
         dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
       });
       delete reg['extendedWarrantyMonths'];
@@ -1057,7 +1057,7 @@ describe('AnnualServiceEligibilityService', () => {
         firstServiceYear: 1,
       });
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'in_warranty' }),
+        buildRegistrationData({ warrantyStatus: 'in-warranty' }),
       );
       mockInterventionService.getInterventionsBySn.and.rejectWith(new Error('Network error'));
       mockServerTimeService.getServerTime.and.resolveTo(new Date('2024-01-15'));

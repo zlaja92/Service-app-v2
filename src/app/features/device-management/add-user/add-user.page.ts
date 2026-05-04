@@ -64,7 +64,7 @@ export class AddUserPage implements ViewWillEnter {
     const device = this.lookupService.device;
     if (!device) return false;
     return !device.commissioning
-      && this.form.get('warrantyStatus')?.value === 'in_warranty';
+      && this.form.get('warrantyStatus')?.value === 'in-warranty';
   }
 
   async openDatePicker(): Promise<void> {
@@ -170,7 +170,7 @@ export class AddUserPage implements ViewWillEnter {
       delete data['callAccepted'];
     }
 
-    if (formValue.warrantyStatus === 'out_of_warranty') {
+    if (formValue.warrantyStatus === 'out-of-warranty') {
       delete data['dateOfPurchase'];
     } else if (device.commissioning) {
       const serverTime = await this.serverTimeService.getServerTime();

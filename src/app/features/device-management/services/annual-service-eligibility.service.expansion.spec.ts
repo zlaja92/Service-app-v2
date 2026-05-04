@@ -679,7 +679,7 @@ describe('AnnualServiceEligibilityService — EXPANSION: warrantyStatus variatio
 
   const nonInWarrantyStatuses = [
     'expired',
-    'out_of_warranty',
+    'out-of-warranty',
     'void',
     'cancelled',
     'suspended',
@@ -702,11 +702,11 @@ describe('AnnualServiceEligibilityService — EXPANSION: warrantyStatus variatio
     });
   });
 
-  it('WARRANTY-STATUS: "in_warranty" (exact) → proceeds past status check', async () => {
+  it('WARRANTY-STATUS: "in-warranty" (exact) → proceeds past status check', async () => {
     const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
     // Returns in_warranty but null dateOfPurchase → stops at no_purchase_date (proves status passed)
     mockInterventionService.getRegistration.and.resolveTo(
-      buildRegistrationData({ warrantyStatus: 'in_warranty', dateOfPurchase: null }),
+      buildRegistrationData({ warrantyStatus: 'in-warranty', dateOfPurchase: null }),
     );
     mockInterventionService.getInterventionsBySn.and.resolveTo([]);
     const mockServerTime = TestBed.inject(ServerTimeService) as jasmine.SpyObj<ServerTimeService>;
@@ -848,7 +848,7 @@ describe('AnnualServiceEligibilityService — EXPANSION: deviceType variations i
       });
       // Setup: in_warranty, no purchase date → stops at no_purchase_date (proves full flow)
       mockInterventionService.getRegistration.and.resolveTo(
-        buildRegistrationData({ warrantyStatus: 'in_warranty', dateOfPurchase: null }),
+        buildRegistrationData({ warrantyStatus: 'in-warranty', dateOfPurchase: null }),
       );
       mockInterventionService.getInterventionsBySn.and.resolveTo([]);
       mockServerTimeService.getServerTime.and.resolveTo(new Date('2024-01-15'));
@@ -946,7 +946,7 @@ describe('AnnualServiceEligibilityService — EXPANSION: commissioning flag matr
 
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -1011,7 +1011,7 @@ describe('AnnualServiceEligibilityService — EXPANSION: toDate input variations
     it(`TO-DATE VALID: ${label} — does NOT result in no_purchase_date`, async () => {
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase,
           extendedWarrantyMonths: 0,
         }),
@@ -1029,7 +1029,7 @@ describe('AnnualServiceEligibilityService — EXPANSION: toDate input variations
     it(`TO-DATE INVALID: ${label} — results in no_purchase_date`, async () => {
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase,
           extendedWarrantyMonths: 0,
         }),

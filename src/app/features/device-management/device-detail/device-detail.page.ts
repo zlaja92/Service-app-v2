@@ -120,7 +120,7 @@ export class DeviceDetailPage implements ViewWillEnter {
     if (this.registrationService.isRegistered !== true) return false;
 
     const warrantyStatus = this.registrationService.userData?.['warrantyStatus'];
-    if (warrantyStatus === 'out_of_warranty') return true;
+    if (warrantyStatus === 'out-of-warranty') return true;
 
     return !this.lookupService.device?.commissioning || this.isCommissioningDone;
   }

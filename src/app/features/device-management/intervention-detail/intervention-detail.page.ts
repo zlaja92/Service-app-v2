@@ -178,8 +178,8 @@ export class InterventionDetailPage implements ViewWillEnter {
     }
 
     if (key === 'warrantyStatus') {
-      if (value === 'in_warranty') return 'intervention_warranty_in';
-      if (value === 'out_of_warranty') return 'intervention_warranty_out';
+      if (value === 'in-warranty') return 'intervention_warranty_in';
+      if (value === 'out-of-warranty') return 'intervention_warranty_out';
       return String(value);
     }
 

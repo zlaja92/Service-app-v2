@@ -421,7 +421,7 @@ describe('DeviceDetailPage', () => {
     it('TC-DD-22: returns true when registered + out_of_warranty status regardless of commissioning', () => {
       (mockRegistrationService as unknown as { isRegistered: boolean | null }).isRegistered = true;
       (mockRegistrationService as unknown as { userData: Record<string, unknown> | null }).userData = {
-        warrantyStatus: 'out_of_warranty',
+        warrantyStatus: 'out-of-warranty',
       };
       (mockLookupService as unknown as { device: Device | null }).device = buildDevice({ commissioning: true });
       (component as unknown as { isCommissioningDone: boolean }).isCommissioningDone = false;
@@ -834,9 +834,9 @@ describe('DeviceDetailPage', () => {
       // Registered + commissioning + done → operational
       { label: 'registered + commissioning + done', isRegistered: true, commissioning: true, isCommissioningDone: true, expectedOperational: true },
       // Out of warranty overrides commissioning — operational
-      { label: 'registered + commissioning + not done + out_of_warranty', isRegistered: true, commissioning: true, isCommissioningDone: false, warrantyStatus: 'out_of_warranty', expectedOperational: true },
+      { label: 'registered + commissioning + not done + out_of_warranty', isRegistered: true, commissioning: true, isCommissioningDone: false, warrantyStatus: 'out-of-warranty', expectedOperational: true },
       // In warranty does NOT bypass commissioning requirement
-      { label: 'registered + commissioning + not done + in_warranty', isRegistered: true, commissioning: true, isCommissioningDone: false, warrantyStatus: 'in_warranty', expectedOperational: false },
+      { label: 'registered + commissioning + not done + in_warranty', isRegistered: true, commissioning: true, isCommissioningDone: false, warrantyStatus: 'in-warranty', expectedOperational: false },
     ];
 
     scenarios.forEach(({ label, isRegistered, commissioning, isCommissioningDone, warrantyStatus, expectedOperational }) => {

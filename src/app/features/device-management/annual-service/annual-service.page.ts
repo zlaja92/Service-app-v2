@@ -97,7 +97,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     const formValue = this.form.getRawValue();
     const data: Record<string, unknown> = {
-      warrantyStatus: 'in_warranty',
+      warrantyStatus: 'in-warranty',
       interventionType: InterventionType.ANNUAL_SERVICE,
       interventionDescription: ANNUAL_SERVICE_DESCRIPTION,
       callAccepted: formValue.callAccepted,

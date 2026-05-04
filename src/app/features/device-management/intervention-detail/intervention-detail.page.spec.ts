@@ -193,7 +193,7 @@ describe('InterventionDetailPage', () => {
   it('TC-IDP-05: id "registration" calls getRegistration and sets isRegistration=true', async () => {
     mockInterventionService.getRegistration.and.resolveTo({
       registeredAt: '2024-01-01',
-      warrantyStatus: 'in_warranty',
+      warrantyStatus: 'in-warranty',
     });
     setup({ sn: 'SN001', id: 'registration' });
 
@@ -323,10 +323,10 @@ describe('InterventionDetailPage', () => {
     expect(field?.rawValue).toBe('intervention_call_accepted_no');
   });
 
-  // ─── TC-IDP-13: warrantyStatus 'in_warranty' → 'intervention_warranty_in' ────
+  // ─── TC-IDP-13: warrantyStatus 'in-warranty' → 'intervention_warranty_in' ────
 
-  it('TC-IDP-13: warrantyStatus "in_warranty" resolves to intervention_warranty_in', async () => {
-    mockInterventionService.getInterventionById.and.resolveTo({ warrantyStatus: 'in_warranty' });
+  it('TC-IDP-13: warrantyStatus "in-warranty" resolves to intervention_warranty_in', async () => {
+    mockInterventionService.getInterventionById.and.resolveTo({ warrantyStatus: 'in-warranty' });
     setup({ sn: 'SN001', id: 'int-7' });
 
     await component.ionViewWillEnter();
@@ -337,10 +337,10 @@ describe('InterventionDetailPage', () => {
     expect(field?.rawValue).toBe('intervention_warranty_in');
   });
 
-  // ─── TC-IDP-14: warrantyStatus 'out_of_warranty' → 'intervention_warranty_out'
+  // ─── TC-IDP-14: warrantyStatus 'out-of-warranty' → 'intervention_warranty_out'
 
-  it('TC-IDP-14: warrantyStatus "out_of_warranty" resolves to intervention_warranty_out', async () => {
-    mockInterventionService.getInterventionById.and.resolveTo({ warrantyStatus: 'out_of_warranty' });
+  it('TC-IDP-14: warrantyStatus "out-of-warranty" resolves to intervention_warranty_out', async () => {
+    mockInterventionService.getInterventionById.and.resolveTo({ warrantyStatus: 'out-of-warranty' });
     setup({ sn: 'SN001', id: 'int-8' });
 
     await component.ionViewWillEnter();
@@ -530,7 +530,7 @@ describe('InterventionDetailPage', () => {
   it('TC-IDP-24: registration id sets pageTitleKey to "history_type_purchase"', async () => {
     mockInterventionService.getRegistration.and.resolveTo({
       registeredAt: '2024-01-01',
-      warrantyStatus: 'in_warranty',
+      warrantyStatus: 'in-warranty',
     });
     setup({ sn: 'SN001', id: 'registration' });
 
@@ -709,8 +709,8 @@ describe('InterventionDetailPage', () => {
 
     // warrantyStatus matrix
     const warrantyStatusCases: Array<[string | null | undefined, string]> = [
-      ['in_warranty', 'intervention_warranty_in'],
-      ['out_of_warranty', 'intervention_warranty_out'],
+      ['in-warranty', 'intervention_warranty_in'],
+      ['out-of-warranty', 'intervention_warranty_out'],
       ['unknown_status', 'unknown_status'],
       [null, '-'],
       [undefined, '-'],
@@ -1000,7 +1000,7 @@ describe('InterventionDetailPage', () => {
         const spy = buildInterventionService({
           getInterventionById: jasmine.createSpy().and.resolveTo({
             id: 'int-001',
-            data: { interventionType: 'INTERVENTION_REPAIR', warrantyStatus: 'in_warranty', sn: 'SN001' },
+            data: { interventionType: 'INTERVENTION_REPAIR', warrantyStatus: 'in-warranty', sn: 'SN001' },
           }) as unknown as jasmine.Spy<InterventionService['getInterventionById']>,
         });
         const route = buildActivatedRoute({ id: 'int-001', sn: 'SN001' });

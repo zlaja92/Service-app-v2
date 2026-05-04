@@ -67,7 +67,7 @@ export class CartPage {
 
     let warrantyLine = '';
     if (ctx.source === 'intervention' && ctx.warrantyStatus) {
-      warrantyLine = ctx.warrantyStatus === 'in_warranty'
+      warrantyLine = ctx.warrantyStatus === 'in-warranty'
         ? this.transloco.translate('order_warranty_in')
         : this.transloco.translate('order_warranty_out');
     }

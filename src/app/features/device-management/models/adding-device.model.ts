@@ -9,7 +9,7 @@ export interface DeviceRegistration {
   [key: string]: unknown;
 }
 
-export type WarrantyStatus = 'in_warranty' | 'out_of_warranty';
+export type WarrantyStatus = 'in-warranty' | 'out-of-warranty';
 
 export interface FieldGroupConfig {
   key: string;
@@ -39,8 +39,8 @@ const BASE_FIELDS: FieldConfig[] = [
     required: true,
     group: 'basic',
     options: [
-      { value: 'in_warranty', label: 'add_device_in_warranty' },
-      { value: 'out_of_warranty', label: 'add_device_out_of_warranty' },
+      { value: 'in-warranty', label: 'add_device_in_warranty' },
+      { value: 'out-of-warranty', label: 'add_device_out_of_warranty' },
     ],
   },
   {

@@ -65,7 +65,7 @@ export class AnnualServiceEligibilityService implements Clearable {
         return;
       }
 
-      if (warrantyStatus !== 'in_warranty') {
+      if (warrantyStatus !== 'in-warranty') {
         this.disableReason = 'not_in_warranty';
         this.logger.warn('Eligibility: device not in warranty', { sn, warrantyStatus });
         return;

@@ -125,7 +125,7 @@ export class InterventionPage implements ViewWillEnter {
     const warranty = this.form.controls.warrantyStatus.value;
     let types = INTERVENTION_OPTIONS[this.deviceType] ?? [];
 
-    if (warranty === 'out_of_warranty') {
+    if (warranty === 'out-of-warranty') {
       types = types.filter(t => t.key !== InterventionType.INTERVENTION_REPLACE);
 
       const device = this.lookupService.device;

@@ -1064,7 +1064,7 @@ describe('AnnualServiceEligibilityService — EXP2: commissioning integration ma
 
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({
-          warrantyStatus: 'in_warranty',
+          warrantyStatus: 'in-warranty',
           dateOfPurchase: buildFirestoreTimestamp(purchaseDate),
           extendedWarrantyMonths: 0,
         }),
@@ -1132,7 +1132,7 @@ describe('AnnualServiceEligibilityService — EXP2: month-by-month grid elapsed 
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MEGA MATRIX 19: checkEligibility warrantyStatus exhaustive variations
-// Tests many non-'in_warranty' strings → not_in_warranty
+// Tests many non-'in-warranty' strings → not_in_warranty
 // Total: 20 tests
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -1147,10 +1147,18 @@ describe('AnnualServiceEligibilityService — EXP2: warrantyStatus exhaustive no
   });
 
   const notInWarrantyStatuses = [
-    'expired', 'out_of_warranty', 'void', 'cancelled', 'suspended',
-    'pending', 'revoked', 'in-warranty', // hyphen instead of underscore
-    'In_Warranty', 'IN_WARRANTY', 'IN_WARRNTY', // typos
-    ' in_warranty', 'in_warranty ', // whitespace
+    // valid non-in-warranty statuses
+    'expired', 'out-of-warranty', 'void', 'cancelled', 'suspended',
+    'pending', 'revoked',
+    // typos: wrong format (underscore is old format, now invalid)
+    'in_warranty',
+    // typos: wrong case (canonical is lowercase 'in-warranty')
+    'In_Warranty', 'IN_WARRANTY', 'IN_WARRNTY',
+    'In-Warranty', 'IN-WARRANTY', 'IN-WARRNTY',
+    // typos: leading/trailing whitespace
+    ' in_warranty', 'in_warranty ',
+    ' in-warranty', 'in-warranty ',
+    // unrelated values
     'warranty_expired', 'warranty_void',
     'false', '0', 'no', 'null', 'undefined', 'WARRANTY',
   ];

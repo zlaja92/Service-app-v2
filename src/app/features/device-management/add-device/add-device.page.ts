@@ -118,7 +118,7 @@ export class AddDevicePage implements ViewWillEnter {
     const formValue = this.form.getRawValue();
 
     const data: Record<string, unknown> = {
-      warrantyStatus: 'in_warranty',
+      warrantyStatus: 'in-warranty',
       interventionType: InterventionType.COMMISSIONING,
       interventionDescription: COMMISSIONING_DESCRIPTION,
       installerName: formValue.installerName,

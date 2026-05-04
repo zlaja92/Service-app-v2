@@ -219,7 +219,7 @@ describe('InterventionPage', () => {
    * Standard pattern for Angular component unit tests when form is protected.
    */
   function fillValidForm(
-    warrantyStatus = 'in_warranty',
+    warrantyStatus = 'in-warranty',
     interventionType: string = InterventionType.INTERVENTION_REPAIR,
   ): void {
     const c = component as any;
@@ -312,7 +312,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-07: in_warranty → all INTERVENTION_OPTIONS shown including INTERVENTION_REPLACE', () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
       component.updateInterventionTypes();
 
@@ -323,7 +323,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-08: out_of_warranty → INTERVENTION_REPLACE filtered out', () => {
-      (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
 
       component.updateInterventionTypes();
 
@@ -334,7 +334,7 @@ describe('InterventionPage', () => {
     it('TC-IP-09: out_of_warranty + annualService=true → annual service type appended', () => {
       setDevice(createMockDevice({ type: DeviceType.GAS_BOILER, annualService: true }));
       component.ionViewWillEnter();
-      (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
 
       component.updateInterventionTypes();
 
@@ -347,7 +347,7 @@ describe('InterventionPage', () => {
     it('TC-IP-10: out_of_warranty + annualService=false → annual service type NOT appended', () => {
       setDevice(createMockDevice({ type: DeviceType.GAS_BOILER, annualService: false }));
       component.ionViewWillEnter();
-      (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
 
       component.updateInterventionTypes();
 
@@ -490,7 +490,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-19: shows warning toast and blocks save when interventionType is empty', async () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue('');
       (component as any).form.controls.description.setValue('Fault');
 
@@ -501,7 +501,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-20: shows warning toast and blocks save when description is empty', async () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       (component as any).form.controls.description.setValue('');
 
@@ -518,7 +518,7 @@ describe('InterventionPage', () => {
         requireSparePartPhotos: true,
         description: 'Photos required',
       };
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       (component as any).form.controls.description.setValue('Fault');
       // Set photoRequirement so validation runs
@@ -544,7 +544,7 @@ describe('InterventionPage', () => {
       beforeEach(() => {
         setDevice(createMockDevice({ type: DeviceType.BOILER }));
         component.ionViewWillEnter();
-        fillValidForm('in_warranty', InterventionType.INTERVENTION_REPAIR);
+        fillValidForm('in-warranty', InterventionType.INTERVENTION_REPAIR);
       });
 
       it('TC-IP-22: calls confirmService.confirm for non-envInfo device', async () => {
@@ -619,7 +619,7 @@ describe('InterventionPage', () => {
       beforeEach(() => {
         setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
         component.ionViewWillEnter();
-        fillValidForm('in_warranty', InterventionType.INTERVENTION_REPAIR);
+        fillValidForm('in-warranty', InterventionType.INTERVENTION_REPAIR);
       });
 
       it('TC-IP-30: calls getLastEnvInfo for prefill on GAS_BOILER/HEAT_PUMP device', async () => {
@@ -681,7 +681,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-35: sets cart context with source=intervention and correct device fields', () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
       component.onExplodedView();
 
@@ -694,12 +694,12 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-36: cart context includes warrantyStatus from form', () => {
-      (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
 
       component.onExplodedView();
 
       const ctx = (mockCartService as any).context as Record<string, unknown>;
-      expect(ctx['warrantyStatus']).toBe('out_of_warranty');
+      expect(ctx['warrantyStatus']).toBe('out-of-warranty');
     });
 
     it('TC-IP-37: shows warning toast and does NOT navigate when warrantyStatus is empty', async () => {
@@ -713,7 +713,7 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-38: navigates to /device/:code/device-groups after setting context', async () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
       component.onExplodedView();
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -731,7 +731,7 @@ describe('InterventionPage', () => {
         postCode: '11000',
         city: 'Belgrade',
       };
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
       component.onExplodedView();
 
@@ -749,7 +749,7 @@ describe('InterventionPage', () => {
     it('TC-IP-40: clears all form controls to empty/default values on enter', () => {
       setDevice(createMockDevice());
       // Pre-fill form
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       (component as any).form.controls.description.setValue('Some fault');
 
@@ -829,10 +829,10 @@ describe('InterventionPage', () => {
     });
 
     it('TC-IP-45 (bonus): toggling warrantyStatus mid-form resets interventionType to empty', () => {
-      (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
 
-      (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+      (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
       component.updateInterventionTypes();
 
       expect((component as any).form.controls.interventionType.value).toBe('');
@@ -993,7 +993,7 @@ describe('InterventionPage', () => {
       it(`EXP-IP-INTTYPES: ${deviceType} + in_warranty includes INTERVENTION_REPAIR`, () => {
         setDevice(createMockDevice({ type: deviceType }));
         component.ionViewWillEnter();
-        (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+        (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
         component.updateInterventionTypes();
 
@@ -1005,7 +1005,7 @@ describe('InterventionPage', () => {
       it(`EXP-IP-INTTYPES-OOW: ${deviceType} + out_of_warranty excludes INTERVENTION_REPLACE`, () => {
         setDevice(createMockDevice({ type: deviceType }));
         component.ionViewWillEnter();
-        (component as any).form.controls.warrantyStatus.setValue('out_of_warranty');
+        (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
 
         component.updateInterventionTypes();
 
@@ -1308,7 +1308,7 @@ describe('InterventionPage', () => {
   // =========================================================================
 
   describe('updateInterventionTypes() — warranty status × device type matrix', () => {
-    const warrantyStatuses = ['in_warranty', 'out_of_warranty', 'commissioning_warranty_from_start', 'commissioning_warranty_from_date'];
+    const warrantyStatuses = ['in-warranty', 'out-of-warranty', 'commissioning_warranty_from_start', 'commissioning_warranty_from_date'];
 
     warrantyStatuses.forEach((status) => {
       it(`EXP2-IP-INTTYPES-${status}: interventionTypes populated after update`, () => {
@@ -1333,7 +1333,7 @@ describe('InterventionPage', () => {
       it(`EXP2-IP-INTTYPES-DEVTYPE: ${dt} in_warranty → interventionTypes array set`, () => {
         setDevice(createMockDevice({ type: dt }));
         component.ionViewWillEnter();
-        (component as any).form.controls.warrantyStatus.setValue('in_warranty');
+        (component as any).form.controls.warrantyStatus.setValue('in-warranty');
 
         component.updateInterventionTypes();
 
@@ -1371,8 +1371,8 @@ describe('InterventionPage', () => {
 
   describe('form — warrantyStatus field with all possible values', () => {
     const warrantyValues = [
-      'in_warranty',
-      'out_of_warranty',
+      'in-warranty',
+      'out-of-warranty',
       'commissioning_warranty_from_start',
       'commissioning_warranty_from_date',
       '',
