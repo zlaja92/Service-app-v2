@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Timestamp } from '@capacitor-firebase/firestore';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonMenuButton, IonList, IonItem, IonLabel, IonSpinner, IonSkeletonText,
@@ -10,6 +11,7 @@ import { ToastController } from '@ionic/angular/standalone';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { toDate } from '../../../core/firebase/timestamp.utils';
 import { InterventionHistoryItem, InterventionType } from '../models/intervention.model';
 
 @Component({
@@ -86,12 +88,15 @@ export class InterventionHistoryPage implements ViewWillEnter {
     const isCommissioning = device?.commissioning === true;
 
     if (registration) {
-      const purchaseDateRaw = this.toDateString(registration['dateOfPurchase']);
-      const hasDate = !!purchaseDateRaw;
+      const purchaseDate = toDate(registration['dateOfPurchase'] as Timestamp | null | undefined);
+      const hasDate = !!purchaseDate;
+      const day = purchaseDate ? String(purchaseDate.getDate()).padStart(2, '0') : '';
+      const month = purchaseDate ? String(purchaseDate.getMonth() + 1).padStart(2, '0') : '';
+      const formatted = purchaseDate ? `${day}.${month}.${purchaseDate.getFullYear()}` : '';
 
       items.push({
         id: 'header',
-        date: hasDate ? this.formatDate(purchaseDateRaw) : '',
+        date: formatted,
         dateKey: hasDate ? undefined : (isCommissioning ? 'history_unknown_commissioning_date' : 'history_unknown_date'),
         typeLabelKey: hasDate ? (isCommissioning ? 'history_type_commissioning' : 'history_type_purchase') : '',
         source: isCommissioning ? 'commissioning-header' : 'registration',
@@ -137,28 +142,8 @@ export class InterventionHistoryPage implements ViewWillEnter {
   }
 
   private extractDate(data: Record<string, unknown>): string {
-    return this.formatDate(this.toDateString(data['addedDate']));
-  }
-
-  private toDateString(value: unknown): string {
-    if (!value) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      return new Date((value as { seconds: number }).seconds * 1000).toISOString();
-    }
-    if (value instanceof Date) return value.toISOString();
-    return String(value);
-  }
-
-  private formatDate(raw: string): string {
-    if (!raw) return '';
-    // Already dd/mm/yyyy or dd.mm.yyyy
-    if (/^\d{2}[./]\d{2}[./]\d{4}$/.test(raw)) {
-      return raw.replace(/\//g, '.');
-    }
-    // ISO string (2026-04-09T22:12:31.009Z)
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return raw;
+    const d = toDate(data['addedDate'] as Timestamp | null | undefined);
+    if (!d) return '';
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     return `${day}.${month}.${d.getFullYear()}`;

@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
+import { FieldValue, Timestamp } from '@capacitor-firebase/firestore';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
+import { toDate } from '../../../core/firebase/timestamp.utils';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
   COMMISSIONING_TYPES, ANNUAL_SERVICE_TYPES, INTERVENTION_OPTIONS,
@@ -13,7 +14,6 @@ import {
 export class InterventionService implements Clearable {
   private readonly firestoreService = inject(FirestoreService);
   private readonly authStore = inject(AuthStore);
-  private readonly serverTimeService = inject(ServerTimeService);
   private readonly logger = inject(LoggerService);
 
   isSaving = false;
@@ -26,17 +26,11 @@ export class InterventionService implements Clearable {
     this.isSaving = true;
 
     try {
-      const serverTime = await this.serverTimeService.getServerTime();
-      if (!serverTime) {
-        this.logger.error('Intervention save failed: server time unavailable', { sn });
-        return null;
-      }
-
       const data: Record<string, unknown> = {
         sn,
         ...formData,
         addedBy: this.authStore.userEmail(),
-        addedDate: serverTime,
+        addedDate: FieldValue.serverTimestamp(),
         exported: false,
       };
 
@@ -72,8 +66,8 @@ export class InterventionService implements Clearable {
       );
 
       return result.documents.sort((a, b) => {
-        const dateA = this.toTimestamp(a.data['addedDate']);
-        const dateB = this.toTimestamp(b.data['addedDate']);
+        const dateA = toDate(a.data['addedDate'] as Timestamp | null | undefined)?.getTime() ?? 0;
+        const dateB = toDate(b.data['addedDate'] as Timestamp | null | undefined)?.getTime() ?? 0;
         return dateA - dateB;
       });
     } catch (error) {
@@ -116,19 +110,13 @@ export class InterventionService implements Clearable {
     this.isSaving = true;
 
     try {
-      const serverTime = await this.serverTimeService.getServerTime();
-      if (!serverTime) {
-        this.logger.error('Intervention batch save failed: server time unavailable');
-        return false;
-      }
-
       const operations = await Promise.all(
         entries.map(async (entry) => {
           const data: Record<string, unknown> = {
             sn: entry.sn,
             ...entry.formData,
             addedBy: this.authStore.userEmail(),
-            addedDate: serverTime,
+            addedDate: FieldValue.serverTimestamp(),
             exported: false,
           };
 
@@ -156,16 +144,4 @@ export class InterventionService implements Clearable {
     this.isSaving = false;
   }
 
-  private toTimestamp(value: unknown): number {
-    if (!value) return 0;
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      return (value as { seconds: number }).seconds * 1000;
-    }
-    if (value instanceof Date) return value.getTime();
-    if (typeof value === 'string') {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? 0 : d.getTime();
-    }
-    return 0;
-  }
 }

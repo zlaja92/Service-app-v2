@@ -1,16 +1,16 @@
 import { Injectable, inject } from '@angular/core';
+import { FieldValue, Timestamp } from '@capacitor-firebase/firestore';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
+import { toDate } from '../../../core/firebase/timestamp.utils';
 import { Device } from '../../../shared/models/device.model';
 
 @Injectable({ providedIn: 'root' })
 export class DeviceRegistrationService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private authStore = inject(AuthStore);
-  private serverTimeService = inject(ServerTimeService);
   private logger = inject(LoggerService);
 
   isRegistered: boolean | null = null;
@@ -45,17 +45,11 @@ export class DeviceRegistrationService implements Clearable {
     dynamicFields: Record<string, unknown>,
   ): Promise<boolean> {
     try {
-      const serverTime = await this.serverTimeService.getServerTime();
-      if (!serverTime) {
-        this.logger.error('Registration failed: server time unavailable', { sn });
-        return false;
-      }
-
       const data: Record<string, unknown> = {
         sn,
         deviceType: device.type,
         addedBy: this.authStore.userEmail(),
-        addedDate: serverTime,
+        addedDate: FieldValue.serverTimestamp(),
         ...dynamicFields,
       };
 
@@ -82,18 +76,12 @@ export class DeviceRegistrationService implements Clearable {
     entries: { sn: string; device: Device; dynamicFields: Record<string, unknown> }[],
   ): Promise<boolean> {
     try {
-      const serverTime = await this.serverTimeService.getServerTime();
-      if (!serverTime) {
-        this.logger.error('Batch registration failed: server time unavailable');
-        return false;
-      }
-
       const operations = entries.map((entry) => {
         const data: Record<string, unknown> = {
           sn: entry.sn,
           deviceType: entry.device.type,
           addedBy: this.authStore.userEmail(),
-          addedDate: serverTime,
+          addedDate: FieldValue.serverTimestamp(),
           ...entry.dynamicFields,
         };
 
@@ -116,7 +104,7 @@ export class DeviceRegistrationService implements Clearable {
 
   getPurchaseDateFormatted(): string | null {
     const raw = this.userData?.['dateOfPurchase'];
-    const date = this.toDate(raw);
+    const date = toDate(raw as Timestamp | null | undefined);
     if (!date) return null;
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -127,7 +115,7 @@ export class DeviceRegistrationService implements Clearable {
     if (!this.userData || !device.warrantyMonths) return null;
 
     const raw = this.userData['dateOfPurchase'];
-    const date = this.toDate(raw);
+    const date = toDate(raw as Timestamp | null | undefined);
     if (!date) return null;
 
     const extendedMonths = Number(this.userData['extendedWarrantyMonths']) || 0;
@@ -139,19 +127,6 @@ export class DeviceRegistrationService implements Clearable {
     const day = String(endDate.getDate()).padStart(2, '0');
     const month = String(endDate.getMonth() + 1).padStart(2, '0');
     return `${day}.${month}.${endDate.getFullYear()}`;
-  }
-
-  private toDate(value: unknown): Date | null {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      return new Date((value as { seconds: number }).seconds * 1000);
-    }
-    if (typeof value === 'string') {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
   }
 
   clear(): void {

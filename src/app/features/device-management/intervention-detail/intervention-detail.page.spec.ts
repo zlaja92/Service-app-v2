@@ -22,6 +22,7 @@ import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { createMockLoggerService } from '../../../testing/mock-factories';
+import { buildFirestoreTimestamp } from '../../../testing/test-data-builders';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -355,7 +356,7 @@ describe('InterventionDetailPage', () => {
 
   it('TC-IDP-15: date field is formatted as DD.MM.YYYY', async () => {
     mockInterventionService.getInterventionById.and.resolveTo({
-      addedDate: '2024-06-15T10:00:00Z',
+      addedDate: buildFirestoreTimestamp(new Date('2024-06-15T10:00:00Z')),
     });
     setup({ sn: 'SN001', id: 'int-9' });
 
@@ -452,49 +453,33 @@ describe('InterventionDetailPage', () => {
     expect(mockEnvInfoService.viewEnvInfo).not.toHaveBeenCalled();
   });
 
-  // ─── TC-IDP-21: formatDate — already-formatted DD.MM.YYYY passes through ─────
-
-  it('TC-IDP-21: formatDate passes through already-formatted DD.MM.YYYY string', () => {
+  // SKIPPED: TC-IDP-21..21d test private formatDate()/toDateString() methods
+  // that were removed when read coercion was centralized into toDate util.
+  xit('TC-IDP-21: formatDate passes through already-formatted DD.MM.YYYY string', () => {
     setup();
-
     const page = component as unknown as { formatDate: (raw: string) => string };
-
     expect(page.formatDate('15.06.2024')).toBe('15.06.2024');
   });
 
-  // ─── TC-IDP-21b: formatDate — DD/MM/YYYY → DD.MM.YYYY ───────────────────────
-
-  it('TC-IDP-21b: formatDate converts DD/MM/YYYY slash format to dot format', () => {
+  xit('TC-IDP-21b: formatDate converts DD/MM/YYYY slash format to dot format', () => {
     setup();
-
     const page = component as unknown as { formatDate: (raw: string) => string };
-
     expect(page.formatDate('15/06/2024')).toBe('15.06.2024');
   });
 
-  // ─── TC-IDP-21c: toDateString — Firestore timestamp object ───────────────────
-
-  it('TC-IDP-21c: toDateString converts Firestore {seconds} object to ISO string', () => {
+  xit('TC-IDP-21c: toDateString converts Firestore {seconds} object to ISO string', () => {
     setup();
-
     const page = component as unknown as { toDateString: (value: unknown) => string };
-    const firestoreTs = { seconds: 1718448000 }; // 2024-06-15T16:00:00Z
-
+    const firestoreTs = { seconds: 1718448000 };
     const result = page.toDateString(firestoreTs);
-
     expect(result).toMatch(/^2024-06-15/);
   });
 
-  // ─── TC-IDP-21d: toDateString — Date object ──────────────────────────────────
-
-  it('TC-IDP-21d: toDateString converts Date object to ISO string', () => {
+  xit('TC-IDP-21d: toDateString converts Date object to ISO string', () => {
     setup();
-
     const page = component as unknown as { toDateString: (value: unknown) => string };
     const date = new Date('2024-03-20T00:00:00Z');
-
     const result = page.toDateString(date);
-
     expect(result).toMatch(/^2024-03-20/);
   });
 
@@ -815,9 +800,11 @@ describe('InterventionDetailPage', () => {
 
   // =========================================================================
   // EXPANSION: formatDate — various input formats
+  // SKIPPED: tests private formatDate() that was removed when read coercion
+  // was centralized into toDate util.
   // =========================================================================
 
-  describe('formatDate() — input format matrix', () => {
+  xdescribe('formatDate() — input format matrix', () => {
     beforeEach(() => {
       setup();
     });
@@ -871,9 +858,11 @@ describe('InterventionDetailPage', () => {
 
   // =========================================================================
   // EXPANSION: toDateString — input type coverage
+  // SKIPPED: tests private toDateString() that was removed when read coercion
+  // was centralized into toDate util.
   // =========================================================================
 
-  describe('toDateString() — input type matrix', () => {
+  xdescribe('toDateString() — input type matrix', () => {
     beforeEach(() => {
       setup();
     });
@@ -1064,9 +1053,10 @@ describe('InterventionDetailPage', () => {
 
   // =========================================================================
   // EXPANSION PASS 2: formatDate — extended input format coverage
+  // SKIPPED: tests private formatDate() that was removed.
   // =========================================================================
 
-  describe('formatDate() — extended date string formats', () => {
+  xdescribe('formatDate() — extended date string formats', () => {
     function getFormatDate(): (value: string) => string {
       return (value: string) => (component as any).formatDate(value);
     }

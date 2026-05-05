@@ -1,3 +1,4 @@
+import { Timestamp } from '@capacitor-firebase/firestore';
 import { Device, DeviceType } from '../shared/models/device.model';
 import { AppConfig, getDefaultConfig } from '../core/config/config.model';
 import { AuthUser } from '../core/auth/auth.model';
@@ -94,20 +95,8 @@ export function buildCartItem(overrides: Partial<CartItem> = {}): CartItem {
 
 // ─── Firestore Timestamp ──────────────────────────────────────────────────────
 
-/**
- * Builds a Firestore-compatible timestamp object from a JavaScript Date.
- * Useful for constructing Firestore document snapshots in tests without
- * importing the Firebase SDK.
- *
- * Usage:
- *   buildFirestoreTimestamp(new Date('2024-01-15'))
- *   // => { seconds: 1705276800, nanoseconds: 0 }
- */
-export function buildFirestoreTimestamp(date: Date): { seconds: number; nanoseconds: number } {
-  return {
-    seconds: Math.floor(date.getTime() / 1000),
-    nanoseconds: (date.getTime() % 1000) * 1_000_000,
-  };
+export function buildFirestoreTimestamp(date: Date): Timestamp {
+  return Timestamp.fromDate(date);
 }
 
 // ─── Registration Data ────────────────────────────────────────────────────────

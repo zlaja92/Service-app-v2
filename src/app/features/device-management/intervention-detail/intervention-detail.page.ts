@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Timestamp } from '@capacitor-firebase/firestore';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSpinner, IonSkeletonText,
@@ -10,6 +11,7 @@ import { InterventionService } from '../services/intervention.service';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { toDate } from '../../../core/firebase/timestamp.utils';
 import {
   INTERVENTION_DISPLAY_FIELDS,
   REGISTRATION_DISPLAY_FIELDS,
@@ -190,7 +192,11 @@ export class InterventionDetailPage implements ViewWillEnter {
 
     const dateFields = ['date', 'addedDate', 'createdAt', 'registeredAt', 'warrantyDate', 'dateOfPurchase'];
     if (dateFields.includes(key)) {
-      return this.formatDate(this.toDateString(value));
+      const d = toDate(value as Timestamp | null | undefined);
+      if (!d) return '-';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `${day}.${month}.${d.getFullYear()}`;
     }
 
     return String(value);
@@ -198,27 +204,5 @@ export class InterventionDetailPage implements ViewWillEnter {
 
   private isTranslatable(key: string): boolean {
     return ['interventionType', 'interventionDescription', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
-  }
-
-  private toDateString(value: unknown): string {
-    if (!value) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      return new Date((value as { seconds: number }).seconds * 1000).toISOString();
-    }
-    if (value instanceof Date) return value.toISOString();
-    return String(value);
-  }
-
-  private formatDate(raw: string): string {
-    if (!raw) return '-';
-    if (/^\d{2}[./]\d{2}[./]\d{4}$/.test(raw)) {
-      return raw.replace(/\//g, '.');
-    }
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return raw;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}.${month}.${d.getFullYear()}`;
   }
 }

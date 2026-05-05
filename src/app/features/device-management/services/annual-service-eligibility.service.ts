@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
+import { Timestamp } from '@capacitor-firebase/firestore';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { Clearable } from '../../../core/session/clearable';
+import { toDate } from '../../../core/firebase/timestamp.utils';
 import { Device } from '../../../shared/models/device.model';
 import { InterventionService } from './intervention.service';
 import { InterventionType } from '../models/intervention.model';
@@ -83,7 +85,7 @@ export class AnnualServiceEligibilityService implements Clearable {
         }
       }
 
-      const commissioningDate = this.toDate(registration['dateOfPurchase']);
+      const commissioningDate = toDate(registration['dateOfPurchase'] as Timestamp | null | undefined);
       if (!commissioningDate) {
         this.disableReason = 'no_purchase_date';
         this.logger.warn('Eligibility: no purchase date', { sn });
@@ -102,7 +104,7 @@ export class AnnualServiceEligibilityService implements Clearable {
       const interventions = await this.interventionService.getInterventionsBySn(sn, device.type);
       const annualServiceDates = interventions
         .filter(i => i.data['interventionType'] === InterventionType.ANNUAL_SERVICE)
-        .map(i => this.toDate(i.data['addedDate']))
+        .map(i => toDate(i.data['addedDate'] as Timestamp | null | undefined))
         .filter((d): d is Date => d !== null);
 
       this.logger.info('Eligibility data', {
@@ -233,19 +235,6 @@ export class AnnualServiceEligibilityService implements Clearable {
     }
 
     return { firstServiceYear, serviceWindowStart, serviceWindowEnd, warrantyMonths };
-  }
-
-  private toDate(value: unknown): Date | null {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      return new Date((value as { seconds: number }).seconds * 1000);
-    }
-    if (typeof value === 'string') {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
   }
 
 }

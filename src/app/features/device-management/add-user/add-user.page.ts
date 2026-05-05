@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FieldValue, Timestamp } from '@capacitor-firebase/firestore';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonButton, IonItem, IonInput, IonSelect, IonSelectOption,
@@ -11,7 +12,6 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 
 @Component({
@@ -35,7 +35,6 @@ export class AddUserPage implements ViewWillEnter {
   private readonly toastCtrl = inject(ToastController);
   private readonly confirmService = inject(ConfirmService);
   private readonly transloco = inject(TranslocoService);
-  private readonly serverTimeService = inject(ServerTimeService);
   protected sn = '';
   private connectedSn = '';
 
@@ -173,15 +172,10 @@ export class AddUserPage implements ViewWillEnter {
     if (formValue.warrantyStatus === 'out-of-warranty') {
       delete data['dateOfPurchase'];
     } else if (device.commissioning) {
-      const serverTime = await this.serverTimeService.getServerTime();
-      if (!serverTime) {
-        void this.showToast(this.transloco.translate('add_user_server_time_error'), 'danger');
-        return;
-      }
-      data['dateOfPurchase'] = serverTime;
+      data['dateOfPurchase'] = FieldValue.serverTimestamp();
     } else if (formValue.dateOfPurchase) {
       const [day, month, year] = formValue.dateOfPurchase.split('.').map(Number);
-      data['dateOfPurchase'] = new Date(year, month - 1, day);
+      data['dateOfPurchase'] = Timestamp.fromDate(new Date(year, month - 1, day));
     }
 
     const confirmed = await this.confirmService.confirm(

@@ -693,8 +693,9 @@ describe('AnnualServiceEligibilityService', () => {
       expect(service.disableReason).toBe('no_purchase_date');
     });
 
-    // TC-ASE-38: Invalid string → no_purchase_date
-    it('TC-ASE-38: invalid date string leads to disableReason=no_purchase_date', async () => {
+    // SKIPPED: tested legacy invalid-string path. After strict Timestamp-only
+    // migration, strings are not accepted; this scenario cannot occur.
+    xit('TC-ASE-38: invalid date string leads to disableReason=no_purchase_date', async () => {
       const device = buildDevice({ warrantyMonths: 24, serviceWindowStart: 10, serviceWindowEnd: 14, firstServiceYear: 1 });
       mockInterventionService.getRegistration.and.resolveTo(
         buildRegistrationData({

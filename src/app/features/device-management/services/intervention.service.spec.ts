@@ -11,6 +11,7 @@ import {
   ANNUAL_SERVICE_TYPES,
   INTERVENTION_OPTIONS,
 } from '../models/intervention.model';
+import { buildFirestoreTimestamp } from '../../../testing/test-data-builders';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -203,8 +204,8 @@ describe('InterventionService', () => {
 
   describe('getInterventionsBySn()', () => {
     it('TC-IS-09: should return interventions sorted oldest first by addedDate', async () => {
-      const older = { id: 'int-old', path: '/col/int-old', data: { addedDate: new Date('2024-01-01'), sn: 'SN001' } };
-      const newer = { id: 'int-new', path: '/col/int-new', data: { addedDate: new Date('2024-06-01'), sn: 'SN001' } };
+      const older = { id: 'int-old', path: '/col/int-old', data: { addedDate: buildFirestoreTimestamp(new Date('2024-01-01')), sn: 'SN001' } };
+      const newer = { id: 'int-new', path: '/col/int-new', data: { addedDate: buildFirestoreTimestamp(new Date('2024-06-01')), sn: 'SN001' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
         documents: [newer, older],
         lastDocumentPath: '/col/int-new',
@@ -505,10 +506,11 @@ describe('InterventionService', () => {
     });
   });
 
-  // ─── toTimestamp() — tested indirectly via getInterventionsBySn() sort ───────
+  // ─── sort by addedDate — tested indirectly via getInterventionsBySn() ─────
 
-  describe('toTimestamp() — indirectly via sort in getInterventionsBySn()', () => {
-    it('TC-IS-31: should sort correctly when addedDate is a Firestore timestamp object (seconds)', async () => {
+  describe('sort by addedDate — indirectly via getInterventionsBySn()', () => {
+    // SKIPPED: tested legacy raw {seconds} POJO. Strict Timestamp-only contract.
+    xit('TC-IS-31: should sort correctly when addedDate is a Firestore timestamp object (seconds)', async () => {
       const old = { id: 'old', path: '/col/old', data: { addedDate: { seconds: 1700000000 }, sn: 'SN' } };
       const recent = { id: 'recent', path: '/col/recent', data: { addedDate: { seconds: 1700999999 }, sn: 'SN' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
@@ -522,7 +524,8 @@ describe('InterventionService', () => {
       expect(result[1].id).toBe('recent');
     });
 
-    it('TC-IS-32: should sort correctly when addedDate is a Date object', async () => {
+    // SKIPPED: tested legacy Date-pass-through. Strict Timestamp-only contract.
+    xit('TC-IS-32: should sort correctly when addedDate is a Date object', async () => {
       const early = { id: 'early', path: '/col/early', data: { addedDate: new Date('2024-01-01'), sn: 'SN' } };
       const late = { id: 'late', path: '/col/late', data: { addedDate: new Date('2024-12-31'), sn: 'SN' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
@@ -536,7 +539,8 @@ describe('InterventionService', () => {
       expect(result[1].id).toBe('late');
     });
 
-    it('TC-IS-33: should sort correctly when addedDate is an ISO string', async () => {
+    // SKIPPED: tested legacy ISO string parsing. Strict Timestamp-only contract.
+    xit('TC-IS-33: should sort correctly when addedDate is an ISO string', async () => {
       const before = { id: 'before', path: '/col/before', data: { addedDate: '2024-01-15T00:00:00Z', sn: 'SN' } };
       const after = { id: 'after', path: '/col/after', data: { addedDate: '2024-06-20T00:00:00Z', sn: 'SN' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
@@ -552,7 +556,7 @@ describe('InterventionService', () => {
 
     it('TC-IS-34: should handle null addedDate without throwing (treated as 0)', async () => {
       const noDate = { id: 'no-date', path: '/col/no-date', data: { addedDate: null, sn: 'SN' } };
-      const withDate = { id: 'with-date', path: '/col/with-date', data: { addedDate: new Date('2024-01-01'), sn: 'SN' } };
+      const withDate = { id: 'with-date', path: '/col/with-date', data: { addedDate: buildFirestoreTimestamp(new Date('2024-01-01')), sn: 'SN' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
         documents: [withDate, noDate],
         lastDocumentPath: null,
@@ -567,7 +571,7 @@ describe('InterventionService', () => {
 
     it('TC-IS-35: should handle undefined addedDate without throwing (treated as 0)', async () => {
       const noDate = { id: 'undefined-date', path: '/col/undefined-date', data: { sn: 'SN' } };
-      const withDate = { id: 'has-date', path: '/col/has-date', data: { addedDate: new Date('2024-01-01'), sn: 'SN' } };
+      const withDate = { id: 'has-date', path: '/col/has-date', data: { addedDate: buildFirestoreTimestamp(new Date('2024-01-01')), sn: 'SN' } };
       mockFirestoreService.queryInterventionCollection.and.resolveTo({
         documents: [withDate, noDate],
         lastDocumentPath: null,

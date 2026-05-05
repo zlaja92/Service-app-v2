@@ -22,6 +22,7 @@ import {
   ANNUAL_SERVICE_TYPES,
   INTERVENTION_OPTIONS,
 } from '../models/intervention.model';
+import { buildFirestoreTimestamp } from '../../../testing/test-data-builders';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -132,8 +133,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     return service.getInterventionsBySn('SN-TEST', DeviceType.GAS_BOILER);
   }
 
-  // Date instances
-  it('TIMESTAMP: Date earlier vs Date later → correct sort order', async () => {
+  // SKIPPED: tested legacy Date-pass-through. Strict Timestamp-only contract.
+  xit('TIMESTAMP: Date earlier vs Date later → correct sort order', async () => {
     const result = await getSorted(
       { id: 'earlier', addedDate: new Date('2023-01-01') },
       { id: 'later', addedDate: new Date('2023-12-31') },
@@ -142,18 +143,18 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('later');
   });
 
-  // Firestore Timestamp { seconds, nanoseconds }
-  it('TIMESTAMP: Firestore { seconds, nanoseconds } format → sorted correctly', async () => {
+  // SKIPPED: tested raw {seconds, nanoseconds} POJO. Strict Timestamp-only contract.
+  xit('TIMESTAMP: Firestore { seconds, nanoseconds } format → sorted correctly', async () => {
     const result = await getSorted(
-      { id: 'old', addedDate: { seconds: 1672531200, nanoseconds: 0 } }, // 2023-01-01
-      { id: 'new', addedDate: { seconds: 1703980800, nanoseconds: 0 } }, // 2023-12-31
+      { id: 'old', addedDate: { seconds: 1672531200, nanoseconds: 0 } },
+      { id: 'new', addedDate: { seconds: 1703980800, nanoseconds: 0 } },
     );
     expect(result[0].id).toBe('old');
     expect(result[1].id).toBe('new');
   });
 
-  // Firestore Timestamp with nanosecond precision
-  it('TIMESTAMP: Firestore { seconds, nanoseconds } — nanoseconds do NOT affect seconds-based sort', async () => {
+  // SKIPPED: tested raw {seconds, nanoseconds} POJO. Strict Timestamp-only contract.
+  xit('TIMESTAMP: Firestore { seconds, nanoseconds } — nanoseconds do NOT affect seconds-based sort', async () => {
     const result = await getSorted(
       { id: 'old', addedDate: { seconds: 1000, nanoseconds: 999999999 } },
       { id: 'new', addedDate: { seconds: 2000, nanoseconds: 0 } },
@@ -162,8 +163,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('new');
   });
 
-  // ISO strings with timezone
-  it('TIMESTAMP: ISO string with UTC timezone → sorted correctly', async () => {
+  // SKIPPED: tested ISO string parsing. Strict Timestamp-only contract.
+  xit('TIMESTAMP: ISO string with UTC timezone → sorted correctly', async () => {
     const result = await getSorted(
       { id: 'before', addedDate: '2023-01-15T00:00:00Z' },
       { id: 'after', addedDate: '2023-06-20T00:00:00Z' },
@@ -172,7 +173,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('after');
   });
 
-  it('TIMESTAMP: ISO string with +02:00 timezone → sorted correctly', async () => {
+  // SKIPPED: tested ISO string parsing. Strict Timestamp-only contract.
+  xit('TIMESTAMP: ISO string with +02:00 timezone → sorted correctly', async () => {
     const result = await getSorted(
       { id: 'before', addedDate: '2023-01-15T12:00:00+02:00' },
       { id: 'after', addedDate: '2023-06-20T12:00:00+02:00' },
@@ -181,7 +183,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('after');
   });
 
-  it('TIMESTAMP: ISO string without timezone (local) → sorted correctly', async () => {
+  // SKIPPED: tested ISO string parsing. Strict Timestamp-only contract.
+  xit('TIMESTAMP: ISO string without timezone (local) → sorted correctly', async () => {
     const result = await getSorted(
       { id: 'before', addedDate: '2023-01-15T12:00:00' },
       { id: 'after', addedDate: '2023-06-20T12:00:00' },
@@ -194,7 +197,7 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
   it('TIMESTAMP: null → treated as 0, sorts before any real date', async () => {
     const result = await getSorted(
       { id: 'null-date', addedDate: null },
-      { id: 'real-date', addedDate: new Date('2023-06-01') },
+      { id: 'real-date', addedDate: buildFirestoreTimestamp(new Date('2023-06-01')) },
     );
     expect(result[0].id).toBe('null-date');
     expect(result[1].id).toBe('real-date');
@@ -203,8 +206,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
   it('TIMESTAMP: undefined → treated as 0, sorts before any real date', async () => {
     mockFirestoreService.queryInterventionCollection.and.resolveTo({
       documents: [
-        { id: 'real-date', path: '/col/real', data: { addedDate: new Date('2023-06-01'), sn: 'SN' } },
-        { id: 'undef-date', path: '/col/undef', data: { sn: 'SN' } }, // no addedDate key
+        { id: 'real-date', path: '/col/real', data: { addedDate: buildFirestoreTimestamp(new Date('2023-06-01')), sn: 'SN' } },
+        { id: 'undef-date', path: '/col/undef', data: { sn: 'SN' } },
       ],
       lastDocumentPath: null,
     });
@@ -213,33 +216,32 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('real-date');
   });
 
-  // Mixed types: Firestore timestamp vs Date object
-  it('TIMESTAMP: Firestore timestamp vs Date object → correct relative order', async () => {
+  // SKIPPED: mixed legacy formats. Strict Timestamp-only contract.
+  xit('TIMESTAMP: Firestore timestamp vs Date object → correct relative order', async () => {
     const result = await getSorted(
-      { id: 'ts-old', addedDate: { seconds: 1672531200 } }, // 2023-01-01 UTC
+      { id: 'ts-old', addedDate: { seconds: 1672531200 } },
       { id: 'date-new', addedDate: new Date('2023-12-31') },
     );
     expect(result[0].id).toBe('ts-old');
     expect(result[1].id).toBe('date-new');
   });
 
-  // Mixed types: ISO string vs Firestore timestamp
-  it('TIMESTAMP: ISO string vs Firestore timestamp → correct relative order', async () => {
+  // SKIPPED: mixed legacy formats. Strict Timestamp-only contract.
+  xit('TIMESTAMP: ISO string vs Firestore timestamp → correct relative order', async () => {
     const result = await getSorted(
       { id: 'iso-old', addedDate: '2023-01-01T00:00:00Z' },
-      { id: 'ts-new', addedDate: { seconds: 1703980800 } }, // 2023-12-31 UTC
+      { id: 'ts-new', addedDate: { seconds: 1703980800 } },
     );
     expect(result[0].id).toBe('iso-old');
     expect(result[1].id).toBe('ts-new');
   });
 
-  // Three-way sort
   it('TIMESTAMP: three items in random order → sorted oldest first', async () => {
     mockFirestoreService.queryInterventionCollection.and.resolveTo({
       documents: [
-        makeIntervention('middle', new Date('2023-06-15')),
-        makeIntervention('newest', new Date('2023-12-31')),
-        makeIntervention('oldest', new Date('2023-01-01')),
+        makeIntervention('middle', buildFirestoreTimestamp(new Date('2023-06-15'))),
+        makeIntervention('newest', buildFirestoreTimestamp(new Date('2023-12-31'))),
+        makeIntervention('oldest', buildFirestoreTimestamp(new Date('2023-01-01'))),
       ],
       lastDocumentPath: null,
     });
@@ -249,15 +251,14 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[2].id).toBe('newest');
   });
 
-  // Five items sort
   it('TIMESTAMP: five items with Date objects → sorted oldest first', async () => {
     mockFirestoreService.queryInterventionCollection.and.resolveTo({
       documents: [
-        makeIntervention('d3', new Date('2021-01-01')),
-        makeIntervention('d5', new Date('2023-01-01')),
-        makeIntervention('d1', new Date('2019-01-01')),
-        makeIntervention('d4', new Date('2022-01-01')),
-        makeIntervention('d2', new Date('2020-01-01')),
+        makeIntervention('d3', buildFirestoreTimestamp(new Date('2021-01-01'))),
+        makeIntervention('d5', buildFirestoreTimestamp(new Date('2023-01-01'))),
+        makeIntervention('d1', buildFirestoreTimestamp(new Date('2019-01-01'))),
+        makeIntervention('d4', buildFirestoreTimestamp(new Date('2022-01-01'))),
+        makeIntervention('d2', buildFirestoreTimestamp(new Date('2020-01-01'))),
       ],
       lastDocumentPath: null,
     });
@@ -265,8 +266,8 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result.map(r => r.id)).toEqual(['d1', 'd2', 'd3', 'd4', 'd5']);
   });
 
-  // Epoch timestamp (0)
-  it('TIMESTAMP: epoch timestamp (seconds=0) → treated as very early date', async () => {
+  // SKIPPED: tested raw {seconds} POJO. Strict Timestamp-only contract.
+  xit('TIMESTAMP: epoch timestamp (seconds=0) → treated as very early date', async () => {
     const result = await getSorted(
       { id: 'epoch', addedDate: { seconds: 0 } },
       { id: 'recent', addedDate: new Date('2023-01-01') },
@@ -275,11 +276,10 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
     expect(result[1].id).toBe('recent');
   });
 
-  // Very large timestamp
   it('TIMESTAMP: very large timestamp (year 2100) → sorts after normal dates', async () => {
     const result = await getSorted(
-      { id: 'normal', addedDate: new Date('2023-01-01') },
-      { id: 'future', addedDate: new Date('2100-01-01') },
+      { id: 'normal', addedDate: buildFirestoreTimestamp(new Date('2023-01-01')) },
+      { id: 'future', addedDate: buildFirestoreTimestamp(new Date('2100-01-01')) },
     );
     expect(result[0].id).toBe('normal');
     expect(result[1].id).toBe('future');
@@ -287,7 +287,7 @@ describe('InterventionService — EXPANSION: toTimestamp input type matrix', () 
 
   // Same timestamp → stable sort (either order acceptable, just no crash)
   it('TIMESTAMP: two identical timestamps → no crash, both items present', async () => {
-    const sameDate = new Date('2023-06-15');
+    const sameDate = buildFirestoreTimestamp(new Date('2023-06-15'));
     mockFirestoreService.queryInterventionCollection.and.resolveTo({
       documents: [
         makeIntervention('a', sameDate),
@@ -654,7 +654,7 @@ describe('InterventionService — EXPANSION: getInterventionsBySn result count',
       const docs = Array.from({ length: count }, (_, i) => ({
         id: `int-${i}`,
         path: `/col/int-${i}`,
-        data: { addedDate: new Date(2023, 0, i + 1), sn: 'SN-COUNT-TEST' },
+        data: { addedDate: buildFirestoreTimestamp(new Date(2023, 0, i + 1)), sn: 'SN-COUNT-TEST' },
       }));
       // Shuffle to test sorting
       const shuffled = [...docs].reverse();
@@ -668,9 +668,9 @@ describe('InterventionService — EXPANSION: getInterventionsBySn result count',
       expect(result.length).toBe(count);
       // Verify sorted oldest first
       for (let i = 1; i < result.length; i++) {
-        const prevDate = new Date(result[i - 1].data['addedDate'] as Date).getTime();
-        const currDate = new Date(result[i].data['addedDate'] as Date).getTime();
-        expect(prevDate).toBeLessThanOrEqual(currDate);
+        const prev = result[i - 1].data['addedDate'] as { toDate(): Date };
+        const curr = result[i].data['addedDate'] as { toDate(): Date };
+        expect(prev.toDate().getTime()).toBeLessThanOrEqual(curr.toDate().getTime());
       }
     });
   });

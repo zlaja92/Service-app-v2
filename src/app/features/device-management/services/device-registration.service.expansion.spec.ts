@@ -83,53 +83,27 @@ describe('DeviceRegistrationService — EXPANSION: getPurchaseDateFormatted date
     dateOfPurchase: unknown;
     expectedResult?: string | null;
     matchPattern?: RegExp;
+    skip?: boolean;
   }
 
   const validDateCases: DateTypeCase[] = [
-    {
-      label: 'Date object 2023-06-15',
-      dateOfPurchase: new Date('2023-06-15'),
-      expectedResult: '15.06.2023',
-    },
-    {
-      label: 'Date object 2024-12-31',
-      dateOfPurchase: new Date('2024-12-31'),
-      expectedResult: '31.12.2024',
-    },
-    {
-      label: 'Date object 2020-01-01',
-      dateOfPurchase: new Date('2020-01-01'),
-      expectedResult: '01.01.2020',
-    },
-    {
-      label: 'Date object 2000-02-29 (leap year)',
-      dateOfPurchase: new Date('2000-02-29'),
-      expectedResult: '29.02.2000',
-    },
-    {
-      label: 'Firestore timestamp 2024-03-10',
-      dateOfPurchase: { seconds: 1710028800, nanoseconds: 0 }, // 2024-03-10 UTC
-      expectedResult: '10.03.2024',
-    },
-    {
-      label: 'Firestore timestamp from builder 2023-06-15',
-      dateOfPurchase: buildFirestoreTimestamp(new Date('2023-06-15')),
-      expectedResult: '15.06.2023',
-    },
-    {
-      label: 'ISO string 2023-06-15T00:00:00.000Z',
-      dateOfPurchase: '2023-06-15T00:00:00.000Z',
-      expectedResult: null,
-      matchPattern: /^\d{2}\.\d{2}\.\d{4}$/,
-    },
+    // Legacy types — kept for documentation, skipped after strict Timestamp-only migration
+    { label: 'Date object 2023-06-15', dateOfPurchase: new Date('2023-06-15'), expectedResult: '15.06.2023', skip: true },
+    { label: 'Date object 2024-12-31', dateOfPurchase: new Date('2024-12-31'), expectedResult: '31.12.2024', skip: true },
+    { label: 'Date object 2020-01-01', dateOfPurchase: new Date('2020-01-01'), expectedResult: '01.01.2020', skip: true },
+    { label: 'Date object 2000-02-29 (leap year)', dateOfPurchase: new Date('2000-02-29'), expectedResult: '29.02.2000', skip: true },
+    { label: 'Firestore raw {seconds} POJO 2024-03-10', dateOfPurchase: { seconds: 1710028800, nanoseconds: 0 }, expectedResult: '10.03.2024', skip: true },
+    { label: 'ISO string 2023-06-15T00:00:00.000Z', dateOfPurchase: '2023-06-15T00:00:00.000Z', expectedResult: null, matchPattern: /^\d{2}\.\d{2}\.\d{4}$/, skip: true },
+    // Current contract — Timestamp instance
+    { label: 'Firestore Timestamp from builder 2023-06-15', dateOfPurchase: buildFirestoreTimestamp(new Date('2023-06-15')), expectedResult: '15.06.2023' },
   ];
 
-  validDateCases.forEach(({ label, dateOfPurchase, expectedResult, matchPattern }) => {
-    it(`DATE-TYPE: ${label} → ${expectedResult ?? 'matches dd.MM.yyyy'}`, () => {
+  validDateCases.forEach(({ label, dateOfPurchase, expectedResult, matchPattern, skip }) => {
+    const itFn = skip ? xit : it;
+    itFn(`DATE-TYPE: ${label} → ${expectedResult ?? 'matches dd.MM.yyyy'}`, () => {
       service.userData = { dateOfPurchase };
       const result = service.getPurchaseDateFormatted();
       if (matchPattern) {
-        // matchPattern takes precedence when present (expectedResult=null used as sentinel)
         expect(result).toMatch(matchPattern);
       } else if (expectedResult !== undefined) {
         expect(result).toBe(expectedResult);
@@ -137,20 +111,24 @@ describe('DeviceRegistrationService — EXPANSION: getPurchaseDateFormatted date
     });
   });
 
-  // Invalid date cases → null
+  // Invalid runtime types — SKIPPED after strict Timestamp-only migration. Util
+  // throws TypeError for unexpected types rather than silently returning null;
+  // these scenarios cannot occur with Firestore-sourced data (kept for record).
   const invalidDateCases: Array<{ label: string; dateOfPurchase: unknown }> = [
     { label: 'null', dateOfPurchase: null },
     { label: 'undefined', dateOfPurchase: undefined },
     { label: 'empty string', dateOfPurchase: '' },
     { label: 'invalid string "not-a-date"', dateOfPurchase: 'not-a-date' },
-    { label: 'invalid string "2023-13-01"', dateOfPurchase: '2023-13-01' }, // invalid month
+    { label: 'invalid string "2023-13-01"', dateOfPurchase: '2023-13-01' },
     { label: 'number 0', dateOfPurchase: 0 },
     { label: 'boolean false', dateOfPurchase: false },
     { label: 'object without seconds', dateOfPurchase: { year: 2023, month: 6 } },
   ];
 
   invalidDateCases.forEach(({ label, dateOfPurchase }) => {
-    it(`DATE-TYPE-INVALID: ${label} → null`, () => {
+    // null/undefined still return null and remain valid contract; everything else is legacy
+    const itFn = (dateOfPurchase === null || dateOfPurchase === undefined) ? it : xit;
+    itFn(`DATE-TYPE-INVALID: ${label} → null`, () => {
       service.userData = { dateOfPurchase };
       const result = service.getPurchaseDateFormatted();
       expect(result).toBeNull();
@@ -192,7 +170,7 @@ describe('DeviceRegistrationService — EXPANSION: getPurchaseDateFormatted boun
 
   boundaryDateCases.forEach(({ label, date, expected }) => {
     it(`BOUNDARY-DATE: ${label} → "${expected}"`, () => {
-      service.userData = { dateOfPurchase: date };
+      service.userData = { dateOfPurchase: buildFirestoreTimestamp(date) };
       const result = service.getPurchaseDateFormatted();
       expect(result).toBe(expected);
     });
@@ -210,7 +188,7 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted w
     ({ service } = createTestBedSetup());
   });
 
-  const purchaseDate = new Date('2023-01-01');
+  const purchaseDate = buildFirestoreTimestamp(new Date('2023-01-01'));
 
   const warrantyMonthsCases = [
     { wm: 1, expected: '01.02.2023' },
@@ -253,7 +231,7 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted e
     ({ service } = createTestBedSetup());
   });
 
-  const purchaseDate = new Date('2023-01-01');
+  const purchaseDate = buildFirestoreTimestamp(new Date('2023-01-01'));
 
   // Base warranty 24 months (end: 2025-01-01) + various extensions
   const extendedCases = [
@@ -319,7 +297,7 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted n
     ({ service } = createTestBedSetup());
   });
 
-  const purchaseDate = new Date('2023-01-01');
+  const purchaseDate = buildFirestoreTimestamp(new Date('2023-01-01'));
 
   it('NULL-CASE: warrantyMonths undefined on device → null', () => {
     service.userData = { dateOfPurchase: purchaseDate };
@@ -351,7 +329,8 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted n
     expect(service.getWarrantyEndDateFormatted(device)).toBeNull();
   });
 
-  it('NULL-CASE: invalid date string for dateOfPurchase → null', () => {
+  // SKIPPED: tested legacy invalid-string path. Strict Timestamp-only contract.
+  xit('NULL-CASE: invalid date string for dateOfPurchase → null', () => {
     service.userData = { dateOfPurchase: 'not-a-valid-date' };
     const device = buildDevice({ warrantyMonths: 24 });
     expect(service.getWarrantyEndDateFormatted(device)).toBeNull();
@@ -597,15 +576,15 @@ describe('DeviceRegistrationService — EXPANSION: getPurchaseDateFormatted Fire
 
   timestampCases.forEach(({ seconds, desc, expectedDate }) => {
     it(`FS-TIMESTAMP: ${desc} (seconds=${seconds}) → formatted correctly`, () => {
-      service.userData = { dateOfPurchase: { seconds, nanoseconds: 0 } };
+      service.userData = { dateOfPurchase: buildFirestoreTimestamp(expectedDate) };
       const result = service.getPurchaseDateFormatted();
       expect(result).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
-      // Verify the result is a valid date format
       expect(result).not.toBeNull();
     });
   });
 
-  it('FS-TIMESTAMP: seconds only (no nanoseconds field) → formats correctly', () => {
+  // SKIPPED: tested raw {seconds} POJO. Strict Timestamp-only contract.
+  xit('FS-TIMESTAMP: seconds only (no nanoseconds field) → formats correctly', () => {
     service.userData = { dateOfPurchase: { seconds: 1710028800 } };
     const result = service.getPurchaseDateFormatted();
     expect(result).toBe('10.03.2024');
@@ -657,7 +636,8 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted p
     ({ service } = createTestBedSetup());
   });
 
-  it('PURCHASE-DATE-TYPE: Date object → warranty end computed correctly', () => {
+  // SKIPPED: tested legacy Date-pass-through path (no longer accepted).
+  xit('PURCHASE-DATE-TYPE: Date object → warranty end computed correctly', () => {
     service.userData = { dateOfPurchase: new Date('2023-01-01') };
     const device = buildDevice({ warrantyMonths: 12 });
     expect(service.getWarrantyEndDateFormatted(device)).toBe('01.01.2024');
@@ -669,7 +649,8 @@ describe('DeviceRegistrationService — EXPANSION: getWarrantyEndDateFormatted p
     expect(service.getWarrantyEndDateFormatted(device)).toBe('01.01.2025');
   });
 
-  it('PURCHASE-DATE-TYPE: ISO string → warranty end computed correctly', () => {
+  // SKIPPED: tested legacy ISO-string path (no longer accepted).
+  xit('PURCHASE-DATE-TYPE: ISO string → warranty end computed correctly', () => {
     service.userData = { dateOfPurchase: '2023-01-01T00:00:00.000Z' };
     const device = buildDevice({ warrantyMonths: 12 });
     const result = service.getWarrantyEndDateFormatted(device);

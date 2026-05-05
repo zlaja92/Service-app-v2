@@ -251,7 +251,9 @@ describe('DeviceRegistrationService', () => {
   // =========================================================================
 
   describe('getPurchaseDateFormatted()', () => {
-    it('TC-REG-13: Date object in userData → returns formatted dd.MM.yyyy string', () => {
+    // SKIPPED: tested legacy Date-pass-through path. After migration to strict
+    // Timestamp-only contract, raw Date is no longer accepted from Firestore.
+    xit('TC-REG-13: Date object in userData → returns formatted dd.MM.yyyy string', () => {
       service.userData = { dateOfPurchase: new Date('2023-06-15') };
 
       const result = service.getPurchaseDateFormatted();
@@ -268,12 +270,13 @@ describe('DeviceRegistrationService', () => {
       expect(result).toBe('15.06.2023');
     });
 
-    it('TC-REG-15: ISO string in userData → parses and formats', () => {
+    // SKIPPED: tested legacy ISO-string path. After strict Timestamp-only
+    // migration, strings from Firestore are no longer expected.
+    xit('TC-REG-15: ISO string in userData → parses and formats', () => {
       service.userData = { dateOfPurchase: '2023-06-15T00:00:00.000Z' };
 
       const result = service.getPurchaseDateFormatted();
 
-      // The ISO string is parsed; exact day may vary by timezone but format is dd.MM.yyyy
       expect(result).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
     });
 
@@ -300,7 +303,7 @@ describe('DeviceRegistrationService', () => {
 
   describe('getWarrantyEndDateFormatted()', () => {
     it('TC-REG-18: with warrantyMonths and dateOfPurchase → adds months and returns formatted date', () => {
-      service.userData = { dateOfPurchase: new Date('2023-01-01') };
+      service.userData = { dateOfPurchase: buildFirestoreTimestamp(new Date('2023-01-01')) };
       const device = buildDevice({ warrantyMonths: 24 });
 
       const result = service.getWarrantyEndDateFormatted(device);
@@ -310,7 +313,7 @@ describe('DeviceRegistrationService', () => {
 
     it('TC-REG-19: with extendedWarrantyMonths → adds base + extended months to purchase date', () => {
       service.userData = {
-        dateOfPurchase: new Date('2023-01-01'),
+        dateOfPurchase: buildFirestoreTimestamp(new Date('2023-01-01')),
         extendedWarrantyMonths: 12,
       };
       const device = buildDevice({ warrantyMonths: 24 });
@@ -322,7 +325,7 @@ describe('DeviceRegistrationService', () => {
     });
 
     it('TC-REG-20: no warrantyMonths on device → returns null', () => {
-      service.userData = { dateOfPurchase: new Date('2023-01-01') };
+      service.userData = { dateOfPurchase: buildFirestoreTimestamp(new Date('2023-01-01')) };
       const device = buildDevice({ warrantyMonths: undefined });
 
       const result = service.getWarrantyEndDateFormatted(device);
@@ -345,8 +348,9 @@ describe('DeviceRegistrationService', () => {
   // =========================================================================
 
   describe('toDate() via getPurchaseDateFormatted()', () => {
-    it('TC-REG-22: Firestore timestamp object (seconds field) converts to correct Date', () => {
-      // 2024-03-10T00:00:00Z = 1710028800 seconds
+    // SKIPPED: tested legacy raw {seconds, nanoseconds} POJO coercion. After
+    // strict Timestamp-only migration, raw POJOs are no longer accepted.
+    xit('TC-REG-22: Firestore timestamp object (seconds field) converts to correct Date', () => {
       const ts = { seconds: 1710028800, nanoseconds: 0 };
       service.userData = { dateOfPurchase: ts };
 
@@ -355,7 +359,9 @@ describe('DeviceRegistrationService', () => {
       expect(result).toBe('10.03.2024');
     });
 
-    it('TC-REG-23: Date object passes through without conversion', () => {
+    // SKIPPED: tested legacy Date-pass-through. Strict Timestamp-only contract
+    // no longer accepts raw Date instances from Firestore reads.
+    xit('TC-REG-23: Date object passes through without conversion', () => {
       const d = new Date('2024-05-20');
       service.userData = { dateOfPurchase: d };
 
@@ -364,7 +370,8 @@ describe('DeviceRegistrationService', () => {
       expect(result).toBe('20.05.2024');
     });
 
-    it('TC-REG-24: invalid string → toDate returns null → getPurchaseDateFormatted returns null', () => {
+    // SKIPPED: tested legacy string parsing. Strings are no longer expected.
+    xit('TC-REG-24: invalid string → toDate returns null → getPurchaseDateFormatted returns null', () => {
       service.userData = { dateOfPurchase: 'not-a-date' };
 
       const result = service.getPurchaseDateFormatted();
