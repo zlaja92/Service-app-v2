@@ -273,6 +273,9 @@ export const sr: Translation = {
   add_user_success: 'Korisnik je uspešno sačuvan',
   add_user_error: 'Greška pri čuvanju korisnika',
   add_user_validation_message: 'Popunite obavezna polja: {{fields}}',
+  common_warning_understood: 'Razumem',
+  common_warning_title: 'Upozorenje',
+  device_detail_commissioning_required_message: 'Sačuvani su podaci o korisniku, ali uređaj i dalje nije pušten u rad. Potrebno je da odradite puštanje u rad.',
 
   cart_title: 'Korpa',
   cart_empty: 'Vaša korpa je prazna.',
@@ -429,6 +432,7 @@ export const sr: Translation = {
   connected_device_found: 'Pronađen',
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
+  connected_device_sn_too_short: 'Serijski broj povezanog uređaja je prekratak (potrebno je {{min}} karaktera)',
   loading_please_wait: 'Molimo sačekajte...',
 
   // ─── Order Email ──────────────────────────────────────────────────
@@ -454,6 +458,7 @@ export const sr: Translation = {
   photo_no_photos_cancel: 'Ne',
   photo_no_photos_continue: 'Da',
   photo_desc_gas_boiler_repair: '- Unesite sliku grejača\n- Unesite zamenjeni deo\n- Unesite uređaj',
+  photo_desc_boiler_repair: 'Dodati slike izgrađenih rezervnih delova',
   photo_desc_commissioning: '- Unesite sliku natpisne ploče\n- Unesite sliku uređaja',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────

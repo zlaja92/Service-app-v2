@@ -280,7 +280,7 @@ describe('PhotoService', () => {
       mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
       await service.takePhoto();
 
-      await service.uploadPhotos('SN12345', 'boiler', 'intervention_repair');
+      await service.uploadPhotos('SN12345', 'boiler', 'interventionRepair');
 
       const callArgs = mockStorage.uploadFile.calls.mostRecent().args;
       const storagePath = callArgs[0];
@@ -348,7 +348,7 @@ describe('PhotoService', () => {
         Promise.resolve(),
       );
 
-      await service.uploadPhotos('SN10', 'default', 'intervention_repair');
+      await service.uploadPhotos('SN10', 'default', 'interventionRepair');
 
       // All 3 were attempted
       expect(mockStorage.uploadFile).toHaveBeenCalledTimes(3);
@@ -364,7 +364,7 @@ describe('PhotoService', () => {
       mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
       await service.takePhoto();
 
-      await service.uploadPhotos('SN-LOG', 'default', 'intervention_repair');
+      await service.uploadPhotos('SN-LOG', 'default', 'interventionRepair');
 
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Photo uploaded',
@@ -375,7 +375,7 @@ describe('PhotoService', () => {
     it('TC-PS20: does not call uploadFile when photos array is empty', async () => {
       // No photos added
 
-      await service.uploadPhotos('SN00', 'default', 'intervention_repair');
+      await service.uploadPhotos('SN00', 'default', 'interventionRepair');
 
       expect(mockStorage.uploadFile).not.toHaveBeenCalled();
     });
@@ -400,7 +400,7 @@ describe('PhotoService', () => {
       mockCamera.takePhoto.and.resolveTo({ webPath: 'blob:http://localhost/x', uri: '/native/path.jpg' });
       await service.takePhoto();
 
-      await service.uploadPhotos('SN-URI', 'default', 'intervention_repair');
+      await service.uploadPhotos('SN-URI', 'default', 'interventionRepair');
 
       const uploadArgs = mockStorage.uploadFile.calls.mostRecent().args;
       expect(uploadArgs[1]).toBe('/native/path.jpg');
@@ -686,7 +686,7 @@ describe('PhotoService', () => {
         mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
         await service.takePhoto();
 
-        await service.uploadPhotos(sn, 'default', 'intervention_repair');
+        await service.uploadPhotos(sn, 'default', 'interventionRepair');
 
         const storagePath = mockStorage.uploadFile.calls.mostRecent().args[0];
         expect(storagePath).toContain(`/${sn}/`);
@@ -714,7 +714,7 @@ describe('PhotoService', () => {
           await service.takePhoto();
         }
 
-        await service.uploadPhotos('SN-COUNT', 'default', 'intervention_repair');
+        await service.uploadPhotos('SN-COUNT', 'default', 'interventionRepair');
 
         expect(mockStorage.uploadFile).toHaveBeenCalledTimes(count);
       });

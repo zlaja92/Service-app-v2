@@ -10,6 +10,7 @@ interface DeviceDoc {
   deviceName?: string;
   deviceCode?: string;
   deviceType?: string;
+  deviceSubtype?: string;
   commissioning?: boolean;
   annualService?: boolean;
   connectedDevice?: boolean;
@@ -126,7 +127,7 @@ export class DeviceLookupService implements Clearable {
       code: data.deviceCode ?? id,
       name: data.deviceName ?? '',
       type: (data.deviceType as DeviceType) ?? DeviceType.BOILER,
-      subType: '',
+      subType: data.deviceSubtype ?? '',
       unitCount: 0,
       exists: true,
       commissioning: data.commissioning ?? false,

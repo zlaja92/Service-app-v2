@@ -4,6 +4,7 @@ import { TenantService } from '../../../core/tenant/tenant.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
+import { toLatinUpperCase } from '../../../shared/utils/transliterate';
 
 export interface UserSearchResult {
   sn: string;
@@ -56,8 +57,8 @@ export class UserSearchService implements Clearable {
   private lastNameTerm = '';
 
   async search(firstName: string, lastName: string): Promise<void> {
-    const firstNorm = firstName.trim().toUpperCase();
-    const lastNorm = lastName.trim().toUpperCase();
+    const firstNorm = toLatinUpperCase(firstName.trim());
+    const lastNorm = toLatinUpperCase(lastName.trim());
 
     if (firstNorm.length < this.minSearchLength && lastNorm.length < this.minSearchLength) {
       this.reset();

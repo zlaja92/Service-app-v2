@@ -109,7 +109,7 @@ export class AnnualServicePage implements ViewWillEnter {
       await this.loadingAlert.show();
       const prefill = await this.envInfoService.getLastEnvInfo(this.sn, device.type);
       await this.loadingAlert.hide();
-      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
+      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill, device.subType);
       if (!envInfo) return;
       data['envInfo'] = envInfo;
     } else {

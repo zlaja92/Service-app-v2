@@ -13,6 +13,8 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { toLatinUpperCase } from '../../../shared/utils/transliterate';
 
 @Component({
   selector: 'app-add-user',
@@ -34,6 +36,7 @@ export class AddUserPage implements ViewWillEnter {
   private readonly registrationService = inject(DeviceRegistrationService);
   private readonly toastCtrl = inject(ToastController);
   private readonly confirmService = inject(ConfirmService);
+  private readonly loadingAlert = inject(LoadingAlertService);
   private readonly transloco = inject(TranslocoService);
   protected sn = '';
   private connectedSn = '';
@@ -161,8 +164,8 @@ export class AddUserPage implements ViewWillEnter {
     const formValue = this.form.getRawValue();
     const data: Record<string, unknown> = {
       ...formValue,
-      firstNameSrch: this.toLatinUpperCase(formValue.firstName),
-      lastNameSrch: this.toLatinUpperCase(formValue.lastName),
+      firstNameSrch: toLatinUpperCase(formValue.firstName),
+      lastNameSrch: toLatinUpperCase(formValue.lastName),
     };
 
     if (!device.annualService) {
@@ -186,18 +189,17 @@ export class AddUserPage implements ViewWillEnter {
     );
     if (!confirmed) return;
 
-    let success: boolean;
-
-    if (this.connectedSn) {
-      const mainData = { ...data, connectedDevice: this.connectedSn };
-      const connectedData = { ...data, connectedDevice: this.sn };
-      success = await this.registrationService.registerBatch([
-        { sn: this.sn, device, dynamicFields: mainData },
-        { sn: this.connectedSn, device, dynamicFields: connectedData },
-      ]);
-    } else {
-      success = await this.registrationService.register(this.sn, device, data);
-    }
+    const success = await this.loadingAlert.wrap(async () => {
+      if (this.connectedSn) {
+        const mainData = { ...data, connectedDevice: this.connectedSn };
+        const connectedData = { ...data, connectedDevice: this.sn };
+        return this.registrationService.registerBatch([
+          { sn: this.sn, device, dynamicFields: mainData },
+          { sn: this.connectedSn, device, dynamicFields: connectedData },
+        ]);
+      }
+      return this.registrationService.register(this.sn, device, data);
+    });
 
     if (success) {
       void this.showToast(this.transloco.translate('add_user_success'), 'success');
@@ -230,28 +232,6 @@ export class AddUserPage implements ViewWillEnter {
     }
 
     return true;
-  }
-
-  private toLatinUpperCase(value: string): string {
-    const cyrillicToLatin: Record<string, string> = {
-      'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Ђ': 'DJ', 'Е': 'E',
-      'Ж': 'Z', 'З': 'Z', 'И': 'I', 'Ј': 'J', 'К': 'K', 'Л': 'L', 'Љ': 'LJ',
-      'М': 'M', 'Н': 'N', 'Њ': 'NJ', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S',
-      'Т': 'T', 'Ћ': 'C', 'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'C', 'Ч': 'C',
-      'Џ': 'DZ', 'Ш': 'S',
-      'а': 'A', 'б': 'B', 'в': 'V', 'г': 'G', 'д': 'D', 'ђ': 'DJ', 'е': 'E',
-      'ж': 'Z', 'з': 'Z', 'и': 'I', 'ј': 'J', 'к': 'K', 'л': 'L', 'љ': 'LJ',
-      'м': 'M', 'н': 'N', 'њ': 'NJ', 'о': 'O', 'п': 'P', 'р': 'R', 'с': 'S',
-      'т': 'T', 'ћ': 'C', 'у': 'U', 'ф': 'F', 'х': 'H', 'ц': 'C', 'ч': 'C',
-      'џ': 'DZ', 'ш': 'S',
-      'Č': 'C', 'č': 'C', 'Ć': 'C', 'ć': 'C', 'Đ': 'DJ', 'đ': 'DJ',
-      'Š': 'S', 'š': 'S', 'Ž': 'Z', 'ž': 'Z',
-    };
-
-    return value
-      .split('')
-      .map(ch => cyrillicToLatin[ch] ?? ch.toUpperCase())
-      .join('');
   }
 
   private async showToast(message: string, color: string): Promise<void> {

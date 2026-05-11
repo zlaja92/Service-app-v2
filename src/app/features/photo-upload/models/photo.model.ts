@@ -6,7 +6,7 @@ export interface CapturedPhoto {
 
 /** Maps InterventionType enum value to short folder/file name. */
 export const INTERVENTION_TYPE_SHORT: Record<string, string> = {
-  intervention_repair: 'repair',
+  interventionRepair: 'repair',
   intervention_noise: 'noise',
   intervention_replace: 'replace',
   commissioning: 'comm',

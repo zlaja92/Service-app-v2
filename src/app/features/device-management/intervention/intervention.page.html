@@ -43,8 +43,8 @@
       <ion-item>
         <ion-label position="stacked">{{ 'intervention_description_label' | transloco }}</ion-label>
         <ion-select formControlName="description" interface="action-sheet">
-          @for (desc of faultDescriptions; track desc) {
-            <ion-select-option [value]="desc">{{ desc | transloco }}</ion-select-option>
+          @for (desc of faultDescriptions; track desc.key) {
+            <ion-select-option [value]="desc.key">{{ desc.label }}</ion-select-option>
           }
         </ion-select>
       </ion-item>
@@ -54,8 +54,8 @@
         <ion-label position="stacked">{{ 'intervention_error_label' | transloco }}</ion-label>
         <ion-select formControlName="error" interface="action-sheet" class="no-uppercase"
                     [interfaceOptions]="{ cssClass: 'no-uppercase-sheet' }">
-          @for (error of errorCodes; track error) {
-            <ion-select-option [value]="error">{{ error | transloco }}</ion-select-option>
+          @for (error of errorCodes; track error.key) {
+            <ion-select-option [value]="error.key">{{ error.label }}</ion-select-option>
           }
         </ion-select>
       </ion-item>

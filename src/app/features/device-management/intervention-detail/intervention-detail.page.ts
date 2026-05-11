@@ -125,9 +125,9 @@ export class InterventionDetailPage implements ViewWillEnter {
   }
 
   async onViewEnvInfo(): Promise<void> {
-    const deviceType = this.lookupService.device?.type;
-    if (!deviceType || !this.envInfoData) return;
-    await this.envInfoService.viewEnvInfo(deviceType, this.envInfoData);
+    const device = this.lookupService.device;
+    if (!device || !this.envInfoData) return;
+    await this.envInfoService.viewEnvInfo(device.type, this.envInfoData, device.subType);
   }
 
   private buildDisplayFields(

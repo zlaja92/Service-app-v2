@@ -187,3 +187,29 @@ export function requiresEnvInfo(deviceType: DeviceType): boolean {
   return deviceType === DeviceType.HEAT_PUMP
     || deviceType === DeviceType.GAS_BOILER;
 }
+
+/** Heat-pump monoblock units have a sealed refrigerant circuit — no freon section. */
+function shouldHideFreonSection(deviceType: DeviceType, subType?: string): boolean {
+  return deviceType === DeviceType.HEAT_PUMP && subType === 'monoblock';
+}
+
+/**
+ * Returns env-info field configuration for a device, filtered by subType.
+ * Strips the freon section for heat-pump monoblock units.
+ */
+export function getEnvInfoFields(deviceType: DeviceType, subType?: string): EnvInfoFieldConfig[] {
+  const fields = ENV_INFO_FIELDS[deviceType] ?? [];
+  if (shouldHideFreonSection(deviceType, subType)) {
+    return fields.filter(f => f.section !== 'freon');
+  }
+  return fields;
+}
+
+/** Returns env-info sections for a device, filtered by subType. */
+export function getEnvInfoSections(deviceType: DeviceType, subType?: string): EnvInfoSectionConfig[] {
+  const sections = ENV_INFO_SECTIONS[deviceType] ?? [];
+  if (shouldHideFreonSection(deviceType, subType)) {
+    return sections.filter(s => s.key !== 'freon');
+  }
+  return sections;
+}

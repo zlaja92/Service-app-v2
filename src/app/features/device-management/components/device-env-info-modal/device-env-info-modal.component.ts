@@ -15,8 +15,8 @@ import { DeviceType } from '../../../../shared/models/device.model';
 import {
   EnvInfoFieldConfig,
   EnvInfoSectionConfig,
-  ENV_INFO_FIELDS,
-  ENV_INFO_SECTIONS,
+  getEnvInfoFields,
+  getEnvInfoSections,
 } from '../../models/device-env-info.model';
 
 @Component({
@@ -34,6 +34,7 @@ import {
 })
 export class DeviceEnvInfoModalComponent implements OnInit {
   @Input() deviceType!: DeviceType;
+  @Input() subType?: string;
   @Input() prefillData: Record<string, string> | null = null;
   @Input() readOnly = false;
 
@@ -53,8 +54,8 @@ export class DeviceEnvInfoModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.sections = ENV_INFO_SECTIONS[this.deviceType] ?? [];
-    this.allFields = ENV_INFO_FIELDS[this.deviceType] ?? [];
+    this.sections = getEnvInfoSections(this.deviceType, this.subType);
+    this.allFields = getEnvInfoFields(this.deviceType, this.subType);
 
     for (const section of this.sections) {
       this.fieldsPerSection.set(

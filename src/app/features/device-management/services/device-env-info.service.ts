@@ -15,11 +15,13 @@ export class DeviceEnvInfoService {
     deviceType: DeviceType,
     sn: string,
     prefill: Record<string, string> | null,
+    subType?: string,
   ): Promise<Record<string, string> | null> {
     const modal = await this.modalController.create({
       component: DeviceEnvInfoModalComponent,
       componentProps: {
         deviceType,
+        subType,
         prefillData: prefill,
         readOnly: false,
       },
@@ -41,11 +43,13 @@ export class DeviceEnvInfoService {
   async viewEnvInfo(
     deviceType: DeviceType,
     envInfo: Record<string, string>,
+    subType?: string,
   ): Promise<void> {
     const modal = await this.modalController.create({
       component: DeviceEnvInfoModalComponent,
       componentProps: {
         deviceType,
+        subType,
         prefillData: envInfo,
         readOnly: true,
       },

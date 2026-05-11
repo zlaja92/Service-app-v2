@@ -37,21 +37,28 @@ export class PartDetailService implements Clearable {
 
     try {
       const doc = await this.firestoreService.getTenantDocument<PriceDoc>('priceList', partCode);
-      const currency = this.configStore.config()?.business?.currency ?? 'EUR';
+      const business = this.configStore.config()?.business;
+      const currency = business?.currency ?? 'EUR';
+      const exchangeRate = business?.exchangeRate ?? 1;
       const showPhoto = this.configStore.isFeatureEnabled('partPhoto');
 
       let photoUrl = '';
       if (showPhoto) {
-        const folder = this.configStore.config()?.business?.partPhotoFolder ?? '';
+        const folder = business?.partPhotoFolder ?? '';
         if (folder) {
           photoUrl = await this.storageService.resolveFileUrl(folder, partCode, ['png', 'jpg', 'jpeg']);
         }
       }
 
+      const rawPrice = doc?.Price;
+      const convertedPrice = typeof rawPrice === 'number'
+        ? Math.round(rawPrice * exchangeRate * 100) / 100
+        : null;
+
       const detail: PartDetail = {
         partCode,
         name: partName,
-        price: doc?.Price ?? null,
+        price: convertedPrice,
         currency,
         showPhoto,
         photoUrl,

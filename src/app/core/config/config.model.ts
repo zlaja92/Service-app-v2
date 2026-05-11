@@ -46,6 +46,7 @@ export interface LocalizationConfig {
 export interface BusinessConfig {
   maxPartsPerIntervention: number;
   currency: string;
+  exchangeRate: number;
   partNote: string;
   partPhotoFolder: string;
   snModelStart: number;
@@ -100,6 +101,7 @@ export function getDefaultConfig(): AppConfig {
     business: {
       maxPartsPerIntervention: 4,
       currency: 'EUR',
+      exchangeRate: 1,
       partNote: '',
       partPhotoFolder: '',
       snModelStart: 0,

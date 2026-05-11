@@ -135,7 +135,7 @@ export class AddDevicePage implements ViewWillEnter {
     }
 
     if (requiresEnvInfo(device.type)) {
-      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, null);
+      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, null, device.subType);
       if (!envInfo) return;
       data['envInfo'] = envInfo;
     } else {

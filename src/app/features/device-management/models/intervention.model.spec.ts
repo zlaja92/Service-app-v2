@@ -18,7 +18,7 @@ describe('InterventionType enum', () => {
   it('should define all 5 intervention types with correct values', () => {
     expect(InterventionType.COMMISSIONING).toBe('commissioning');
     expect(InterventionType.ANNUAL_SERVICE).toBe('annual_service');
-    expect(InterventionType.INTERVENTION_REPAIR).toBe('intervention_repair');
+    expect(InterventionType.INTERVENTION_REPAIR).toBe('interventionRepair');
     expect(InterventionType.INTERVENTION_NOISE).toBe('intervention_noise');
     expect(InterventionType.INTERVENTION_REPLACE).toBe('intervention_replace');
   });
@@ -32,7 +32,7 @@ describe('InterventionType enum', () => {
   const interventionTypeCases: Array<[keyof typeof InterventionType, string]> = [
     ['COMMISSIONING', 'commissioning'],
     ['ANNUAL_SERVICE', 'annual_service'],
-    ['INTERVENTION_REPAIR', 'intervention_repair'],
+    ['INTERVENTION_REPAIR', 'interventionRepair'],
     ['INTERVENTION_NOISE', 'intervention_noise'],
     ['INTERVENTION_REPLACE', 'intervention_replace'],
   ];

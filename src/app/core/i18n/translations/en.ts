@@ -273,6 +273,9 @@ export const en: Translation = {
   add_user_success: 'User saved successfully',
   add_user_error: 'Failed to save user',
   add_user_validation_message: 'Please fill in required fields: {{fields}}',
+  common_warning_understood: 'Understood',
+  common_warning_title: 'Warning',
+  device_detail_commissioning_required_message: 'User data has been saved, but the device has not been commissioned yet. Please complete the commissioning.',
 
   cart_title: 'Cart',
   cart_empty: 'Your cart is empty.',
@@ -429,6 +432,7 @@ export const en: Translation = {
   connected_device_found: 'Found',
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_already_registered: 'Connected device is already registered',
+  connected_device_sn_too_short: 'Connected device serial number is too short ({{min}} characters required)',
   loading_please_wait: 'Please wait...',
 
   // ─── Order Email ──────────────────────────────────────────────────
@@ -454,6 +458,7 @@ export const en: Translation = {
   photo_no_photos_cancel: 'No',
   photo_no_photos_continue: 'Yes',
   photo_desc_gas_boiler_repair: '- Upload heater photo\n- Upload replaced part\n- Upload device',
+  photo_desc_boiler_repair: 'Add photos of installed spare parts',
   photo_desc_commissioning: '- Upload nameplate photo\n- Upload device photo',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────

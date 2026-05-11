@@ -141,7 +141,7 @@ describe('InterventionDetailPage', () => {
 
   it('TC-IDP-01: ionViewWillEnter sets sn from route paramMap', async () => {
     mockInterventionService.getInterventionById.and.resolveTo({
-      interventionType: 'intervention_repair',
+      interventionType: 'interventionRepair',
     });
     setup({ sn: 'SN999', id: 'some-id' });
 
@@ -220,7 +220,7 @@ describe('InterventionDetailPage', () => {
 
   it('TC-IDP-07: buildDisplayFields returns only fields present in data, preserving display order', async () => {
     mockInterventionService.getInterventionById.and.resolveTo({
-      interventionType: 'intervention_repair',
+      interventionType: 'interventionRepair',
       callAccepted: true,
       addedBy: 'admin@test.com',
     });
@@ -280,7 +280,7 @@ describe('InterventionDetailPage', () => {
   it('TC-IDP-10: interventionType field rawValue is resolved via getInterventionLabel', async () => {
     mockInterventionService.getInterventionLabel.and.returnValue('intervention_type_repair_gas_boiler');
     mockInterventionService.getInterventionById.and.resolveTo({
-      interventionType: 'intervention_repair',
+      interventionType: 'interventionRepair',
     });
     setup({ sn: 'SN001', id: 'int-4' });
 
@@ -291,7 +291,7 @@ describe('InterventionDetailPage', () => {
 
     expect(mockInterventionService.getInterventionLabel).toHaveBeenCalledWith(
       DeviceType.GAS_BOILER,
-      'intervention_repair',
+      'interventionRepair',
     );
     expect(typeField?.rawValue).toBe('intervention_type_repair_gas_boiler');
   });
@@ -630,7 +630,7 @@ describe('InterventionDetailPage', () => {
 
   describe('buildDisplayFields() — per intervention type', () => {
     const interventionTypes = [
-      'intervention_repair',
+      'interventionRepair',
       'intervention_noise',
       'intervention_replace',
       'commissioning',

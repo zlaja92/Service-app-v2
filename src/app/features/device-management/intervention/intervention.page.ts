@@ -75,8 +75,8 @@ export class InterventionPage implements ViewWillEnter {
   protected readonly todayFormatted = this.formatToday();
 
   protected interventionTypes: InterventionTypeOption[] = [];
-  protected faultDescriptions: string[] = [];
-  protected errorCodes: string[] = [];
+  protected faultDescriptions: { key: string; label: string }[] = [];
+  protected errorCodes: { key: string; label: string }[] = [];
   protected photoRequirement: PhotoRequirement | null = null;
 
   protected form = new FormGroup({
@@ -112,8 +112,10 @@ export class InterventionPage implements ViewWillEnter {
     this.interventionTypes = INTERVENTION_OPTIONS[device.type] ?? [];
 
     const config = this.configStore.config();
-    this.faultDescriptions = config?.interventionFaultOptions?.[device.type] ?? [];
-    this.errorCodes = config?.interventionErrorOptions?.[device.type] ?? [];
+    this.faultDescriptions = (config?.interventionFaultOptions?.[device.type] ?? [])
+      .map(key => ({ key, label: this.transloco.translate(key) }));
+    this.errorCodes = (config?.interventionErrorOptions?.[device.type] ?? [])
+      .map(key => ({ key, label: this.transloco.translate(key) }));
     this.photoRequirement = null;
     this.photoService.clear();
     this.resetForm();
@@ -147,7 +149,8 @@ export class InterventionPage implements ViewWillEnter {
 
   updatePhotoRequirement(): void {
     const intType = this.form.controls.interventionType.value;
-    if (!this.deviceType || !intType) {
+    const warranty = this.form.controls.warrantyStatus.value;
+    if (!this.deviceType || !intType || warranty === 'out-of-warranty') {
       this.photoRequirement = null;
       return;
     }
@@ -204,7 +207,7 @@ export class InterventionPage implements ViewWillEnter {
       await this.loadingAlert.show();
       const prefill = await this.envInfoService.getLastEnvInfo(this.sn, device.type);
       await this.loadingAlert.hide();
-      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill);
+      const envInfo = await this.envInfoService.collectEnvInfo(device.type, this.sn, prefill, device.subType);
       if (!envInfo) return;
       data['envInfo'] = envInfo;
     } else {
@@ -335,7 +338,7 @@ export class InterventionPage implements ViewWillEnter {
       warrantyStatus: '',
       interventionType: '',
       description: '',
-      error: this.errorCodes[0] ?? '',
+      error: this.errorCodes[0]?.key ?? '',
       distance: DEFAULT_DISTANCE,
       note: '',
     });

@@ -29,7 +29,7 @@ export const HIDDEN_FIELDS = ['sn', 'deviceCode', 'deviceName', 'deviceType', 'e
 export enum InterventionType {
   COMMISSIONING = 'commissioning',
   ANNUAL_SERVICE = 'annual_service',
-  INTERVENTION_REPAIR = 'intervention_repair',
+  INTERVENTION_REPAIR = 'interventionRepair',
   INTERVENTION_NOISE = 'intervention_noise',
   INTERVENTION_REPLACE = 'intervention_replace',
 }

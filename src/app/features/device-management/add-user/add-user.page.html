@@ -20,27 +20,27 @@
       <form [formGroup]="form">
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_first_name' | transloco }}</ion-label>
-          <ion-input formControlName="firstName" />
+          <ion-input formControlName="firstName" autocapitalize="words" />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_last_name' | transloco }}</ion-label>
-          <ion-input formControlName="lastName" />
+          <ion-input formControlName="lastName" autocapitalize="words" />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_street' | transloco }}</ion-label>
-          <ion-input formControlName="streetName" />
+          <ion-input formControlName="streetName" autocapitalize="words" />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_house_number' | transloco }}</ion-label>
-          <ion-input formControlName="homeNumber" />
+          <ion-input formControlName="homeNumber" autocapitalize="characters" />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_city' | transloco }}</ion-label>
-          <ion-input formControlName="city" />
+          <ion-input formControlName="city" autocapitalize="words" />
         </ion-item>
 
         <ion-item>
@@ -55,7 +55,8 @@
 
         <ion-item>
           <ion-label position="stacked">{{ 'add_user_warranty' | transloco }}</ion-label>
-          <ion-select formControlName="warrantyStatus" interface="action-sheet">
+          <ion-select formControlName="warrantyStatus" interface="action-sheet"
+                      (ionChange)="form.controls.dateOfPurchase.setValue('')">
             <ion-select-option value="in-warranty">
               {{ 'add_user_in_warranty' | transloco }}
             </ion-select-option>
@@ -66,10 +67,13 @@
         </ion-item>
 
         @if (showDateOfPurchase) {
-          <ion-item button="true" (click)="openDatePicker()">
+          <ion-item button="true" detail="true" class="date-pick-item"
+                    (click)="openDatePicker()">
             <ion-label position="stacked">{{ 'add_user_date_of_purchase' | transloco }}</ion-label>
-            <ion-input readonly [value]="form.get('dateOfPurchase')?.value"
-                       [placeholder]="'add_user_select_date' | transloco" />
+            <div class="date-pick-value"
+                 [class.placeholder]="!form.get('dateOfPurchase')?.value">
+              {{ form.get('dateOfPurchase')?.value || ('add_user_select_date' | transloco) }}
+            </div>
           </ion-item>
         }
       </form>

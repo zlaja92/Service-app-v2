@@ -25,6 +25,7 @@ import { InterventionService } from '../services/intervention.service';
 import { InterventionType } from '../models/intervention.model';
 import { AnnualServiceEligibilityService } from '../services/annual-service-eligibility.service';
 import { ConfigStore } from '../../../core/config/config.store';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 import { Device } from '../../../shared/models/device.model';
 
 @Component({
@@ -50,6 +51,7 @@ export class DeviceDetailPage implements ViewWillEnter {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
+  private confirmService = inject(ConfirmService);
   private transloco = inject(TranslocoService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -107,6 +109,19 @@ export class DeviceDetailPage implements ViewWillEnter {
 
     this.isInitializing = false;
     this.cdr.markForCheck();
+
+    if (this.needsCommissioning) {
+      void this.confirmService.warn('device_detail_commissioning_required_message');
+    }
+  }
+
+  get needsCommissioning(): boolean {
+    const device = this.lookupService.device;
+    if (!device) return false;
+    const warrantyStatus = this.registrationService.userData?.['warrantyStatus'];
+    return device.commissioning === true
+      && !this.isCommissioningDone
+      && warrantyStatus === 'in-warranty';
   }
 
   private async checkCommissioningDone(deviceType: string): Promise<void> {
@@ -168,6 +183,15 @@ export class DeviceDetailPage implements ViewWillEnter {
 
     if (!sn) {
       await this.showToast(this.transloco.translate('connected_device_sn_placeholder'), 'warning');
+      return false;
+    }
+
+    const minLength = this.configStore.business()?.snMinLength ?? 0;
+    if (sn.length < minLength) {
+      await this.showToast(
+        this.transloco.translate('connected_device_sn_too_short', { min: minLength }),
+        'warning',
+      );
       return false;
     }
 

@@ -9,16 +9,27 @@ ion-card-content ion-item {
 ion-select {
   width: 100%;
   max-width: 100%;
-  justify-content: space-between;
-
-  &::part(icon) {
-    position: absolute;
-    right: 0;
-  }
 }
 
 .save-button {
   margin-top: 10pt;
   margin-bottom: 50pt;
   height: 35pt;
+}
+
+ion-item.date-pick-item {
+  .date-pick-value {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 8px 0;
+    color: var(--ion-text-color);
+
+    &.placeholder {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  &::part(detail-icon) {
+    align-self: center;
+  }
 }
