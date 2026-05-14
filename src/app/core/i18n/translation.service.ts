@@ -71,6 +71,11 @@ export class TranslationService {
       const remoteLanguages = Object.keys(remoteVersions);
       const localVersions = await this.cacheService.getCachedVersions();
 
+      this.logger.info('[DEBUG] Translation version check', {
+        remoteVersions: JSON.stringify(remoteVersions),
+        localVersions: JSON.stringify(localVersions),
+      });
+
       // Update available languages
       this.availableLanguages.set(remoteLanguages);
       this.translocoService.setAvailableLangs(remoteLanguages);
@@ -105,11 +110,20 @@ export class TranslationService {
         );
 
         if (translation) {
+          this.logger.info('[DEBUG] Downloaded translation', {
+            lang,
+            keyCount: Object.keys(translation).length,
+            hasPartNoteKey: 'part_note_price_disclaimer' in translation,
+            partNoteValue: (translation as Record<string, unknown>)['part_note_price_disclaimer'],
+          });
+
           await this.cacheService.cacheTranslation(lang, translation);
           await this.cacheService.cacheVersion(lang, remoteVersion);
 
           // Update Transloco's internal cache
           this.translocoService.setTranslation(translation, lang);
+        } else {
+          this.logger.warn('[DEBUG] Translation document is null/empty', { lang });
         }
       }
 

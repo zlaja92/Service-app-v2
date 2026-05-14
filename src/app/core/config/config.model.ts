@@ -60,7 +60,7 @@ export interface BusinessConfig {
   interventionCollections: Record<string, string>;
   photoQuality: number;
   photoMaxWidth: number;
-  orderEmailRecipients: Record<string, string>;
+  orderEmailRecipients: Record<string, string | string[]>;
 }
 
 export function getDefaultFeatures(): FeatureFlags {

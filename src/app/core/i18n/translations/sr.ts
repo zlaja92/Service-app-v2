@@ -50,6 +50,7 @@ export const sr: Translation = {
   part_detail_price_unavailable: 'Cena nije dostupna',
   part_detail_add_to_cart: 'Dodaj u korpu',
   part_detail_close: 'Zatvori',
+  part_note_price_disclaimer: '*Cene su informativnog karaktera.',
 
   device_info_title: 'Detalji uređaja',
   device_info_code: 'Kod modela',
@@ -459,7 +460,10 @@ export const sr: Translation = {
   photo_no_photos_continue: 'Da',
   photo_desc_gas_boiler_repair: '- Unesite sliku grejača\n- Unesite zamenjeni deo\n- Unesite uređaj',
   photo_desc_boiler_repair: 'Dodati slike izgrađenih rezervnih delova',
+  photo_desc_boiler_replace: 'Dodati slike dokaza o kupovini uređaja i mesta curenja bojlera',
   photo_desc_commissioning: '- Unesite sliku natpisne ploče\n- Unesite sliku uređaja',
+  photo_desc_heat_pump_commissioning: 'Dodati sliku ako uređaj nije instaliran po upustvu proizvođača',
+  photo_desc_heat_pump_repair: 'Dodati slike izgrađenih rezervnih delova',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────
   fault_boiler_no_heat_light_on: 'NE GREJE, SIJA SIJALICA',

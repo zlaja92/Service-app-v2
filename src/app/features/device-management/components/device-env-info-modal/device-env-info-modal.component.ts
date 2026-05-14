@@ -109,18 +109,17 @@ export class DeviceEnvInfoModalComponent implements OnInit {
     const value = this.form.getRawValue();
     for (const field of this.allFields) {
       if (!value[field.key] || value[field.key].trim() === '') {
-        void this.showToast(this.transloco.translate('env_info_validation_required'), 'warning');
+        void this.showToast(this.transloco.translate('env_info_validation_required'));
         return false;
       }
     }
     return true;
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();

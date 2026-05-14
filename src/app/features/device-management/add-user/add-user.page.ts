@@ -202,10 +202,10 @@ export class AddUserPage implements ViewWillEnter {
     });
 
     if (success) {
-      void this.showToast(this.transloco.translate('add_user_success'), 'success');
+      void this.showToast(this.transloco.translate('add_user_success'));
       void this.router.navigate(['/device-management', this.sn]);
     } else {
-      void this.showToast(this.transloco.translate('add_user_error'), 'danger');
+      void this.showToast(this.transloco.translate('add_user_error'));
     }
   }
 
@@ -226,7 +226,6 @@ export class AddUserPage implements ViewWillEnter {
     if (missing.length > 0) {
       void this.showToast(
         this.transloco.translate('add_user_validation_message', { fields: missing.join(', ') }),
-        'warning',
       );
       return false;
     }
@@ -234,11 +233,10 @@ export class AddUserPage implements ViewWillEnter {
     return true;
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();

@@ -153,7 +153,6 @@ export class InterventionHistoryPage implements ViewWillEnter {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color: 'warning',
       position: 'bottom',
     });
     await toast.present();

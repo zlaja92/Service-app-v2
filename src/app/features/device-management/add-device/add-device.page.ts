@@ -164,11 +164,11 @@ export class AddDevicePage implements ViewWillEnter {
       this.photoService.clear();
       void this.router.navigate(['/device-management', this.sn]).then(() => {
         void this.loadingAlert.hide();
-        void this.showToast(this.transloco.translate('commissioning_success'), 'success');
+        void this.showToast(this.transloco.translate('commissioning_success'));
       });
     } else {
       await this.loadingAlert.hide();
-      void this.showToast(this.transloco.translate('commissioning_error'), 'danger');
+      void this.showToast(this.transloco.translate('commissioning_error'));
     }
   }
 
@@ -200,7 +200,6 @@ export class AddDevicePage implements ViewWillEnter {
     if (missing.length > 0) {
       void this.showToast(
         this.transloco.translate('commissioning_validation_message', { fields: missing.join(', ') }),
-        'warning',
       );
       return false;
     }
@@ -208,7 +207,6 @@ export class AddDevicePage implements ViewWillEnter {
     if (this.form.controls.installerPhoneNumber.hasError('minlength')) {
       void this.showToast(
         this.transloco.translate('commissioning_validation_phone_min_length'),
-        'warning',
       );
       return false;
     }
@@ -220,7 +218,6 @@ export class AddDevicePage implements ViewWillEnter {
         this.transloco.translate('intervention_validation_photos_required', {
           required: this.photoRequirement.requiredPhotos,
         }),
-        'warning',
       );
       return false;
     }
@@ -276,11 +273,10 @@ export class AddDevicePage implements ViewWillEnter {
     return isNaN(date.getTime()) ? null : date;
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();

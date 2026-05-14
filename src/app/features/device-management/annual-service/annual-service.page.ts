@@ -83,7 +83,7 @@ export class AnnualServicePage implements ViewWillEnter {
         sn: this.sn,
         deviceType: device.type,
       });
-      void this.showToast(this.transloco.translate('annual_service_no_type'), 'warning');
+      void this.showToast(this.transloco.translate('annual_service_no_type'));
     }
 
     this.resetForm();
@@ -122,7 +122,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     if (!docId) {
       await this.loadingAlert.hide();
-      await this.showToast(this.transloco.translate('annual_service_save_error'), 'danger');
+      await this.showToast(this.transloco.translate('annual_service_save_error'));
       return;
     }
 
@@ -130,7 +130,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     void this.router.navigate(['/device-management', this.sn]).then(() => {
       void this.loadingAlert.hide();
-      void this.showToast(this.transloco.translate('annual_service_save_success'), 'success');
+      void this.showToast(this.transloco.translate('annual_service_save_success'));
     });
   }
 
@@ -146,7 +146,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     if (!connectedDevice) {
       this.logger.warn('AnnualServicePage: connected device not found', { connectedSn });
-      await this.showToast(this.transloco.translate('annual_service_connected_not_found'), 'warning');
+      await this.showToast(this.transloco.translate('annual_service_connected_not_found'));
       return;
     }
 
@@ -160,7 +160,6 @@ export class AnnualServicePage implements ViewWillEnter {
     if (value.callAccepted == null) {
       void this.showToast(
         this.transloco.translate('annual_service_validation_call_accepted'),
-        'warning',
       );
       return false;
     }
@@ -177,11 +176,10 @@ export class AnnualServicePage implements ViewWillEnter {
     );
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();

@@ -10,7 +10,8 @@
 <ion-content>
   <div class="logo-section">
     @if (configStore.logoDataUrl(); as logo) {
-      <img [src]="logo" [alt]="configStore.appTitle()" />
+      <img [src]="logo" [alt]="configStore.appTitle()"
+           (load)="onLogoLoaded()" (error)="onLogoError()" />
     } @else {
       <ion-skeleton-text [animated]="true" class="logo-skeleton" />
     }

@@ -21,6 +21,7 @@ import {
   CapacitorBarcodeScanner,
   CapacitorBarcodeScannerTypeHintALLOption,
 } from '@capacitor/barcode-scanner';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 @Component({
   selector: 'app-home',
@@ -44,9 +45,26 @@ export class HomePage {
   private translocoService = inject(TranslocoService);
 
   snInput = '';
+  private splashHidden = false;
 
   constructor() {
     addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline });
+  }
+
+  /** Pozove se kad img.onload fire-uje — logo je vidljiv, splash može da nestane. */
+  protected onLogoLoaded(): void {
+    this.hideSplash();
+  }
+
+  /** Fallback ako img.onerror — ne čekamo, sakrij splash da korisnik ne ostane na splash-u. */
+  protected onLogoError(): void {
+    this.hideSplash();
+  }
+
+  private hideSplash(): void {
+    if (this.splashHidden) return;
+    this.splashHidden = true;
+    void SplashScreen.hide();
   }
 
   async searchBySn(): Promise<void> {

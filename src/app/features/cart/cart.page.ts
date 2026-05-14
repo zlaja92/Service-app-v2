@@ -96,10 +96,13 @@ export class CartPage {
     this.logger.info('Order email', { itemCount: items.length, total });
 
     const recipients = this.configStore.business()?.orderEmailRecipients ?? {};
-    const toEmail = ctx.deviceType ? recipients[ctx.deviceType] ?? '' : '';
+    const raw = ctx.deviceType ? recipients[ctx.deviceType] : undefined;
+    const toEmails = Array.isArray(raw)
+      ? raw.filter(e => typeof e === 'string' && e.trim() !== '')
+      : (typeof raw === 'string' && raw.trim() !== '' ? [raw] : []);
 
     await EmailComposer.open({
-      to: toEmail ? [toEmail] : [],
+      to: toEmails,
       subject: this.transloco.translate('order_email_subject'),
       body,
       isHtml: false,

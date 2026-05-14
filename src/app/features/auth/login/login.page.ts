@@ -8,6 +8,7 @@ import {
 import { addIcons } from 'ionicons';
 import { alertCircleOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { ConfigStore } from '../../../core/config/config.store';
@@ -48,6 +49,7 @@ export class LoginPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.menuCtrl.enable(false);
+    void SplashScreen.hide();
   }
 
   ngOnDestroy(): void {

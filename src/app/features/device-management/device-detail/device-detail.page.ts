@@ -162,7 +162,7 @@ export class DeviceDetailPage implements ViewWillEnter {
       const code = (error as { code?: string })?.code ?? '';
       if (code === 'OS-PLUG-BARC-0006') return;
 
-      await this.showToast(this.transloco.translate('home_scan_error'), 'danger');
+      await this.showToast(this.transloco.translate('home_scan_error'));
     }
   }
 
@@ -182,7 +182,7 @@ export class DeviceDetailPage implements ViewWillEnter {
     const sn = this.connectedSnInput.trim();
 
     if (!sn) {
-      await this.showToast(this.transloco.translate('connected_device_sn_placeholder'), 'warning');
+      await this.showToast(this.transloco.translate('connected_device_sn_placeholder'));
       return false;
     }
 
@@ -190,7 +190,6 @@ export class DeviceDetailPage implements ViewWillEnter {
     if (sn.length < minLength) {
       await this.showToast(
         this.transloco.translate('connected_device_sn_too_short', { min: minLength }),
-        'warning',
       );
       return false;
     }
@@ -201,36 +200,36 @@ export class DeviceDetailPage implements ViewWillEnter {
       const device = await this.lookupConnectedDevice(sn);
 
       if (!device) {
-        await this.showToast(this.transloco.translate('connected_device_not_found'), 'danger');
+        await this.showToast(this.transloco.translate('connected_device_not_found'));
         return false;
       }
 
       if (!device.connectedDevice) {
-        await this.showToast(this.transloco.translate('connected_device_no_connected_flag'), 'danger');
+        await this.showToast(this.transloco.translate('connected_device_no_connected_flag'));
         return false;
       }
 
       if (device.type !== this.lookupService.device?.type) {
-        await this.showToast(this.transloco.translate('connected_device_wrong_type'), 'danger');
+        await this.showToast(this.transloco.translate('connected_device_wrong_type'));
         return false;
       }
 
       if (device.code === this.lookupService.device?.code) {
-        await this.showToast(this.transloco.translate('connected_device_same_model'), 'danger');
+        await this.showToast(this.transloco.translate('connected_device_same_model'));
         return false;
       }
 
       const existingRegistration = await this.interventionService.getRegistration(sn);
 
       if (existingRegistration) {
-        await this.showToast(this.transloco.translate('connected_device_already_registered'), 'danger');
+        await this.showToast(this.transloco.translate('connected_device_already_registered'));
         return false;
       }
 
       this.connectedSn = sn;
       return true;
     } catch {
-      await this.showToast(this.transloco.translate('connected_device_not_found'), 'danger');
+      await this.showToast(this.transloco.translate('connected_device_not_found'));
       return false;
     } finally {
       this.isSearchingConnected = false;
@@ -241,11 +240,10 @@ export class DeviceDetailPage implements ViewWillEnter {
     return this.lookupService.lookupSilent(sn);
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();

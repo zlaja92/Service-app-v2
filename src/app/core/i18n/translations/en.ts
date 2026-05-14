@@ -50,6 +50,7 @@ export const en: Translation = {
   part_detail_price_unavailable: 'Price not available',
   part_detail_add_to_cart: 'Add to Cart',
   part_detail_close: 'Close',
+  part_note_price_disclaimer: '*Prices are for reference only.',
 
   device_info_title: 'Device Details',
   device_info_code: 'Model Code',
@@ -459,7 +460,10 @@ export const en: Translation = {
   photo_no_photos_continue: 'Yes',
   photo_desc_gas_boiler_repair: '- Upload heater photo\n- Upload replaced part\n- Upload device',
   photo_desc_boiler_repair: 'Add photos of installed spare parts',
+  photo_desc_boiler_replace: 'Add photos as proof of purchase of the device and the location of the boiler leak',
   photo_desc_commissioning: '- Upload nameplate photo\n- Upload device photo',
+  photo_desc_heat_pump_commissioning: 'Add a photo if the device is not installed according to the manufacturer\'s instructions',
+  photo_desc_heat_pump_repair: 'Add photos of installed spare parts',
 
   // ─── Fault descriptions: BOILER ────────────────────────────────────
   fault_boiler_no_heat_light_on: 'NOT HEATING, LIGHT IS ON',

@@ -6,8 +6,10 @@ const config: CapacitorConfig = {
   webDir: 'www',
   plugins: {
     SplashScreen: {
-      launchAutoHide: false,
+      launchAutoHide: true,        // auto-hide kao fallback ako app pukne ili zaboravi hide()
+      launchShowDuration: 30000,   // 30s — maksimum (app ga obično sakrije ranije ručno)
       showSpinner: true,
+      androidScaleType: 'CENTER_INSIDE',
     },
     Keyboard: {
       resize: 'body',

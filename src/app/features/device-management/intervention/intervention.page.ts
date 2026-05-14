@@ -227,13 +227,12 @@ export class InterventionPage implements ViewWillEnter {
       this.photoService.clear();
       void this.router.navigate(['/device-management', this.sn]).then(() => {
         void this.loadingAlert.hide();
-        void this.showToast(this.transloco.translate('intervention_save_success'), 'success');
+        void this.showToast(this.transloco.translate('intervention_save_success'));
       });
     } else {
       await this.loadingAlert.hide();
       await this.showToast(
         this.transloco.translate('intervention_save_error'),
-        'danger',
       );
     }
   }
@@ -246,7 +245,6 @@ export class InterventionPage implements ViewWillEnter {
     if (!warrantyStatus) {
       void this.showToast(
         this.transloco.translate('intervention_validation_warranty'),
-        'warning',
       );
       return;
     }
@@ -272,7 +270,6 @@ export class InterventionPage implements ViewWillEnter {
     if (!value.warrantyStatus) {
       void this.showToast(
         this.transloco.translate('intervention_validation_warranty'),
-        'warning',
       );
       return false;
     }
@@ -280,7 +277,6 @@ export class InterventionPage implements ViewWillEnter {
     if (!value.interventionType) {
       void this.showToast(
         this.transloco.translate('intervention_validation_type'),
-        'warning',
       );
       return false;
     }
@@ -288,7 +284,6 @@ export class InterventionPage implements ViewWillEnter {
     if (!value.description) {
       void this.showToast(
         this.transloco.translate('intervention_validation_description'),
-        'warning',
       );
       return false;
     }
@@ -305,7 +300,6 @@ export class InterventionPage implements ViewWillEnter {
           this.transloco.translate('intervention_validation_photos_required', {
             required: totalRequired,
           }),
-          'warning',
         );
         return false;
       }
@@ -323,11 +317,10 @@ export class InterventionPage implements ViewWillEnter {
     );
   }
 
-  private async showToast(message: string, color: string): Promise<void> {
+  private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({
       message,
       duration: 3000,
-      color,
       position: 'bottom',
     });
     await toast.present();
