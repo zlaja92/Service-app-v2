@@ -55,8 +55,6 @@ export interface BusinessConfig {
   snMfgDateLength: number;
   snMinLength: number;
   snMaxLength: number;
-  userSearchPageSize: number;
-  userSearchMinLength: number;
   interventionCollections: Record<string, string>;
   photoQuality: number;
   photoMaxWidth: number;
@@ -110,8 +108,6 @@ export function getDefaultConfig(): AppConfig {
       snMfgDateLength: 5,
       snMinLength: 21,
       snMaxLength: 21,
-      userSearchPageSize: 20,
-      userSearchMinLength: 2,
       interventionCollections: { default: 'interventions' },
       photoQuality: 70,
       photoMaxWidth: 1280,

@@ -7,6 +7,7 @@ import {
 } from '@capacitor-firebase/firestore';
 import { TenantService } from '../tenant/tenant.service';
 import { LoggerService } from '../logger/logger.service';
+import { trimDeep } from '../../shared/utils/trim';
 
 export interface CollectionQueryResult<T> {
   documents: { id: string; path: string; data: T }[];
@@ -64,7 +65,7 @@ export class FirestoreService {
 
   async setDocument(reference: string, data: Record<string, unknown>): Promise<void> {
     this.logger.debug('Firestore setDocument', { reference });
-    await FirebaseFirestore.setDocument({ reference, data });
+    await FirebaseFirestore.setDocument({ reference, data: trimDeep(data) });
   }
 
   async setTenantDocument(
@@ -82,7 +83,7 @@ export class FirestoreService {
   ): Promise<string> {
     const reference = this.tenantService.getCollectionPath(collection);
     this.logger.debug('Firestore addTenantDocument', { reference });
-    const result = await FirebaseFirestore.addDocument({ reference, data });
+    const result = await FirebaseFirestore.addDocument({ reference, data: trimDeep(data) });
     return result.reference.id;
   }
 
@@ -121,7 +122,10 @@ export class FirestoreService {
    */
   async writeBatch(operations: WriteBatchOperation[]): Promise<void> {
     this.logger.debug('Firestore writeBatch', { operationCount: operations.length });
-    await FirebaseFirestore.writeBatch({ operations });
+    const trimmed = operations.map(op =>
+      op.data ? { ...op, data: trimDeep(op.data) } : op,
+    );
+    await FirebaseFirestore.writeBatch({ operations: trimmed });
   }
 
   /**
@@ -149,7 +153,7 @@ export class FirestoreService {
   ): Promise<string> {
     const reference = this.tenantService.getInterventionCollectionPath(deviceType);
     this.logger.debug('Firestore addInterventionDocument', { reference });
-    const result = await FirebaseFirestore.addDocument({ reference, data });
+    const result = await FirebaseFirestore.addDocument({ reference, data: trimDeep(data) });
     return result.reference.id;
   }
 

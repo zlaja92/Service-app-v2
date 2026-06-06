@@ -60,10 +60,14 @@ export class LoginPage implements OnInit, OnDestroy {
     if (this.loginForm.invalid) return;
 
     const { email, password } = this.loginForm.value;
+    // Normalize the email to match how Firebase Auth stores it (lowercase) and
+    // to drop accidental whitespace. The password is sent verbatim — it may
+    // legitimately contain spaces or mixed case.
+    const normalizedEmail = (email as string).trim().toLowerCase();
     this.authStore.setLoading(true);
 
     try {
-      const user = await this.authService.login(email, password);
+      const user = await this.authService.login(normalizedEmail, password);
       this.authStore.setUser(user);
 
       await this.sessionService.bootstrap();

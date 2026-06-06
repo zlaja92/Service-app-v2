@@ -28,6 +28,7 @@ export const sr: Translation = {
   home_search: 'Pretraži',
   home_scan_barcode: 'Skeniraj barkod',
   home_device_not_found: 'Uređaj nije pronađen u bazi',
+  home_sn_no_spaces: 'Serijski broj ne sme da sadrži razmake',
   home_documentation: 'Dokumentacija',
   home_search_by_device: 'Pretraži po nazivu uređaja',
   home_search_by_user: 'Pretraži po korisniku',
@@ -434,6 +435,7 @@ export const sr: Translation = {
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
   connected_device_sn_too_short: 'Serijski broj povezanog uređaja je prekratak (potrebno je {{min}} karaktera)',
+  connected_device_sn_no_spaces: 'Serijski broj ne sme da sadrži razmake',
   loading_please_wait: 'Molimo sačekajte...',
 
   // ─── Order Email ──────────────────────────────────────────────────

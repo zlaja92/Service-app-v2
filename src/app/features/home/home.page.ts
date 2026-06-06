@@ -22,6 +22,7 @@ import {
   CapacitorBarcodeScannerTypeHintALLOption,
 } from '@capacitor/barcode-scanner';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { stripWhitespace, hasWhitespace } from '../../shared/utils/trim';
 
 @Component({
   selector: 'app-home',
@@ -68,7 +69,20 @@ export class HomePage {
   }
 
   async searchBySn(): Promise<void> {
-    const sn = this.snInput.trim();
+    // A serial number must never contain whitespace. Manually typed input is
+    // validated (not silently stripped) so the user is told to fix it.
+    if (hasWhitespace(this.snInput)) {
+      const toast = await this.toastCtrl.create({
+        message: this.translocoService.translate('home_sn_no_spaces'),
+        duration: 3000,
+        color: 'warning',
+        position: 'bottom',
+      });
+      await toast.present();
+      return;
+    }
+
+    const sn = this.snInput;
     if (!sn) return;
 
     const device = await this.lookupService.lookup(sn);
@@ -93,7 +107,9 @@ export class HomePage {
       });
 
       if (result.ScanResult) {
-        this.snInput = result.ScanResult;
+        // Strip all whitespace from the scan before it lands in the field —
+        // barcode scans can inject spaces inside the serial number.
+        this.snInput = stripWhitespace(result.ScanResult);
       }
     } catch (error: unknown) {
       const code = (error as { code?: string })?.code ?? '';

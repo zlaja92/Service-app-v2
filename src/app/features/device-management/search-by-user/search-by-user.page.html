@@ -28,7 +28,7 @@
 
     <ion-button expand="block" fill="solid" color="primary" class="search-button"
                 (click)="onSearch()"
-                [disabled]="searchService.isLoading || (firstName.trim().length < configStore.business()!.userSearchMinLength && lastName.trim().length < configStore.business()!.userSearchMinLength)">
+                [disabled]="searchService.isLoading || (firstName.trim().length < searchService.minSearchLength && lastName.trim().length < searchService.minSearchLength)">
       @if (searchService.isLoading) {
         <ion-spinner name="crescent" slot="start" class="button-spinner" />
       } @else {

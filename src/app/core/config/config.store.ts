@@ -1,6 +1,8 @@
 import { computed } from '@angular/core';
 import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
-import { AppConfig, FeatureFlags, getDefaultConfig, getDefaultFeatures, getDefaultTheme } from './config.model';
+import { AppConfig, BusinessConfig, FeatureFlags, getDefaultConfig, getDefaultFeatures, getDefaultTheme } from './config.model';
+
+const DEFAULT_BUSINESS: BusinessConfig = getDefaultConfig().business;
 
 interface ConfigState {
   config: AppConfig | null;
@@ -27,7 +29,7 @@ export const ConfigStore = signalStore(
     theme: computed(() => state.config()?.theme ?? getDefaultTheme()),
     localization: computed(() => state.config()?.localization),
     appTitle: computed(() => state.config()?.theme?.appTitle ?? 'Ariston Service'),
-    business: computed(() => state.config()?.business),
+    business: computed(() => state.config()?.business ?? DEFAULT_BUSINESS),
   })),
 
   withMethods((store) => ({

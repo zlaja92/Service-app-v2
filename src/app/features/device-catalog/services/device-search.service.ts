@@ -4,6 +4,7 @@ import { TenantService } from '../../../core/tenant/tenant.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
 import { Device } from '../../../shared/models/device.model';
+import { toLatinUpperCase } from '../../../shared/utils/transliterate';
 import { QueryNonFilterConstraint } from '@capacitor-firebase/firestore';
 
 const PAGE_SIZE = 20;
@@ -32,7 +33,10 @@ export class DeviceSearchService implements Clearable {
   private lastDocumentPath: string | null = null;
 
   async search(term: string): Promise<void> {
-    const normalized = term.trim().toUpperCase();
+    // Canonicalize the term the same way device names/codes are stored: Cyrillic
+    // and Serbian-Latin diacritics are transliterated to plain Latin uppercase,
+    // so a user can type in any script/diacritics and still match.
+    const normalized = toLatinUpperCase(term.trim());
 
     if (normalized.length < MIN_SEARCH_LENGTH) {
       this.reset();
@@ -68,6 +72,17 @@ export class DeviceSearchService implements Clearable {
     this.isLoading = true;
 
     try {
+      // Scope to the device types the servicer may see — applied server-side so
+      // that `hasMore` and the page count are accurate and out-of-scope devices
+      // are never fetched. An empty `in` array is an invalid Firestore filter,
+      // so short-circuit to an empty result instead.
+      const allowedTypes = this.tenantService.getAllowedDeviceTypes();
+      if (allowedTypes.length === 0) {
+        this.hasMore = false;
+        this.logger.warn('Device search: no allowed device types for current servicer');
+        return;
+      }
+
       const queryConstraints: QueryNonFilterConstraint[] = [
         { type: 'limit', limit: PAGE_SIZE },
       ];
@@ -76,22 +91,29 @@ export class DeviceSearchService implements Clearable {
         queryConstraints.push({ type: 'startAfter', reference: this.lastDocumentPath });
       }
 
+      // deviceType in allowedTypes  AND  (deviceName prefix  OR  deviceCode prefix)
       const result = await this.firestoreService.queryTenantCollection<DeviceDoc>('devices', {
         compositeFilter: {
-          type: 'or',
+          type: 'and',
           queryConstraints: [
+            { type: 'where', fieldPath: 'deviceType', opStr: 'in', value: allowedTypes },
             {
-              type: 'and',
+              type: 'or',
               queryConstraints: [
-                { type: 'where', fieldPath: 'deviceName', opStr: '>=', value: this.searchTerm },
-                { type: 'where', fieldPath: 'deviceName', opStr: '<=', value: this.searchTerm + '\uf8ff' },
-              ],
-            },
-            {
-              type: 'and',
-              queryConstraints: [
-                { type: 'where', fieldPath: 'deviceCode', opStr: '>=', value: this.searchTerm },
-                { type: 'where', fieldPath: 'deviceCode', opStr: '<=', value: this.searchTerm + '\uf8ff' },
+                {
+                  type: 'and',
+                  queryConstraints: [
+                    { type: 'where', fieldPath: 'deviceName', opStr: '>=', value: this.searchTerm },
+                    { type: 'where', fieldPath: 'deviceName', opStr: '<=', value: this.searchTerm + '' },
+                  ],
+                },
+                {
+                  type: 'and',
+                  queryConstraints: [
+                    { type: 'where', fieldPath: 'deviceCode', opStr: '>=', value: this.searchTerm },
+                    { type: 'where', fieldPath: 'deviceCode', opStr: '<=', value: this.searchTerm + '' },
+                  ],
+                },
               ],
             },
           ],
@@ -104,11 +126,9 @@ export class DeviceSearchService implements Clearable {
       this.lastDocumentPath = result.lastDocumentPath;
       this.hasMore = result.documents.length === PAGE_SIZE;
 
-      const allowedTypes = this.tenantService.getAllowedDeviceTypes();
       const newDevices = result.documents
         .map((doc) => this.mapToDevice(doc.id, doc.data))
-        .filter((device): device is Device => device !== null)
-        .filter((device) => allowedTypes.includes(device.type));
+        .filter((device): device is Device => device !== null);
       this.devices = [...this.devices, ...newDevices];
 
       this.logger.debug('Device search results', {

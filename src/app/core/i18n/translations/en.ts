@@ -28,6 +28,7 @@ export const en: Translation = {
   home_search: 'Search',
   home_scan_barcode: 'Scan barcode',
   home_device_not_found: 'Device not found in database',
+  home_sn_no_spaces: 'Serial number must not contain spaces',
   home_documentation: 'Documentation',
   home_search_by_device: 'Search by device name',
   home_search_by_user: 'Search by user',
@@ -434,6 +435,7 @@ export const en: Translation = {
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_already_registered: 'Connected device is already registered',
   connected_device_sn_too_short: 'Connected device serial number is too short ({{min}} characters required)',
+  connected_device_sn_no_spaces: 'Connected device serial number must not contain spaces',
   loading_please_wait: 'Please wait...',
 
   // ─── Order Email ──────────────────────────────────────────────────

@@ -10,7 +10,6 @@ import {
 import { addIcons } from 'ionicons';
 import { searchOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
-import { ConfigStore } from '../../../core/config/config.store';
 import { UserSearchService } from '../services/user-search.service';
 
 @Component({
@@ -27,7 +26,6 @@ import { UserSearchService } from '../services/user-search.service';
 })
 export class SearchByUserPage implements ViewWillEnter, ViewDidLeave {
   protected searchService = inject(UserSearchService);
-  protected configStore = inject(ConfigStore);
   private router = inject(Router);
 
   protected firstName = '';

@@ -27,6 +27,7 @@ import { AnnualServiceEligibilityService } from '../services/annual-service-elig
 import { ConfigStore } from '../../../core/config/config.store';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { Device } from '../../../shared/models/device.model';
+import { stripWhitespace, hasWhitespace } from '../../../shared/utils/trim';
 
 @Component({
   selector: 'app-device-detail',
@@ -156,7 +157,9 @@ export class DeviceDetailPage implements ViewWillEnter {
       });
 
       if (result.ScanResult) {
-        this.connectedSnInput = result.ScanResult;
+        // Strip all whitespace from the scan — barcode scans can inject spaces
+        // inside the serial number.
+        this.connectedSnInput = stripWhitespace(result.ScanResult);
       }
     } catch (error: unknown) {
       const code = (error as { code?: string })?.code ?? '';
@@ -179,10 +182,17 @@ export class DeviceDetailPage implements ViewWillEnter {
   }
 
   private async validateConnectedDevice(): Promise<boolean> {
-    const sn = this.connectedSnInput.trim();
+    const sn = this.connectedSnInput;
 
-    if (!sn) {
+    if (!sn.trim()) {
       await this.showToast(this.transloco.translate('connected_device_sn_placeholder'));
+      return false;
+    }
+
+    // A serial number must never contain whitespace — validate manual input
+    // (the scan path already strips it) before the length check.
+    if (hasWhitespace(sn)) {
+      await this.showToast(this.transloco.translate('connected_device_sn_no_spaces'));
       return false;
     }
 

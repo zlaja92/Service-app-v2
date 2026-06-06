@@ -1,10 +1,25 @@
 import { Injectable, inject } from '@angular/core';
+import {
+  QueryFieldFilterConstraint,
+  QueryOrderByConstraint,
+} from '@capacitor-firebase/firestore';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Clearable } from '../../../core/session/clearable';
 import { toLatinUpperCase } from '../../../shared/utils/transliterate';
+
+/**
+ * Number of results fetched per page. Fixed application constant — deliberately
+ * not tenant-configurable, as it has no business reason to vary per tenant.
+ */
+const PAGE_SIZE = 20;
+
+/**
+ * Minimum number of characters before a name term participates as a filter.
+ * Fixed application constant — not tenant-configurable.
+ */
+const MIN_SEARCH_LENGTH = 2;
 
 export interface UserSearchResult {
   sn: string;
@@ -29,29 +44,36 @@ interface UserDoc {
   [key: string]: unknown;
 }
 
+/**
+ * Searches the tenant `users` collection by normalized first/last name prefixes.
+ *
+ * Names are matched against the `firstNameSrch` / `lastNameSrch` fields, which
+ * are written in canonical form (Latin uppercase, see {@link toLatinUpperCase}).
+ * A term matches as a prefix via the range `[term, term + '']`.
+ *
+ * Both fields are filtered in a SINGLE Firestore query using range/inequality
+ * filters on multiple fields (GA feature). This requires the composite index
+ * `deviceType ASC, firstNameSrch ASC, lastNameSrch ASC`; the first run without
+ * it throws `failed-precondition` with a console link to create it.
+ *
+ * Results are returned in Firestore order (no client re-sort) so that paging
+ * via `loadMore()` always appends — never inserts mid-list. Ordering leads with
+ * `firstNameSrch` whenever a first name is searched, otherwise `lastNameSrch`.
+ */
 @Injectable({ providedIn: 'root' })
 export class UserSearchService implements Clearable {
   private firestoreService = inject(FirestoreService);
   private tenantService = inject(TenantService);
-  private configStore = inject(ConfigStore);
   private logger = inject(LoggerService);
 
-  private get pageSize(): number {
-    return this.configStore.business()!.userSearchPageSize;
-  }
-
-  private get minSearchLength(): number {
-    return this.configStore.business()!.userSearchMinLength;
-  }
+  /** Minimum term length, exposed for the search form's validation. */
+  readonly minSearchLength = MIN_SEARCH_LENGTH;
 
   results: UserSearchResult[] = [];
   isLoading = false;
   hasMore = false;
 
-  private lastFirstNamePath: string | null = null;
-  private lastLastNamePath: string | null = null;
-  private hasMoreFirstName = false;
-  private hasMoreLastName = false;
+  private lastDocumentPath: string | null = null;
   private currentSearchId = 0;
   private firstNameTerm = '';
   private lastNameTerm = '';
@@ -60,18 +82,20 @@ export class UserSearchService implements Clearable {
     const firstNorm = toLatinUpperCase(firstName.trim());
     const lastNorm = toLatinUpperCase(lastName.trim());
 
-    if (firstNorm.length < this.minSearchLength && lastNorm.length < this.minSearchLength) {
+    // A term only participates as a filter once it meets the minimum length.
+    // Searching is aborted only when neither term qualifies.
+    const useFirst = firstNorm.length >= this.minSearchLength;
+    const useLast = lastNorm.length >= this.minSearchLength;
+
+    if (!useFirst && !useLast) {
       this.reset();
       return;
     }
 
-    this.firstNameTerm = firstNorm;
-    this.lastNameTerm = lastNorm;
+    this.firstNameTerm = useFirst ? firstNorm : '';
+    this.lastNameTerm = useLast ? lastNorm : '';
     this.results = [];
-    this.lastFirstNamePath = null;
-    this.lastLastNamePath = null;
-    this.hasMoreFirstName = false;
-    this.hasMoreLastName = false;
+    this.lastDocumentPath = null;
     this.currentSearchId++;
 
     await this.loadPage(this.currentSearchId);
@@ -90,13 +114,10 @@ export class UserSearchService implements Clearable {
     this.results = [];
     this.isLoading = false;
     this.hasMore = false;
-    this.hasMoreFirstName = false;
-    this.hasMoreLastName = false;
     this.firstNameTerm = '';
     this.lastNameTerm = '';
     this.currentSearchId++;
-    this.lastFirstNamePath = null;
-    this.lastLastNamePath = null;
+    this.lastDocumentPath = null;
   }
 
   private async loadPage(searchId: number): Promise<void> {
@@ -104,13 +125,25 @@ export class UserSearchService implements Clearable {
     const allowedTypes = this.tenantService.getAllowedDeviceTypes();
 
     try {
-      if (this.firstNameTerm && this.lastNameTerm) {
-        await this.searchBothFields(searchId, allowedTypes);
-      } else if (this.lastNameTerm) {
-        await this.searchSingleField(searchId, allowedTypes, 'lastNameSrch', this.lastNameTerm, 'lastName');
-      } else {
-        await this.searchSingleField(searchId, allowedTypes, 'firstNameSrch', this.firstNameTerm, 'firstName');
-      }
+      const result = await this.firestoreService.queryTenantCollection<UserDoc>('users', {
+        compositeFilter: {
+          type: 'and',
+          queryConstraints: this.buildFilters(allowedTypes),
+        },
+        queryConstraints: [
+          ...this.buildOrderBy(),
+          { type: 'limit', limit: PAGE_SIZE },
+          ...(this.lastDocumentPath
+            ? [{ type: 'startAfter' as const, reference: this.lastDocumentPath }]
+            : []),
+        ],
+      });
+
+      if (searchId !== this.currentSearchId) return;
+
+      this.lastDocumentPath = result.lastDocumentPath;
+      this.hasMore = result.documents.length === PAGE_SIZE;
+      this.appendResults(result.documents.map(doc => this.mapToResult(doc.data)));
     } catch (error) {
       if (searchId === this.currentSearchId) {
         this.logger.error('User search failed', { error: String(error) });
@@ -122,108 +155,55 @@ export class UserSearchService implements Clearable {
     }
   }
 
-  private async searchSingleField(
-    searchId: number,
-    allowedTypes: string[],
-    field: string,
-    term: string,
-    cursorType: 'firstName' | 'lastName',
-  ): Promise<void> {
-    const cursor = cursorType === 'firstName' ? this.lastFirstNamePath : this.lastLastNamePath;
+  /**
+   * Builds the AND filter set: device-type scoping plus a prefix range for each
+   * term that is active. Both name ranges in one query is the multi-field
+   * range/inequality query that replaces the old two-query client intersection.
+   */
+  private buildFilters(allowedTypes: string[]): QueryFieldFilterConstraint[] {
+    const filters: QueryFieldFilterConstraint[] = [
+      { type: 'where', fieldPath: 'deviceType', opStr: 'in', value: allowedTypes },
+    ];
 
-    const result = await this.firestoreService.queryTenantCollection<UserDoc>('users', {
-      compositeFilter: {
-        type: 'and',
-        queryConstraints: [
-          { type: 'where', fieldPath: 'deviceType', opStr: 'in', value: allowedTypes },
-          { type: 'where', fieldPath: field, opStr: '>=', value: term },
-          { type: 'where', fieldPath: field, opStr: '<=', value: term + '\uf8ff' },
-        ],
-      },
-      queryConstraints: [
-        { type: 'limit', limit: this.pageSize },
-        ...(cursor ? [{ type: 'startAfter' as const, reference: cursor }] : []),
-      ],
-    });
-
-    if (searchId !== this.currentSearchId) return;
-
-    if (cursorType === 'firstName') {
-      this.lastFirstNamePath = result.lastDocumentPath;
-      this.hasMoreFirstName = result.documents.length === this.pageSize;
-    } else {
-      this.lastLastNamePath = result.lastDocumentPath;
-      this.hasMoreLastName = result.documents.length === this.pageSize;
+    if (this.firstNameTerm) {
+      filters.push(
+        { type: 'where', fieldPath: 'firstNameSrch', opStr: '>=', value: this.firstNameTerm },
+        { type: 'where', fieldPath: 'firstNameSrch', opStr: '<=', value: this.firstNameTerm + '' },
+      );
     }
-    this.hasMore = this.hasMoreFirstName || this.hasMoreLastName;
 
-    const newResults = result.documents.map(doc => this.mapToResult(doc.data));
-    this.mergeResults(newResults);
+    if (this.lastNameTerm) {
+      filters.push(
+        { type: 'where', fieldPath: 'lastNameSrch', opStr: '>=', value: this.lastNameTerm },
+        { type: 'where', fieldPath: 'lastNameSrch', opStr: '<=', value: this.lastNameTerm + '' },
+      );
+    }
+
+    return filters;
   }
 
-  private async searchBothFields(
-    searchId: number,
-    allowedTypes: string[],
-  ): Promise<void> {
-    const [firstNameResult, lastNameResult] = await Promise.all([
-      this.firestoreService.queryTenantCollection<UserDoc>('users', {
-        compositeFilter: {
-          type: 'and',
-          queryConstraints: [
-            { type: 'where', fieldPath: 'deviceType', opStr: 'in', value: allowedTypes },
-            { type: 'where', fieldPath: 'firstNameSrch', opStr: '>=', value: this.firstNameTerm },
-            { type: 'where', fieldPath: 'firstNameSrch', opStr: '<=', value: this.firstNameTerm + '\uf8ff' },
-          ],
-        },
-        queryConstraints: [
-          { type: 'limit', limit: this.pageSize },
-          ...(this.lastFirstNamePath ? [{ type: 'startAfter' as const, reference: this.lastFirstNamePath }] : []),
-        ],
-      }),
-      this.firestoreService.queryTenantCollection<UserDoc>('users', {
-        compositeFilter: {
-          type: 'and',
-          queryConstraints: [
-            { type: 'where', fieldPath: 'deviceType', opStr: 'in', value: allowedTypes },
-            { type: 'where', fieldPath: 'lastNameSrch', opStr: '>=', value: this.lastNameTerm },
-            { type: 'where', fieldPath: 'lastNameSrch', opStr: '<=', value: this.lastNameTerm + '\uf8ff' },
-          ],
-        },
-        queryConstraints: [
-          { type: 'limit', limit: this.pageSize },
-          ...(this.lastLastNamePath ? [{ type: 'startAfter' as const, reference: this.lastLastNamePath }] : []),
-        ],
-      }),
-    ]);
-
-    if (searchId !== this.currentSearchId) return;
-
-    this.lastFirstNamePath = firstNameResult.lastDocumentPath;
-    this.lastLastNamePath = lastNameResult.lastDocumentPath;
-    this.hasMoreFirstName = firstNameResult.documents.length === this.pageSize;
-    this.hasMoreLastName = lastNameResult.documents.length === this.pageSize;
-    this.hasMore = this.hasMoreFirstName || this.hasMoreLastName;
-
-    // Intersection - only users that appear in both result sets
-    const firstNameSns = new Set(firstNameResult.documents.map(d => d.data.sn));
-    const intersection = lastNameResult.documents
-      .filter(d => firstNameSns.has(d.data.sn))
-      .map(d => this.mapToResult(d.data));
-
-    // Also check reverse - docs from firstName query that match lastName query
-    const lastNameSns = new Set(lastNameResult.documents.map(d => d.data.sn));
-    const fromFirstName = firstNameResult.documents
-      .filter(d => lastNameSns.has(d.data.sn) && !intersection.find(r => r.sn === d.data.sn))
-      .map(d => this.mapToResult(d.data));
-
-    this.mergeResults([...intersection, ...fromFirstName]);
+  /**
+   * Orders by the range fields (Firestore requires the inequality fields to lead
+   * the sort). First name leads whenever it is searched, so results sort by first
+   * name for first-name and combined searches, and by last name for last-name-only
+   * searches. Matching the query order to the displayed order keeps paging coherent.
+   */
+  private buildOrderBy(): QueryOrderByConstraint[] {
+    const orderBy: QueryOrderByConstraint[] = [];
+    if (this.firstNameTerm) {
+      orderBy.push({ type: 'orderBy', fieldPath: 'firstNameSrch', directionStr: 'asc' });
+    }
+    if (this.lastNameTerm) {
+      orderBy.push({ type: 'orderBy', fieldPath: 'lastNameSrch', directionStr: 'asc' });
+    }
+    return orderBy;
   }
 
-  private mergeResults(newResults: UserSearchResult[]): void {
+  /** Appends new results in Firestore order, skipping serial numbers already shown. */
+  private appendResults(newResults: UserSearchResult[]): void {
     const existingSns = new Set(this.results.map(r => r.sn));
     const unique = newResults.filter(r => !existingSns.has(r.sn));
-    this.results = [...this.results, ...unique]
-      .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
+    this.results = [...this.results, ...unique];
   }
 
   private mapToResult(data: UserDoc): UserSearchResult {
