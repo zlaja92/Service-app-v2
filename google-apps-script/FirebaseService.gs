@@ -6,6 +6,7 @@
  *   - FirebaseService.prod()  — instanca za produkcionu bazu (ariston-srb)
  *   - FirebaseService.test()  — instanca za test bazu (aristonboilersmk-af027)
  *   - FirebaseService.old()   — instanca za staru bazu (za migracije)
+ *   - FirebaseService.mk()    — instanca za MK bazu
  *   - FirebaseService.forProject(projectId, email, key) — custom instanca
  */
 
@@ -462,6 +463,7 @@ var FirebaseService = (function () {
   var prod_ = null;
   var test_ = null;
   var old_ = null;
+  var mk_ = null;
 
   // ── Module public API ────────────────────────────────────────────────
 
@@ -493,6 +495,14 @@ var FirebaseService = (function () {
         old_ = createInstance_(Config.getOldProjectId(), Config.getOldEmail(), Config.getOldKey());
       }
       return old_;
+    },
+
+    /** Vraca instancu za MK bazu. Kesira se. */
+    mk: function () {
+      if (!mk_) {
+        mk_ = createInstance_(Config.getMkProjectId(), Config.getMkEmail(), Config.getMkKey());
+      }
+      return mk_;
     }
   };
 })();

@@ -318,6 +318,1075 @@ function fixDeviceFields() {
   Logger.log("Zavrseno. Updateovano: " + success + ", Gresaka: " + errors);
 }
 
+// ── Migracija: intervencije bojlera (parametrizovano po tipu) ────────────
+
+/**
+ * Migracija tipa "BUKA-ZAMENA OBA GREJACA VLS" → intervention_noise (Radni_kod B899003 = in-warranty).
+ * Pokreni ovu funkciju iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ */
+function migrateBoilerInterventionsNoise() {
+  migrateBoilerInterventions_({
+    filterValue: "BUKA-ZAMENA OBA GREJACA VLS",
+    interventionType: "intervention_noise",
+    warrantyByCode: { "B899003": "in-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija tipa "ZAMENA ELEKTRIČNOG BOJLERA" → intervention_replace (Radni_kod C899001 = in-warranty).
+ * Pokreni ovu funkciju iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, najverovatnije se dijakritici razlikuju
+ * (npr. "ELEKTRICNOG" umesto "ELEKTRIČNOG") — proveri vrednost u izvornom dokumentu.
+ */
+function migrateBoilerInterventionsReplace() {
+  migrateBoilerInterventions_({
+    filterValue: "ZAMENA ELEKTRIČNOG BOJLERA",
+    interventionType: "intervention_replace",
+    warrantyByCode: { "C899001": "in-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija tipa "POPRAVKA ELEKTRIČNOG BOJLERA" → interventionRepair.
+ * Radni_kod B899001 = in-warranty, D899001 = out-of-warranty (oba poznata — bez log-a).
+ * Bilo koji drugi kod → out-of-warranty + log.
+ * Pokreni ovu funkciju iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike u izvornom dokumentu.
+ */
+function migrateBoilerInterventionsRepair() {
+  migrateBoilerInterventions_({
+    filterValue: "POPRAVKA ELEKTRIČNOG BOJLERA",
+    interventionType: "interventionRepair",
+    warrantyByCode: { "B899001": "in-warranty", "D899001": "out-of-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Cita intervencije iz stare root kolekcije `intervencije` (server-side filter
+ * Tip_intervencije == opts.filterValue), prepakuje polja u ciljni model i upisuje
+ * u tenants/arst-srb/int-boilers. Document ID se cuva (idempotentan re-run).
+ *
+ * Mapiranje polja (samo ova se upisuju — ostala izvorna se ignorisu):
+ *   sn                      ← Bar_code
+ *   addedBy                 ← Servisni_centar
+ *   addedDate               ← Datum (timestamp)
+ *   distance                ← Kilometraza
+ *   error                   ← Greska (preko ERROR_MAP; "BEZ GREŠKE" → error_no_error)
+ *   exported                ← Zaveden (boolean)
+ *   interventionDescription ← Opis_kvara (preko FAULT_MAP, boiler)
+ *   interventionType        = opts.interventionType (hardkodovano — filter garantuje tip)
+ *   note                    ← Komentar
+ *   warrantyStatus          ← Radni_kod (preko opts.warrantyByCode; nepoznat kod → out-of-warranty + log)
+ *   sparePart1..4           ← Sifra_rezervnog_dela_1..4 (samo NEPRAZNI se upisuju)
+ *
+ * Pravila:
+ *   - Nepoznat Opis_kvara (nije u FAULT_MAP) → log + NE kopira se (obavezno polje).
+ *   - Nepoznata Greska (nije u ERROR_MAP) → log + NE kopira se (kontrolisan vokabular).
+ *   - Radni_kod van opts.warrantyByCode → log (i dalje se kopira sa out-of-warranty).
+ *   - Prazan rezervni deo → polje sparePartN se uopste ne upisuje.
+ *
+ * @param {Object} opts
+ *   filterValue       — vrednost Tip_intervencije za server-side filter (TACNO kako stoji u staroj bazi)
+ *   interventionType  — ciljni interventionType za sve rezultate filtera
+ *   warrantyByCode    — mapa Radni_kod → warrantyStatus (npr. { "B899001": "in-warranty", "D899001": "out-of-warranty" })
+ *   startAfterId      — resume cursor (prazno za prvi run)
+ *   limit             — broj dokumenata po run-u
+ */
+function migrateBoilerInterventions_(opts) {
+  // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
+  var SOURCE_COLLECTION = "intervencije";
+  var DEST_COLLECTION = "tenants/arst-srb/int-boilers";
+
+  // Filter — server-side. Vrednost je TACNO kako stoji u staroj bazi.
+  var FILTER_FIELD = "Tip_intervencije";
+  var FILTER_VALUE = opts.filterValue;
+
+  // Svi rezultati ovog filtera su isti tip intervencije.
+  var INTERVENTION_TYPE = opts.interventionType;
+
+  // Mapa Radni_kod → warrantyStatus. Nepoznat kod → out-of-warranty + log.
+  var WARRANTY_BY_CODE = opts.warrantyByCode || {};
+
+  // Resume — postavi na ID poslednjeg uspesno migriranog dokumenta iz prethodnog run-a.
+  var START_AFTER_ID = opts.startAfterId || "";
+  // Koliko dokumenata povuci u ovom run-u (runQuery max ~5MB po pozivu).
+  var LIMIT = opts.limit || 500;
+
+  // Opis_kvara (boiler) → interventionDescription i18n kljuc. Nepoznat opis → log + skip.
+  var FAULT_MAP = boilerFaultMap_();
+
+  // Greska → error i18n kljuc. Primarno bojler/gas mapa, fallback heat-pump mapa (greske iz druge
+  // kategorije). Ako nema ni u jednoj → log + skip.
+  var ERROR_MAP = boilerErrorMap_();
+  var ERROR_MAP_FALLBACK = heatPumpErrorMap_();
+
+  // ── EXECUTION ──────────────────────────────────────────────────────────
+  var source = FirebaseService.old();    // stara baza
+  var target = FirebaseService.prod();   // produkciona baza
+
+  var query = {
+    from: [{ collectionId: SOURCE_COLLECTION }],
+    where: {
+      fieldFilter: {
+        field: { fieldPath: quoteFieldPath_(FILTER_FIELD) },
+        op: "EQUAL",
+        value: { stringValue: FILTER_VALUE }
+      }
+    },
+    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+    limit: LIMIT
+  };
+
+  if (START_AFTER_ID) {
+    query.startAt = {
+      values: [{ referenceValue: source.buildReferencePath(SOURCE_COLLECTION, START_AFTER_ID) }],
+      before: false  // false = startAfter (ekskluzivno)
+    };
+  }
+
+  var sliced = source.runQuery("", query);
+  Logger.log(
+    "Vraceno " + sliced.length + " intervencija sa filterom '" + FILTER_FIELD + " == " + FILTER_VALUE + "'" +
+    (START_AFTER_ID ? " posle '" + START_AFTER_ID + "'" : " (od pocetka)") +
+    " — limit " + LIMIT
+  );
+  if (sliced.length === 0) {
+    Logger.log("Nema vise dokumenata za migraciju.");
+    return;
+  }
+
+  var writes = [];
+  var skipped = [];               // { id, reason } — nije kopirano
+  var workingCodeAnomalies = [];  // { id, code }   — Radni_kod != B899003 (i dalje kopirano)
+  var missingDate = [];           // [id, ...]      — Datum nije timestamp (polje izostavljeno)
+
+  for (var i = 0; i < sliced.length; i++) {
+    var doc = sliced[i];
+    var data = source.decodeFields(doc.fields);
+
+    // interventionDescription — nepoznat opis → skip
+    var rawFault = data["Opis_kvara"];
+    var interventionDescription = FAULT_MAP[rawFault];
+    if (!interventionDescription) {
+      skipped.push({ id: doc.id, reason: "nepoznat Opis_kvara: '" + rawFault + "'" });
+      continue;
+    }
+
+    // error — UNIVERZALNO: kopira se ako Greska postoji (neprazna). Prazna → izostavljeno; nemapirana → log + skip.
+    var rawError = normalizeStringField_(data["Greska"]);
+    var error = null;
+    if (rawError !== "") {
+      error = ERROR_MAP[rawError] || ERROR_MAP_FALLBACK[rawError];
+      if (!error) {
+        skipped.push({ id: doc.id, reason: "nepoznata Greska: '" + rawError + "'" });
+        continue;
+      }
+    }
+
+    // warrantyStatus — iz Radni_kod preko mape. Nepoznat kod → out-of-warranty + log.
+    var workingCode = data["Radni_kod"];
+    var warrantyStatus = WARRANTY_BY_CODE[workingCode];
+    if (warrantyStatus === undefined) {
+      warrantyStatus = "out-of-warranty";
+      workingCodeAnomalies.push({ id: doc.id, code: workingCode });
+    }
+
+    var out = {
+      sn: normalizeStringField_(data["Bar_code"]),
+      interventionType: INTERVENTION_TYPE,
+      interventionDescription: interventionDescription,
+      warrantyStatus: warrantyStatus,
+      distance: normalizeStringField_(data["Kilometraza"]),
+      note: normalizeStringField_(data["Komentar"]),
+      addedBy: normalizeStringField_(data["Servisni_centar"]),
+      exported: data["Zaveden"] === true
+    };
+    if (error !== null) out.error = error;
+
+    // sparePart1..4 — UNIVERZALNO: upisi samo NEPRAZNE (prazan string se izostavlja iz dokumenta)
+    var spareSources = [
+      "Sifra_rezervnog_dela_1",
+      "Sifra_rezervnog_dela_2",
+      "Sifra_rezervnog_dela_3",
+      "Sifra_rezervnog_dela_4"
+    ];
+    for (var sp = 0; sp < spareSources.length; sp++) {
+      var spareVal = normalizeStringField_(data[spareSources[sp]]);
+      if (spareVal !== "") {
+        out["sparePart" + (sp + 1)] = spareVal;
+      }
+    }
+
+    // addedDate — samo ako je validan timestamp (dekoder vraca Date instancu)
+    var addedDate = toDateOrNull_(data["Datum"]);
+    if (addedDate) {
+      out.addedDate = addedDate;
+    } else {
+      missingDate.push(doc.id);
+    }
+
+    writes.push({
+      collection: DEST_COLLECTION,
+      documentId: doc.id,
+      fields: target.encodeFields(out)
+    });
+  }
+
+  Logger.log("Za upis: " + writes.length + ", preskoceno: " + skipped.length);
+
+  // Flush kroz :batchWrite (do 500 upisa po HTTP call-u)
+  var BATCH_SIZE = 500;
+  var migrated = 0;
+  var errors = 0;
+
+  for (var b = 0; b < writes.length; b += BATCH_SIZE) {
+    var batch = writes.slice(b, b + BATCH_SIZE);
+    var results = target.batchWriteSets(batch);
+    for (var r = 0; r < results.length; r++) {
+      if (results[r].success) {
+        migrated++;
+      } else {
+        errors++;
+        Logger.log("GRESKA " + batch[r].collection + "/" + batch[r].documentId + ": " + results[r].error);
+      }
+    }
+    Logger.log("Batch " + (Math.floor(b / BATCH_SIZE) + 1) + ": " + batch.length + " upisa (1 HTTP call)");
+  }
+
+  // ── REZIME ─────────────────────────────────────────────────────────────
+  Logger.log("Zavrseno. Migrirano: " + migrated + ", Gresaka: " + errors + ", Preskoceno: " + skipped.length);
+
+  if (skipped.length > 0) {
+    Logger.log("");
+    Logger.log("--- PRESKOCENO (nije kopirano) (" + skipped.length + ") ---");
+    for (var s = 0; s < skipped.length; s++) {
+      Logger.log("  • " + skipped[s].id + " → " + skipped[s].reason);
+    }
+  }
+  if (workingCodeAnomalies.length > 0) {
+    Logger.log("");
+    Logger.log("--- Nepoznat Radni_kod (nije u " + JSON.stringify(Object.keys(WARRANTY_BY_CODE))
+               + ", kopirano kao out-of-warranty) (" + workingCodeAnomalies.length + ") ---");
+    for (var w = 0; w < workingCodeAnomalies.length; w++) {
+      Logger.log("  • " + workingCodeAnomalies[w].id + " → Radni_kod='" + workingCodeAnomalies[w].code + "'");
+    }
+  }
+  if (missingDate.length > 0) {
+    Logger.log("");
+    Logger.log("--- Datum nije validan timestamp (addedDate izostavljeno) (" + missingDate.length + ") ---");
+    for (var m = 0; m < missingDate.length; m++) {
+      Logger.log("  • " + missingDate[m]);
+    }
+  }
+
+  // Resume cursor — postavi ovaj ID kao START_AFTER_ID za sledeci run.
+  var lastId = sliced[sliced.length - 1].id;
+  Logger.log("Sledeci START_AFTER_ID = \"" + lastId + "\"");
+}
+
+// ── Mapa za bojler/gas/klima intervencije (error kodovi) ─────────────────
+
+/**
+ * Greska (opis sa kodom) → error i18n kljuc za bojler/gas/klima (error_* + error_no_error).
+ * ODVOJENA od heat-pump error mape. Koristi se kao primarna u bojler migracijama
+ * i kao fallback u heat-pump migracijama (greske iz druge kategorije).
+ */
+function boilerErrorMap_() {
+  return {
+    "BEZ GREŠKE": "error_no_error",
+    "101 - Pregrevanje": "error_101",
+    "103 - Nedovoljna cirkulacija": "error_103",
+    "104 - Nedovoljna cirkulacija": "error_104",
+    "105 - Nedovoljna cirkulacija": "error_105",
+    "106 - Nedovoljna cirkulacija": "error_106",
+    "107 - Nedovoljna cirkulacija": "error_107",
+    "108 - Potrebno dopunjavanje": "error_108",
+    "110 - Otvoreni str. krug ili kratki spoj sonde na ulazu u m sistem": "error_110",
+    "112 - Otvoreni strujni krug ili kratki spoj povratne sonde grejanja": "error_112",
+    "114 - Otvoreni strujni krug ili kratki spoj spoljne sonde": "error_114",
+    "116 - Termostat podnog grejanja otvoren": "error_116",
+    "1P1 - Dojava nedostatne cirkulacije": "error_1p1",
+    "1P2 - Dojava nedostatne cirkulacije": "error_1p2",
+    "1P3 - Dojava nedostatne cirkulacije": "error_1p3",
+    "1P4 - Nedovoljna količina vode u sistemu (zahtev punjenja)": "error_1p4",
+    "203 - Prekid kruga senzora rezervoara GENUS ONE SYSTEM": "error_203",
+    "205 - Senzor na ulazu PTV-a u prekidu za bojler sa spojenim solarnim sistemom": "error_205",
+    "209 - Pregrejan rezervoar GENUS ONE SYSTEM": "error_209",
+    "301 - Greška EEPROM display": "error_301",
+    "302 - Greška komunikacije": "error_302",
+    "303 - Greška na glavnoj kartici": "error_303",
+    "305 - Greška na glavnoj kartici": "error_305",
+    "306 - Greška na glavnoj kartici": "error_306",
+    "307 - Greška na glavnoj kartici": "error_307",
+    "313 - Greška niskog napona": "error_313",
+    "3P9 - Redovno održavanje - zvati Servis": "error_3p9",
+    "411 - Sobni senzor Z1 nije dostupan (ako je ugrađena)": "error_411",
+    "412 - Sobni senzor Z2 nije dostupan (ako je ugrađena)": "error_412",
+    "413 - Sonbi senzor Z3 nije dostupan (ako je ugrađena)": "error_413",
+    "501 - Izostanak plamena (Nakon 5 puta sa P6)": "error_501",
+    "502 - Dojava plamena dok je zatvoren gasni ventil": "error_502",
+    "503 - Dojava plamena dok je zatvoren gasni ventil (Nakon 20 sekundi sa 502)": "error_503",
+    "504 - Nema plamena": "error_504",
+    "5P3 - Podizanje plamena": "error_5p3",
+    "5P5 - Greška niskog pritiska gasa": "error_5p5",
+    "5P6 - Prvo paljenje neuspešno": "error_5p6",
+    "611 - Upozorenje na ventilatoru - anomalija na ulazu vazduha i/ili odvodu dimnih gasova": "error_611",
+    "612 - Greška ventilatora (brzina veća ili manja od postavljenih vrednosti)": "error_612",
+    "701 - Senzor polaska zone 1 neispravan": "error_701",
+    "702 - Senzor polaska zone 2 neispravan": "error_702",
+    "703 - Senzor polaska zone 3 neispravan": "error_703",
+    "711 - Senzor povratka zone 1 neispravan": "error_711",
+    "712 - Senzor povratka zone 2 neispravan": "error_712",
+    "713 - Senzor povratka zone 3 neispravan": "error_713",
+    "722 - Pregrevanje zone 2": "error_722",
+    "723 - Pregrevanje zone 3": "error_723",
+    "750 - Hidraulička šema nije definisana": "error_750",
+    "801 - Greška prilikom kalibracije": "error_801",
+    "802 - Detektovan plamen sa zatvorenim gasnim ventilom": "error_802",
+    "803 - Pogrešna snaga kW (parametar 229)": "error_803",
+    "804 - Potrebna spojnica za razdvajanje, potrebno je ugraditi spojnicu koja je dostavljena sa kodom 3319171.": "error_804"
+  };
+}
+
+/**
+ * Opis_kvara → interventionDescription i18n kljuc za bojler (fault_boiler_*).
+ * Koristi se kao primarna u bojler migracijama i kao fallback u heat-pump/gas repair migracijama.
+ */
+function boilerFaultMap_() {
+  return {
+    "NE GREJE, SIJA SIJALICA": "fault_boiler_no_heat_light_on",
+    "NE GREJE, NE SIJA SIJALICA": "fault_boiler_no_heat_light_off",
+    "IZBACUJE SKLOPKA": "fault_boiler_trips_breaker",
+    "ZVECKA U BOJLERU": "fault_boiler_rattling",
+    "VODA IZ BOJLERA ŽUTA": "fault_boiler_yellow_water",
+    "BUKA PRILIKOM ZAGREVANJA": "fault_boiler_noise_heating",
+    "CURENJE GREJAČA": "fault_boiler_heater_leak",
+    "CURENJE SIGURNOSNOG VENTILA": "fault_boiler_safety_valve_leak",
+    "CURI VODA IZ BOJLERA": "fault_boiler_water_leak",
+    "GREJAČ NEISPRAVAN": "fault_boiler_heater_faulty",
+    "DISPLEJ NEISPRAVAN": "fault_boiler_display_faulty",
+    "ELEKTRONSKA PLOČA NEISPRAVNA": "fault_boiler_board_faulty",
+    "MIRIS PRILIKOM RADA": "fault_boiler_smell",
+    "OLABAVLJEN DEO": "fault_boiler_loose_part",
+    "POKLOPAC BOJLERA": "fault_boiler_cover",
+    "PREGREVA SE VODA": "fault_boiler_overheating",
+    "PROBLEM SA PRITISKOM": "fault_boiler_pressure_issue",
+    "PROCUREO KAZAN": "fault_boiler_tank_leak",
+    "TERMOSTAT NEISPRAVAN": "fault_boiler_thermostat_faulty",
+    "UREĐAJ NE GREJE": "fault_boiler_not_heating",
+    "VODA SE BRZO HLADI": "fault_boiler_fast_cooling",
+    "ŽICE GREJAČA VEZANE POGREŠNO": "fault_boiler_wiring_wrong",
+    "ZUJANJE-PIŠTANJE PRILKOM RADA": "fault_boiler_buzzing"
+  };
+}
+
+// ── Mape za heat-pump intervencije (fault opisi + error kodovi) ──────────
+
+/**
+ * Opis_kvara → interventionDescription i18n kljuc za heat-pump (common fault opisi).
+ * Koristi se za interventionRepair (POPRAVKA - TOPLOTNA PUMPA).
+ */
+function commonFaultMap_() {
+  return {
+    "BUKA PRILIKOM ZAGREVANJA": "fault_common_noise_heating",
+    "CURENJE SIGURNOSNOG VENTILA": "fault_common_safety_valve_leak",
+    "CURI VODA IZ KOTLA": "fault_common_water_leak",
+    "NEISPRAVAN DISPLEJ": "fault_common_display_faulty",
+    "GASNI VENTIL NEISPRAVAN": "fault_common_gas_valve_faulty",
+    "GREŠKA ELEKTRONSKE PLOČE": "fault_common_board_error",
+    "IZMENJIVAČ NE RADI ZAPUŠEN": "fault_common_exchanger_blocked",
+    "PUMPA NEISPRAVNA": "fault_common_pump_faulty",
+    "MANOMETAR NE PRIKAZUJE PRITISAK": "fault_common_manometer",
+    "NEISPRAVNE ELEKTRODE": "fault_common_electrodes_faulty",
+    "NEMA MODULACIJE": "fault_common_no_modulation",
+    "OLABAVLJEN DEO": "fault_common_loose_part",
+    "PREGREVA SE VODA": "fault_common_overheating",
+    "VAZDUŠNI PRESOSTAT NEISPRAVAN": "fault_common_air_pressostat",
+    "VODENI PRESOSTAT NEISPRAVAN": "fault_common_water_pressostat",
+    "SLAVINA ZA DOPUNU NIJE ISPRAVNA": "fault_common_refill_valve",
+    "NTC T NEISPRAVAN": "fault_common_ntc_faulty",
+    "UREĐAJ NE PALI": "fault_common_no_ignition",
+    "VENTILATOR NEISPRAVAN": "fault_common_fan_faulty",
+    "NEISPRAVAN SERVO MOTOR": "fault_common_servo_motor",
+    "NEISPARVAN TROKRAKI VENTIL": "fault_common_three_way_valve",
+    "NEISPRAVAN REED RELEJ": "fault_common_reed_relay",
+    "NEISPRAVAN MERAČ PROTOKA": "fault_common_flow_meter",
+    "NEISPAVAN ULOŽAK TROKRAKOG": "fault_common_three_way_insert",
+    "GODIŠNJI SERVIS": "fault_gas_boiler_annual_service"
+  };
+}
+
+/**
+ * Greska (opis sa kodom) → error i18n kljuc za heat-pump (error_hp_* + error_no_error).
+ * ODVOJENA od bojler/gas error mape — heat-pump ima svoj skup gresaka.
+ */
+function heatPumpErrorMap_() {
+  return {
+    "BEZ GREŠKE": "error_no_error",
+    "1 - Greška TD senzora": "error_hp_1",
+    "905 - Greška kompresora": "error_hp_905",
+    "906 - Greška ventlatora": "error_hp_906",
+    "907 - Greška četvorokrakog ventila": "error_hp_907",
+    "908 - Greška ekspanzijskog ventila": "error_hp_908",
+    "909 - Nulta brzina ventilatora TP": "error_hp_909",
+    "910 - Greška u komunikaciji invertora - TDM": "error_hp_910",
+    "911 - Greška senzora temperature na isparivaču (TE - par.17.10.3)": "error_hp_911",
+    "912 - Greška četvorokrakog ventila": "error_hp_912",
+    "913 - Greška senzora polazne temperature vode (LWT -par.17.10.1)": "error_hp_913",
+    "914 - Greška senzora izlazne temperature kondenzatora (TR - par.17.10.6)": "error_hp_914",
+    "915 - Greška komunikacije TDM ploče": "error_hp_915",
+    "916 - Greška senzora izlazne temperature na isparivaču (TEO - par.17.10.0)": "error_hp_916",
+    "917 - Greška smrzavanja DT Freeze": "error_hp_917",
+    "918 - Greška pumpe": "error_hp_918",
+    "919 - Previsoka temperatura na izlazu iz kompresora (TD -par.17.10.5)": "error_hp_919",
+    "922 - Greška smrzavanja DT Freeze": "error_hp_922",
+    "931 - Greška inverter ploče": "error_hp_931",
+    "947 - Greška četvorokrakog ventila": "error_hp_947",
+    "948 - Greška senzora temperature na izlazu iz kompresora (TD -par.17.10.5)": "error_hp_948",
+    "949 - Greška senzora temperature na ulazu u kompresor (TS -par.17.10.4)": "error_hp_949",
+    "950 - Previsoka temperatura na izlazu iz kompresora (TD -par.17.10.5)": "error_hp_950",
+    "951 - Previsoka temperatura na izlazu iz kompresora (TD -par.17.10.5)": "error_hp_951",
+    "952 - Greška senzora spoljašnje temperature zraka (TO -par.17.10.0)": "error_hp_952",
+    "953 - Greška kompresora": "error_hp_953",
+    "954 - Greška baznog grejača": "error_hp_954",
+    "956 - Neadekvatan model kompresora": "error_hp_956",
+    "957 - Neadenkatan model ventilatora": "error_hp_957",
+    "960 - HP EWT Greška - Greška senzora povratne temperature vode (EWT)": "error_hp_960",
+    "962 - Greška odmrzavanja": "error_hp_962",
+    "968 - Greška u komunikaciji ATGBUS TDM - EM": "error_hp_968",
+    "989 - Greška mašina prazna": "error_hp_989",
+    "997 - Prekomerna struja kompresora": "error_hp_997",
+    "998 - Prekomerna struja kompresora": "error_hp_998",
+    "9E5 - Intervencija presostata visokog pritiska": "error_hp_9e5",
+    "9E8 - Greška presostata niskog pritiska s kompresorom OFF": "error_hp_9e8",
+    "9E9 - Greška klixon s kompresorom OFF": "error_hp_9e9",
+    "9E18 - Greška sigurnosnog termostata ST1": "error_hp_9e18",
+    "9E21 - Greška mala količina rashladnog sredstva": "error_hp_9e21",
+    "9E22 - Greška mašina prazna": "error_hp_9e22",
+    "9E24 - Greška EXV blokiran": "error_hp_9e24",
+    "9E25 - Greška EXV blokiran": "error_hp_9e25",
+    "9E28 - Zaštita visokog pritiska": "error_hp_9e28",
+    "9E29 - Zaštita visokog pritiska": "error_hp_9e29",
+    "9E31 - Zaštita termostata kompresora": "error_hp_9e31",
+    "9E32 - Zaštita termostata kompresora": "error_hp_9e32",
+    "9E34 - Zaštita od niskog pritiska": "error_hp_9e34",
+    "9E35 - Zaštita od niskog pritiska": "error_hp_9e35",
+    "9E36 - Debalans struje faza kompresora": "error_hp_9e36",
+    "9E37 - Debalans struje faza kompresora": "error_hp_9e37",
+    "9E38 - Promena struje kompresora suviše velika": "error_hp_9e38",
+    "9E39 - Promena struje kompresora suviše velika": "error_hp_9e39",
+    "114 - Spoljašnja temperatura nedostupna": "error_hp_114",
+    "730 - Greška kod bafera visoke sonde": "error_hp_730",
+    "731 - Previsoka temperatura bafera": "error_hp_731",
+    "732 - Greška kod bafera niske sonde": "error_hp_732",
+    "902 - Senzor protoka sistema oštećen": "error_hp_902",
+    "923 - Greška pritiska grejanja": "error_hp_923",
+    "924 - Greška komunikacije TP": "error_hp_924",
+    "927 - Greška u poklapanju pomoćnih ulaza": "error_hp_927",
+    "928 - Greška u konfiguraciji bloka isporuke energije": "error_hp_928",
+    "933 - Prevelika temperatura sonde polaznog voda": "error_hp_933",
+    "934 - Oštećen senzor spremnika PTV": "error_hp_934",
+    "935 - Prekoračenje temp. spremnika": "error_hp_935",
+    "936 - Podni termostat 1-greška": "error_hp_936",
+    "937 - Greška nestanka cirkulacije": "error_hp_937",
+    "938 - Greška anode": "error_hp_938",
+    "940 - Hidraulična shema nedefinisana": "error_hp_940",
+    "955 - Protok vode Provera Greške": "error_hp_955",
+    "970 - EM Split/Mono nedef. parametar": "error_hp_970",
+    "2P2 - Antilegionela nekompletna": "error_hp_2p2",
+    "2P3 - Zadana vrednost nije dostignuta": "error_hp_2p3",
+    "2P4 - Drugi termostat grejača (ručno)": "error_hp_2p4",
+    "2P5 - Prvi termostat grejača (auto)": "error_hp_2p5",
+    "2P7 - Greška predcirkulacije": "error_hp_2p7",
+    "2P8 - Upozorenje o niskom pritisku": "error_hp_2p8",
+    "2P9 - SG spremna. Greška konfiguracije": "error_hp_2p9"
+  };
+}
+
+// ── envInfo config (polja po uredjaju + deljena value mapa) ──────────────
+
+/**
+ * Heat-pump envInfo polja: { key (model key), source (staro polje), select }.
+ * indoorWire/outdoorWire izvori su namerno ukrsteni jer tako stoji u staroj bazi.
+ */
+function heatPumpEnvFields_() {
+  return [
+    // Electrical
+    { key: "outdoorFuse", source: "Osigurac_spoljasnje_jed", select: true },
+    { key: "indoorFuse", source: "Osigurac_unutrasnje_jed", select: true },
+    { key: "indoorWire", source: "Napajanje_spoljasnje_jed", select: true },
+    { key: "outdoorWire", source: "Napajanje_unutrasnje_jed", select: true },
+    { key: "modbusCable", source: "Modbus_kabal", select: true },
+    { key: "modbusSeparated", source: "Modbus_odvojen", select: true },
+    { key: "indoorFID", source: "FID_unutrasnje_jed", select: true },
+    { key: "outdoorFID", source: "FID_spoljasnje_jed", select: true },
+    // Hydraulic
+    { key: "cooling", source: "Hladjenje", select: true },
+    { key: "sanitaryBoiler", source: "Sanitarni_bojler", select: true },
+    { key: "buffer", source: "Bafer", select: true },
+    { key: "zoneNumber", source: "Broj_zona", select: true },
+    { key: "hydraulicSwitch", source: "Hidraulicna_skretnica", select: true },
+    { key: "magneticFilter", source: "Magnetni_filter", select: true },
+    { key: "additionalExpansionTank", source: "Expanziona_posuda", select: true },
+    { key: "additionalExpansionTankPTV", source: "Expanziona_posuda_PTV", select: true },
+    // Freon
+    { key: "freonSysTested", source: "Ispitivanje_pritiska", select: true },
+    { key: "sysVacuumed", source: "Sistem_je_vakumiran", select: true },
+    { key: "pipeLength", source: "Duzina_instalacije", select: false },
+    { key: "additionalFreon", source: "Dodatno_punjenje_freona", select: false },
+    // System Operation
+    { key: "sysWaterPressure", source: "Pritisak_vode_u_sistemu", select: false },
+    { key: "outdoorTemp", source: "Spoljasnja_temperatura", select: false },
+    { key: "waterTempOnStart", source: "Polazna_t_vode", select: false },
+    { key: "returnWaterTemp", source: "Povratna_t_vode", select: false },
+    { key: "evaporatorTemp", source: "Temperatura_isparivaca", select: false },
+    { key: "compressorTemp", source: "Temperatura_kompresora", select: false },
+    { key: "evaporatorPressure", source: "Pritisak_isparivaca", select: false },
+    { key: "condensationPressure", source: "Pritisak_kondenzatora", select: false },
+    { key: "waterFlow", source: "Protok_vode", select: false }
+  ];
+}
+
+/**
+ * Gas-boiler envInfo polja: { key (model key), source (staro polje), select }.
+ * Number polja se cuvaju kao string (bez mapiranja); select se mapiraju preko envValueToKey_.
+ */
+function gasBoilerEnvFields_() {
+  return [
+    { key: "gasType", source: "Vrsta_gasa", select: true },
+    { key: "voltage", source: "Napon", select: false },
+    { key: "inputGasPressure", source: "Pritisak_gasa", select: false },
+    { key: "minGasPressure", source: "Min_pritisak_gasa", select: false },
+    { key: "maxGasPressure", source: "Max_pritisak_gasa", select: false },
+    { key: "minGasBoilerPower", source: "Min_snaga_kotla", select: false },
+    { key: "maxGasBoilerPower", source: "Max_snaga_kotla", select: false },
+    { key: "expansionPressure", source: "Pritisak_ekspanzije", select: false },
+    { key: "sysPressure", source: "Pritisak_sistema", select: false },
+    { key: "testedOnGasLeakage", source: "Testiranje_na_curenje", select: true },
+    { key: "gasHoseReplaced", source: "Gasno_crevo_zamenjeno", select: true },
+    { key: "accordingManufacturerInstalled", source: "Pusten_po_upustvu", select: true },
+    { key: "readyForUse", source: "Tehnicki_ispravan", select: true }
+  ];
+}
+
+/**
+ * Srpska vrednost → i18n kljuc za envInfo select polja. Deljena mapa za sve uredjaje
+ * (HP + gas). Sve vrednosti su globalno jedinstvene.
+ */
+function envValueToKey_() {
+  return {
+    // Fuse
+    "C-2 (4A max)": "env_info_opt_c2_4a",
+    "C-10 A": "env_info_opt_c10a",
+    "C-13 A": "env_info_opt_c13a",
+    "C-16 A": "env_info_opt_c16a",
+    "C-20 A": "env_info_opt_c20a",
+    "C-25 A": "env_info_opt_c25a",
+    "C-32 A": "env_info_opt_c32a",
+    "Nema posebne osigurače": "env_info_opt_no_fuse",
+    // Wire
+    "3x0,75 mm2": "env_info_opt_3x0_75",
+    "3x1,5 mm2": "env_info_opt_3x1_5",
+    "3x2,5 mm2": "env_info_opt_3x2_5",
+    "3x4 mm2": "env_info_opt_3x4",
+    "3x6 mm2": "env_info_opt_3x6",
+    "5x2,5 mm2": "env_info_opt_5x2_5",
+    "5x4 mm2": "env_info_opt_5x4",
+    "5x6 mm2": "env_info_opt_5x6",
+    "Ništa od navedenog": "env_info_opt_none_listed",
+    // MODBUS
+    "Oklopljeni kabal 2 x 0,75": "env_info_opt_shielded_2x075",
+    "Oklopljeni kabal 2 x 1,5": "env_info_opt_shielded_2x15",
+    "Oklopljeni kabal 3 x 0,75": "env_info_opt_shielded_3x075",
+    "Oklopljeni kabal 3 x 1,5": "env_info_opt_shielded_3x15",
+    "Neoklopljeni kabal 2 x 0,75": "env_info_opt_unshielded_2x075",
+    "Neoklopljeni kabal 2 x 1,5": "env_info_opt_unshielded_2x15",
+    "Neoklopljeni kabal 3 x 0,75": "env_info_opt_unshielded_3x075",
+    "Neoklopljeni kabal 3 x 1,5": "env_info_opt_unshielded_3x15",
+    // FID
+    "A-30": "env_info_opt_a30",
+    "B-30": "env_info_opt_b30",
+    "F-30": "env_info_opt_f30",
+    "Nema FID sklopku": "env_info_opt_no_fid",
+    // Yes/No
+    "DA": "env_info_opt_yes",
+    "NE": "env_info_opt_no",
+    // Zones
+    "1": "env_info_opt_zone_1",
+    "2": "env_info_opt_zone_2",
+    "3": "env_info_opt_zone_3",
+    "4": "env_info_opt_zone_4",
+    "5": "env_info_opt_zone_5",
+    "6": "env_info_opt_zone_6",
+    // Gas type (gas boiler)
+    "ZEMNI": "env_info_opt_gas_natural",
+    "TNG": "env_info_opt_gas_lpg"
+  };
+}
+
+// ── Migracija: heat-pump servisi (commissioning / godisnji servis / popravka) ──
+
+/**
+ * Migracija "TOPLOTNA PUMPA - GODIŠNJI SERVIS" → annual_service (Radni_kod M853001 = in-warranty).
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ */
+function migrateHeatPumpAnnualService() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "TOPLOTNA PUMPA - GODIŠNJI SERVIS",
+    interventionType: "annual_service",
+    interventionDescription: "intervention_description_annual_service",
+    warrantyByCode: { "M853001": "in-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "PUŠTANJE U RAD TOPLOTNA PUMPA" → commissioning (Radni_kod A853001 = in-warranty).
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ */
+function migrateHeatPumpCommissioning() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "PUŠTANJE U RAD TOPLOTNA PUMPA",
+    interventionType: "commissioning",
+    interventionDescription: "intervention_description_commissioning",
+    warrantyByCode: { "A853001": "in-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "POPRAVKA - TOPLOTNA PUMPA" → interventionRepair.
+ * Radni_kod B853005 = in-warranty, D853005 = out-of-warranty (oba poznata — bez log-a).
+ * interventionDescription se MAPIRA iz Opis_kvara (common fault mapa; nemapirano → log + skip).
+ * error se mapira iz Greska (heat-pump error mapa; nemapirano → log + skip), dodaje 'error' polje.
+ * Ukljucuje sparePart1..4 (neprazni) i envInfo (isto kao ostale HP funkcije).
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ */
+function migrateHeatPumpRepair() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "POPRAVKA - TOPLOTNA PUMPA",
+    interventionType: "interventionRepair",
+    faultMap: commonFaultMap_(),
+    faultMapFallback: boilerFaultMap_(),
+    warrantyByCode: { "B853005": "in-warranty", "D853005": "out-of-warranty" },
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "GASNI KOTAO ODRŽAVANJE U VANGARANCIJI" → annual_service (gas kotao, kolekcija int-heating).
+ * Radni_kod V799002 = out-of-warranty (uvek vangarancija). Bilo koji drugi kod → out-of-warranty + log.
+ * interventionDescription = intervention_description_annual_service (fiksno).
+ * envInfo = gasna polja (gasBoilerEnvFields_); error primarno bojler/gas mapa, fallback heat-pump.
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike (npr. "ODRZAVANJE"/"VANGARANCIJI").
+ */
+function migrateGasBoilerAnnualOutOfWarranty() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "GASNI KOTAO ODRŽAVANJE U VANGARANCIJI",
+    interventionType: "annual_service",
+    interventionDescription: "intervention_description_annual_service",
+    warrantyByCode: { "V799002": "out-of-warranty" },
+    envFields: gasBoilerEnvFields_(),
+    errorMap: boilerErrorMap_(),
+    errorMapFallback: heatPumpErrorMap_(),
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "PUŠTANJE U RAD GASNI KOTAO" → commissioning (gas kotao, kolekcija int-heating).
+ * Radni_kod A799001 = in-warranty. Bilo koji drugi kod → out-of-warranty + log.
+ * interventionDescription = intervention_description_commissioning (fiksno).
+ * envInfo = gasna polja (gasBoilerEnvFields_); error primarno bojler/gas mapa, fallback heat-pump.
+ * installerName/installerPhoneNumber se kopiraju (jer je commissioning), ako postoje.
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike (npr. "PUSTANJE").
+ */
+function migrateGasBoilerCommissioning() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "PUŠTANJE U RAD GASNI KOTAO",
+    interventionType: "commissioning",
+    interventionDescription: "intervention_description_commissioning",
+    warrantyByCode: { "A799001": "in-warranty" },
+    envFields: gasBoilerEnvFields_(),
+    errorMap: boilerErrorMap_(),
+    errorMapFallback: heatPumpErrorMap_(),
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "POPRAVKA - GASNI KOTAO" → interventionRepair (gas kotao, kolekcija int-heating).
+ * Radni_kod B799001 = in-warranty, D799001 = out-of-warranty (oba poznata — bez log-a).
+ * Bilo koji drugi kod → out-of-warranty + log.
+ * interventionDescription se MAPIRA iz Opis_kvara (common fault mapa; nemapirano → log + skip).
+ * envInfo = gasna polja (gasBoilerEnvFields_; izostavljen ako repair nema env podataka).
+ * error primarno bojler/gas mapa, fallback heat-pump.
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike u izvornom dokumentu.
+ */
+function migrateGasBoilerRepair() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "POPRAVKA - GASNI KOTAO",
+    interventionType: "interventionRepair",
+    faultMap: commonFaultMap_(),
+    faultMapFallback: boilerFaultMap_(),
+    warrantyByCode: { "B799001": "in-warranty", "D799001": "out-of-warranty" },
+    envFields: gasBoilerEnvFields_(),
+    errorMap: boilerErrorMap_(),
+    errorMapFallback: heatPumpErrorMap_(),
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Migracija "GASNI KOTAO REDOVNO ODRŽAVANJE" → annual_service (gas kotao, kolekcija int-heating).
+ * Radni_kod M799001 = in-warranty. Bilo koji drugi kod → out-of-warranty + log.
+ * interventionDescription = intervention_description_annual_service (fiksno).
+ * envInfo = gasna polja (gasBoilerEnvFields_); error primarno bojler/gas mapa, fallback heat-pump.
+ * Pokreni iz editora. Za resume prekopiraj ispisani ID u startAfterId.
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike (npr. "ODRZAVANJE").
+ */
+function migrateGasBoilerAnnualInWarranty() {
+  migrateHeatingServiceIntervention_({
+    filterValue: "GASNI KOTAO REDOVNO ODRŽAVANJE",
+    interventionType: "annual_service",
+    interventionDescription: "intervention_description_annual_service",
+    warrantyByCode: { "M799001": "in-warranty" },
+    envFields: gasBoilerEnvFields_(),
+    errorMap: boilerErrorMap_(),
+    errorMapFallback: heatPumpErrorMap_(),
+    startAfterId: "",
+    limit: 500
+  });
+}
+
+/**
+ * Cita grejne servise (heat-pump i gas kotao) iz stare kolekcije `intervencije` (server-side filter
+ * Tip_intervencije == opts.filterValue), prepakuje u commissioning/annual_service oblik
+ * (sa envInfo nested map-om) i upisuje u tenants/arst-srb/int-heating.
+ * Document ID se cuva (idempotentan re-run).
+ *
+ * Bazna polja:
+ *   sn                      ← Bar_code
+ *   addedBy                 ← Servisni_centar
+ *   addedDate               ← Datum (timestamp)
+ *   distance                ← Kilometraza
+ *   note                    ← Komentar
+ *   exported                ← Zaveden (boolean)
+ *   interventionType        = opts.interventionType
+ *   interventionDescription = opts.interventionDescription (fiksno) ili mapirano iz Opis_kvara (opts.faultMap, repair)
+ *   warrantyStatus          ← Radni_kod (preko opts.warrantyByCode; nepoznat kod → out-of-warranty + log)
+ *   error                   ← Greska (UNIVERZALNO; opts.errorMap pa opts.errorMapFallback; prazno → izostavljeno, nemapirano → log + skip)
+ *   sparePart1..4           ← Sifra_rezervnog_dela_1..4 (UNIVERZALNO; samo neprazni)
+ *   installerName/Phone     ← Ime_instalatera / Telefon_instalatera (SAMO commissioning; neprazni)
+ *
+ * envInfo (nested map):
+ *   - select polja: izvorna srpska vrednost → i18n kljuc preko ENV_VALUE_TO_KEY
+ *   - number/free-text polja: cuvaju se kao string (bez mapiranja)
+ *   - Pravilo (sva-ili-nijedno): ako su SVA izvorna env polja prazna → envInfo se NE upisuje
+ *     (dokument se svejedno migrira). Ako je bar jedno popunjeno → upisuju se SVA polja,
+ *     a prazna/nedostajuca kao "".
+ *   - Nemapirana select vrednost → log + upisuje se kao "".
+ *
+ * NAPOMENA: filterValue mora biti TACNO kako stoji u staroj bazi (EQUAL filter je egzaktan).
+ * Ako prvi run vrati 0 rezultata, proveri dijakritike (npr. "GODISNJI" / "PUSTANJE").
+ *
+ * @param {Object} opts
+ *   filterValue             — vrednost Tip_intervencije za server-side filter (TACNO kako stoji u staroj bazi)
+ *   interventionType        — ciljni interventionType za sve rezultate filtera
+ *   interventionDescription — fiksni interventionDescription i18n kljuc (ako nema faultMap)
+ *   faultMap                — (opc.) Opis_kvara → interventionDescription; nemapirano → log + skip
+ *   warrantyByCode          — mapa Radni_kod → warrantyStatus (npr. { "M853001": "in-warranty" })
+ *   envFields               — (opc.) env config po uredjaju (default heatPumpEnvFields_())
+ *   errorMap                — (opc.) primarna error mapa (default heatPumpErrorMap_())
+ *   errorMapFallback        — (opc.) fallback error mapa (default boilerErrorMap_())
+ *   startAfterId            — resume cursor (prazno za prvi run)
+ *   limit                   — broj dokumenata po run-u
+ */
+function migrateHeatingServiceIntervention_(opts) {
+  // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
+  var SOURCE_COLLECTION = "intervencije";
+  var DEST_COLLECTION = "tenants/arst-srb/int-heating";
+
+  var FILTER_FIELD = "Tip_intervencije";
+  var FILTER_VALUE = opts.filterValue;
+
+  var INTERVENTION_TYPE = opts.interventionType;
+  var INTERVENTION_DESCRIPTION = opts.interventionDescription;
+
+  // Radni_kod → warrantyStatus. Nepoznat kod → out-of-warranty + log.
+  var WARRANTY_BY_CODE = opts.warrantyByCode || {};
+
+  // Resume — postavi na ID poslednjeg uspesno migriranog dokumenta iz prethodnog run-a.
+  var START_AFTER_ID = opts.startAfterId || "";
+  // Koliko dokumenata povuci u ovom run-u.
+  var LIMIT = opts.limit || 500;
+
+  // FAULT_MAP (opciono, za repair): Opis_kvara → interventionDescription. Primarno opts.faultMap,
+  // fallback opts.faultMapFallback (npr. bojler opisi). Nema ni u jednoj → log + skip.
+  // Commissioning/annual koriste fiksni opts.interventionDescription.
+  var FAULT_MAP = opts.faultMap || null;
+  var FAULT_MAP_FALLBACK = opts.faultMapFallback || null;
+  // error je UNIVERZALAN. Primarna/fallback mapa po uredjaju (default: heat-pump primarno,
+  // bojler/gas fallback). Gas boiler prosledjuje obrnuto. Ako nema ni u jednoj → log + skip.
+  var ERROR_MAP = opts.errorMap || heatPumpErrorMap_();
+  var ERROR_MAP_FALLBACK = opts.errorMapFallback || boilerErrorMap_();
+
+  // envInfo polja — config po uredjaju (default heat-pump). Gas boiler prosledjuje opts.envFields.
+  var ENV_FIELDS = opts.envFields || heatPumpEnvFields_();
+
+  // Srpska vrednost → i18n kljuc (deljena mapa za sve uredjaje; samo za select polja).
+  var ENV_VALUE_TO_KEY = envValueToKey_();
+
+  // ── EXECUTION ──────────────────────────────────────────────────────────
+  var source = FirebaseService.old();
+  var target = FirebaseService.prod();
+
+  var query = {
+    from: [{ collectionId: SOURCE_COLLECTION }],
+    where: {
+      fieldFilter: {
+        field: { fieldPath: quoteFieldPath_(FILTER_FIELD) },
+        op: "EQUAL",
+        value: { stringValue: FILTER_VALUE }
+      }
+    },
+    orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+    limit: LIMIT
+  };
+
+  if (START_AFTER_ID) {
+    query.startAt = {
+      values: [{ referenceValue: source.buildReferencePath(SOURCE_COLLECTION, START_AFTER_ID) }],
+      before: false
+    };
+  }
+
+  var sliced = source.runQuery("", query);
+  Logger.log(
+    "Vraceno " + sliced.length + " intervencija sa filterom '" + FILTER_FIELD + " == " + FILTER_VALUE + "'" +
+    (START_AFTER_ID ? " posle '" + START_AFTER_ID + "'" : " (od pocetka)") +
+    " — limit " + LIMIT
+  );
+  if (sliced.length === 0) {
+    Logger.log("Nema vise dokumenata za migraciju.");
+    return;
+  }
+
+  var writes = [];
+  var skipped = [];               // { id, reason }     — nemapiran Opis_kvara ili Greska (nije kopirano)
+  var workingCodeAnomalies = [];  // { id, code }       — Radni_kod nepoznat (out-of-warranty + log)
+  var missingDate = [];           // [id, ...]          — Datum nije timestamp
+  var envUnmapped = [];           // { id, key, value } — select vrednost bez mapiranja
+  var noEnvInfo = [];             // [id, ...]          — sva env polja prazna, envInfo izostavljen
+
+  for (var i = 0; i < sliced.length; i++) {
+    var doc = sliced[i];
+    var data = source.decodeFields(doc.fields);
+
+    // interventionDescription — fiksno (commissioning/annual) ili mapirano iz Opis_kvara (repair)
+    var interventionDescription;
+    if (FAULT_MAP) {
+      var rawFault = data["Opis_kvara"];
+      interventionDescription = FAULT_MAP[rawFault]
+        || (FAULT_MAP_FALLBACK ? FAULT_MAP_FALLBACK[rawFault] : undefined);
+      if (!interventionDescription) {
+        skipped.push({ id: doc.id, reason: "nepoznat Opis_kvara: '" + rawFault + "'" });
+        continue;
+      }
+    } else {
+      interventionDescription = INTERVENTION_DESCRIPTION;
+    }
+
+    // error — UNIVERZALNO: kopira se ako Greska postoji (neprazna). Prazna → izostavljeno; nemapirana → log + skip.
+    var rawError = normalizeStringField_(data["Greska"]);
+    var error = null;
+    if (rawError !== "") {
+      error = ERROR_MAP[rawError] || ERROR_MAP_FALLBACK[rawError];
+      if (!error) {
+        skipped.push({ id: doc.id, reason: "nepoznata Greska: '" + rawError + "'" });
+        continue;
+      }
+    }
+
+    // warrantyStatus — iz Radni_kod preko mape
+    var workingCode = data["Radni_kod"];
+    var warrantyStatus = WARRANTY_BY_CODE[workingCode];
+    if (warrantyStatus === undefined) {
+      warrantyStatus = "out-of-warranty";
+      workingCodeAnomalies.push({ id: doc.id, code: workingCode });
+    }
+
+    var out = {
+      sn: normalizeStringField_(data["Bar_code"]),
+      interventionType: INTERVENTION_TYPE,
+      interventionDescription: interventionDescription,
+      warrantyStatus: warrantyStatus,
+      distance: normalizeStringField_(data["Kilometraza"]),
+      note: normalizeStringField_(data["Komentar"]),
+      addedBy: normalizeStringField_(data["Servisni_centar"]),
+      exported: data["Zaveden"] === true
+    };
+    if (error !== null) out.error = error;
+
+    // sparePart1..4 — UNIVERZALNO: upisi samo NEPRAZNE (prazan string se izostavlja)
+    var spareSources = [
+      "Sifra_rezervnog_dela_1",
+      "Sifra_rezervnog_dela_2",
+      "Sifra_rezervnog_dela_3",
+      "Sifra_rezervnog_dela_4"
+    ];
+    for (var sp = 0; sp < spareSources.length; sp++) {
+      var spareVal = normalizeStringField_(data[spareSources[sp]]);
+      if (spareVal !== "") out["sparePart" + (sp + 1)] = spareVal;
+    }
+
+    // installerName / installerPhoneNumber — SAMO za commissioning; nepostojece/prazno se ne kopira
+    if (INTERVENTION_TYPE === "commissioning") {
+      var installerName = normalizeStringField_(data["Ime_instalatera"]);
+      if (installerName !== "") out.installerName = installerName;
+      var installerPhone = normalizeStringField_(data["Telefon_instalatera"]);
+      if (installerPhone !== "") out.installerPhoneNumber = installerPhone;
+    }
+
+    // envInfo — sva-ili-nijedno
+    var envOut = {};
+    var anyFilled = false;
+    for (var f = 0; f < ENV_FIELDS.length; f++) {
+      var fld = ENV_FIELDS[f];
+      var raw = normalizeStringField_(data[fld.source]);
+      if (raw !== "") anyFilled = true;
+
+      if (fld.select) {
+        if (raw === "") {
+          envOut[fld.key] = "";
+        } else {
+          var mapped = ENV_VALUE_TO_KEY[raw];
+          if (mapped === undefined) {
+            envUnmapped.push({ id: doc.id, key: fld.key, value: raw });
+            envOut[fld.key] = "";
+          } else {
+            envOut[fld.key] = mapped;
+          }
+        }
+      } else {
+        // number / free-text — cuva se kao string bez mapiranja
+        envOut[fld.key] = raw;
+      }
+    }
+    if (anyFilled) {
+      out.envInfo = envOut;
+    } else {
+      noEnvInfo.push(doc.id);
+    }
+
+    // addedDate — samo ako je validan timestamp
+    var addedDate = toDateOrNull_(data["Datum"]);
+    if (addedDate) {
+      out.addedDate = addedDate;
+    } else {
+      missingDate.push(doc.id);
+    }
+
+    writes.push({
+      collection: DEST_COLLECTION,
+      documentId: doc.id,
+      fields: target.encodeFields(out)
+    });
+  }
+
+  Logger.log("Za upis: " + writes.length + ", preskoceno: " + skipped.length);
+
+  // Flush kroz :batchWrite (do 500 upisa po HTTP call-u)
+  var BATCH_SIZE = 500;
+  var migrated = 0;
+  var errors = 0;
+
+  for (var b = 0; b < writes.length; b += BATCH_SIZE) {
+    var batch = writes.slice(b, b + BATCH_SIZE);
+    var results = target.batchWriteSets(batch);
+    for (var r = 0; r < results.length; r++) {
+      if (results[r].success) {
+        migrated++;
+      } else {
+        errors++;
+        Logger.log("GRESKA " + batch[r].collection + "/" + batch[r].documentId + ": " + results[r].error);
+      }
+    }
+    Logger.log("Batch " + (Math.floor(b / BATCH_SIZE) + 1) + ": " + batch.length + " upisa (1 HTTP call)");
+  }
+
+  // ── REZIME ─────────────────────────────────────────────────────────────
+  Logger.log("Zavrseno. Migrirano: " + migrated + ", Gresaka: " + errors + ", Preskoceno: " + skipped.length);
+
+  if (skipped.length > 0) {
+    Logger.log("");
+    Logger.log("--- PRESKOCENO (nije kopirano) (" + skipped.length + ") ---");
+    for (var s = 0; s < skipped.length; s++) {
+      Logger.log("  • " + skipped[s].id + " → " + skipped[s].reason);
+    }
+  }
+  if (workingCodeAnomalies.length > 0) {
+    Logger.log("");
+    Logger.log("--- Nepoznat Radni_kod (nije u " + JSON.stringify(Object.keys(WARRANTY_BY_CODE))
+               + ", kopirano kao out-of-warranty) (" + workingCodeAnomalies.length + ") ---");
+    for (var w = 0; w < workingCodeAnomalies.length; w++) {
+      Logger.log("  • " + workingCodeAnomalies[w].id + " → Radni_kod='" + workingCodeAnomalies[w].code + "'");
+    }
+  }
+  if (envUnmapped.length > 0) {
+    Logger.log("");
+    Logger.log("--- Nemapirana envInfo select vrednost (upisano kao \"\") (" + envUnmapped.length + ") ---");
+    for (var u = 0; u < envUnmapped.length; u++) {
+      Logger.log("  • " + envUnmapped[u].id + " → " + envUnmapped[u].key + " = '" + envUnmapped[u].value + "'");
+    }
+  }
+  if (noEnvInfo.length > 0) {
+    Logger.log("");
+    Logger.log("--- Bez ijednog env polja (envInfo izostavljen, dokument migriran) (" + noEnvInfo.length + ") ---");
+    for (var n = 0; n < noEnvInfo.length; n++) {
+      Logger.log("  • " + noEnvInfo[n]);
+    }
+  }
+  if (missingDate.length > 0) {
+    Logger.log("");
+    Logger.log("--- Datum nije validan timestamp (addedDate izostavljeno) (" + missingDate.length + ") ---");
+    for (var m = 0; m < missingDate.length; m++) {
+      Logger.log("  • " + missingDate[m]);
+    }
+  }
+
+  // Resume cursor — postavi ovaj ID kao START_AFTER_ID za sledeci run.
+  var lastId = sliced[sliced.length - 1].id;
+  Logger.log("Sledeci START_AFTER_ID = \"" + lastId + "\"");
+}
+
 // ── Migracija: listPrice (flat copy, bez transformacije i podkolekcija) ──
 
 /**
@@ -618,9 +1687,18 @@ function formatTypeEntry_(e) {
  *
  * Procena: 30k intervencija + 20k usera = ~25s, ispod Apps Script 6-min limita.
  */
+/** Audit nad STAROM bazom (FirebaseService.old). */
 function findUsersWithoutCommissioning() {
+  findUsersWithoutCommissioning_(FirebaseService.old(), "STARA");
+}
+
+/** Audit nad MK bazom (FirebaseService.mk). */
+function findUsersWithoutCommissioningMk() {
+  findUsersWithoutCommissioning_(FirebaseService.mk(), "MK");
+}
+
+function findUsersWithoutCommissioning_(source, dbLabel) {
   // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
-  // Sve se cita iz STARE baze — pre bilo kakve migracije.
   var SOURCE_INTERVENTIONS = "intervencije"; // PROVERI tacno ime root kolekcije
   var SOURCE_USERS = "korisnici";
   var SOURCE_DEVICES = "devices";
@@ -629,7 +1707,7 @@ function findUsersWithoutCommissioning() {
   var DESC_FIELD = "Opis_kvara";
   var COMMISSIONING_VALUE = "PUŠTANJE U RAD";
 
-  // U staroj bazi polje za tip ima razmak ("Device type") i vrednosti su sa
+  // Polje za tip uredjaja ima razmak ("Device type") i vrednosti su sa
   // underscore-om ("gas_boiler", "heat_pump"). Compare-ujemo case-insensitive.
   var DEVICE_TYPE_FIELD = "Device type";
   var TARGET_DEVICE_TYPES = ["gas_boiler", "heat_pump"];
@@ -641,8 +1719,7 @@ function findUsersWithoutCommissioning() {
   // Filter: useri sa dateOfPurchase >= ovog datuma (rest se ignorise)
   var DATE_CUTOFF = new Date(2021, 5, 1); // 1. jun 2021 (mesec je 0-indeksiran)
 
-  // ── EXECUTION ──────────────────────────────────────────────────────────
-  var source = FirebaseService.old();
+  Logger.log("=== Audit nad " + dbLabel + " bazom (project: " + source.getProjectId() + ") ===");
 
   // ── 1. Map modelCode → deviceType iz STARE baze ────────────────────────
   var deviceTypeByCode = {};
@@ -656,7 +1733,7 @@ function findUsersWithoutCommissioning() {
     var rawType = devData[DEVICE_TYPE_FIELD];
     deviceTypeByCode[deviceDocs[dd].id] = (typeof rawType === "string" ? rawType : "").toLowerCase();
   }
-  Logger.log("Ucitano " + deviceDocs.length + " device-a iz stare baze.");
+  Logger.log("Ucitano " + deviceDocs.length + " device-a iz " + dbLabel + " baze.");
 
   // ── 2. Set SN-ova sa commissioning intervencijom ───────────────────────
   var commissionedSns = {};
@@ -812,10 +1889,26 @@ function formatMissingEntry_(e) {
  * sve usere ili ne dostigne MAX_ITERATIONS (sigurnosni limit). Apps Script ima
  * 6-min time limit, sto je sasvim dovoljno za ~20k dokumenata kroz batchWrite.
  */
+/** Migracija usera iz STARE baze u tenants/arst-srb/users. */
 function migrateUsers() {
+  migrateUsers_(FirebaseService.old(), "STARA", "tenants/arst-srb");
+}
+
+/** Migracija usera iz MK baze u tenants/arst-mk/users. */
+function migrateUsersFromMk() {
+  migrateUsers_(FirebaseService.mk(), "MK", "tenants/arst-mk");
+}
+
+/**
+ * @param {Object} source — FirebaseService instanca izvora
+ * @param {string} dbLabel — "STARA" / "MK" (samo za log)
+ * @param {string} tenantPath — npr. "tenants/arst-srb" ili "tenants/arst-mk"
+ *                              (koristi se i kao parent za devices i kao prefix za users dest)
+ */
+function migrateUsers_(source, dbLabel, tenantPath) {
   // ── HARDKODOVANE VREDNOSTI ─────────────────────────────────────────────
   var SOURCE_COLLECTION = "users";
-  var DEST_COLLECTION = "tenants/arst-srb/users";
+  var DEST_COLLECTION = tenantPath + "/users";
 
   // Resume — postavi ako je prethodni run zavrsio sa nedovrsenom listom.
   var START_AFTER_ID = "";
@@ -825,13 +1918,13 @@ function migrateUsers() {
   var MAX_ITERATIONS = 100;
 
   // ── EXECUTION ──────────────────────────────────────────────────────────
-  var source = FirebaseService.old();
   var target = FirebaseService.prod();
+  Logger.log("=== migrateUsers iz " + dbLabel + " baze (project: " + source.getProjectId() + ") → " + DEST_COLLECTION + " ===");
 
   // Predobijaj sve devices iz prod-a u jednom pozivu i napravi map: modelCode → deviceType.
   // Sluzi za resolvanje deviceType iz prvih 7 cifara SN-a svakog usera.
   var deviceTypeByCode = {};
-  var deviceDocs = target.runQuery("tenants/arst-srb", {
+  var deviceDocs = target.runQuery(tenantPath, {
     from: [{ collectionId: "devices" }],
     orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
     limit: 1000
@@ -840,7 +1933,7 @@ function migrateUsers() {
     var devData = target.decodeFields(deviceDocs[dd].fields);
     deviceTypeByCode[deviceDocs[dd].id] = devData.deviceType || "";
   }
-  Logger.log("Ucitano " + deviceDocs.length + " device-a u memoriju za lookup deviceType-a.");
+  Logger.log("Ucitano " + deviceDocs.length + " device-a iz " + tenantPath + "/devices za lookup deviceType-a.");
 
   // Ocekivani format polja u izvornom dokumentu (pre transformacije).
   // Polje lastWarrantyExtension nema validaciju — uvek se brise.

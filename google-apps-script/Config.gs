@@ -21,6 +21,11 @@
  *        - OLD_PROJECT_ID
  *        - OLD_SERVICE_EMAIL
  *        - OLD_PRIVATE_KEY
+ *
+ *      MK baza:
+ *        - MK_PROJECT_ID
+ *        - MK_SERVICE_EMAIL
+ *        - MK_PRIVATE_KEY
  */
 
 var Config = (function () {
@@ -53,6 +58,11 @@ var Config = (function () {
     getOldProjectId: function () { return getProps_().getProperty("OLD_PROJECT_ID"); },
     getOldEmail: function () { return getProps_().getProperty("OLD_SERVICE_EMAIL"); },
     getOldKey: function () { return getKey_("OLD_PRIVATE_KEY"); },
+
+    // ── MK baza ──────────────────────────────────────────────────────
+    getMkProjectId: function () { return getProps_().getProperty("MK_PROJECT_ID"); },
+    getMkEmail: function () { return getProps_().getProperty("MK_SERVICE_EMAIL"); },
+    getMkKey: function () { return getKey_("MK_PRIVATE_KEY"); },
 
     /** Kolekcija u koju se upisuju odobreni SN-ovi */
     APPROVED_DEVICES_COLLECTION: "approvedLoyaltyDevices",

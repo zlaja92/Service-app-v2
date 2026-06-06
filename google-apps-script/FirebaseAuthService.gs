@@ -61,6 +61,68 @@ var FirebaseAuthService = (function () {
 
   return {
     /**
+     * Kreira novog Firebase Auth korisnika sa email/password kredencijalima.
+     * @param {string} email
+     * @param {string} password
+     * @return {{success: boolean, uid: string|null, alreadyExists: boolean, error: string|null}}
+     */
+    createUser: function (email, password) {
+      var token = getAccessToken_();
+      var url = getBaseUrl_() + "/accounts";
+
+      var response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: { Authorization: "Bearer " + token },
+        payload: JSON.stringify({
+          email: email,
+          password: password,
+          emailVerified: true
+        }),
+        muteHttpExceptions: true
+      });
+
+      var code = response.getResponseCode();
+      var body = JSON.parse(response.getContentText());
+
+      if (code === 200 && body.localId) {
+        return { success: true, uid: body.localId, alreadyExists: false, error: null };
+      }
+
+      // Firebase vraca 400 sa "EMAIL_EXISTS" kao errorMessage kad email vec postoji
+      var errMsg = (body.error && body.error.message) ? body.error.message : response.getContentText();
+      if (errMsg && String(errMsg).indexOf("EMAIL_EXISTS") !== -1) {
+        return { success: false, uid: null, alreadyExists: true, error: "EMAIL_EXISTS" };
+      }
+
+      return { success: false, uid: null, alreadyExists: false, error: response.getContentText() };
+    },
+
+    /**
+     * Vraca korisnika po emailu (ili null ako ne postoji).
+     */
+    lookupUserByEmail: function (email) {
+      var token = getAccessToken_();
+      var url = getBaseUrl_() + "/accounts:lookup";
+
+      var response = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: { Authorization: "Bearer " + token },
+        payload: JSON.stringify({ email: [email] }),
+        muteHttpExceptions: true
+      });
+
+      var code = response.getResponseCode();
+      if (code !== 200) {
+        throw new Error("LookupByEmail failed: " + response.getContentText());
+      }
+      var body = JSON.parse(response.getContentText());
+      if (!body.users || body.users.length === 0) return null;
+      return body.users[0];
+    },
+
+    /**
      * Vraca informacije o korisniku po UID-u.
      */
     lookupUser: function (uid) {
