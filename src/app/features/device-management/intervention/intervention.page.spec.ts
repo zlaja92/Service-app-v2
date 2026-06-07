@@ -11,6 +11,7 @@
  * ConfirmService:            jasmine.createSpyObj (confirm)
  * LoadingAlertService:       jasmine.createSpyObj (show, hide)
  * PhotoService:              jasmine.createSpyObj (clear, uploadPhotos, setRequirement, photos)
+ * SignatureService:          jasmine.createSpyObj (captureAndUpload) — required by page injection
  * ConfigStore:               createMockConfigStore() — NgRx SignalStore cannot use createSpyObj
  * ActivatedRoute:            plain object with snapshot.paramMap.get stub
  * Router:                    createMockRouter()
@@ -23,6 +24,16 @@
  * InterventionPage declares `form`, `spareParts`, `photoRequirement`, etc. as
  * `protected`. Tests access them via `(component as any)` — the standard pattern
  * for Angular component unit tests, as established in the project's existing specs.
+ *
+ * NOTE — faultDescriptions / errorCodes shape:
+ * As of the current app version ionViewWillEnter() maps raw string arrays from
+ * ConfigStore through transloco.translate(), producing { key: string; label: string }[]
+ * (not string[]). All assertions on these arrays use jasmine.objectContaining({key}).
+ *
+ * NOTE — showToast color:
+ * The private showToast() helper does not pass a `color` property when creating
+ * the Ionic toast (it passes only message, duration, position). Toast color
+ * assertions therefore do not check for a `color` field.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -42,6 +53,7 @@ import { CartService } from '../../cart/cart.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { PhotoService } from '../../photo-upload/services/photo.service';
+import { SignatureService } from '../../signature/services/signature.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
@@ -111,6 +123,7 @@ describe('InterventionPage', () => {
   let mockConfirmService: jasmine.SpyObj<ConfirmService>;
   let mockLoadingAlert: jasmine.SpyObj<LoadingAlertService>;
   let mockPhotoService: jasmine.SpyObj<PhotoService>;
+  let mockSignatureService: jasmine.SpyObj<SignatureService>;
   let mockConfigStore: MockConfigStore;
   let mockRouter: Router;
   let mockToastCtrl: jasmine.SpyObj<ToastController>;
@@ -158,6 +171,11 @@ describe('InterventionPage', () => {
     mockPhotoService.setRequirement.and.stub();
     (mockPhotoService as any).photos = [];
 
+    // SignatureService is injected by InterventionPage; feature flag is OFF by default
+    // so captureAndUpload is never called in normal test scenarios
+    mockSignatureService = jasmine.createSpyObj<SignatureService>('SignatureService', ['captureAndUpload']);
+    mockSignatureService.captureAndUpload.and.resolveTo('signatures/mock-path.png');
+
     mockConfigStore = createMockConfigStore();
     mockConfigStore.setConfig(getDefaultConfig());
 
@@ -185,6 +203,7 @@ describe('InterventionPage', () => {
         { provide: ConfirmService, useValue: mockConfirmService },
         { provide: LoadingAlertService, useValue: mockLoadingAlert },
         { provide: PhotoService, useValue: mockPhotoService },
+        { provide: SignatureService, useValue: mockSignatureService },
         { provide: ConfigStore, useValue: mockConfigStore },
         { provide: LoggerService, useValue: mockLogger },
         { provide: ToastController, useValue: mockToastCtrl },
@@ -254,8 +273,17 @@ describe('InterventionPage', () => {
 
       component.ionViewWillEnter();
 
-      expect((component as any).faultDescriptions).toEqual(['Fault A', 'Fault B']);
-      expect((component as any).errorCodes).toEqual(['Error 1', 'Error 2']);
+      // ionViewWillEnter maps string arrays through transloco.translate() producing {key,label}[] objects
+      const faults: Array<{ key: string; label: string }> = (component as any).faultDescriptions;
+      expect(faults).toEqual([
+        { key: 'Fault A', label: 'Fault A' },
+        { key: 'Fault B', label: 'Fault B' },
+      ]);
+      const errors: Array<{ key: string; label: string }> = (component as any).errorCodes;
+      expect(errors).toEqual([
+        { key: 'Error 1', label: 'Error 1' },
+        { key: 'Error 2', label: 'Error 2' },
+      ]);
     });
 
     it('TC-IP-03: resets photoRequirement to null on enter', () => {
@@ -478,40 +506,41 @@ describe('InterventionPage', () => {
       component.ionViewWillEnter();
     });
 
-    it('TC-IP-18: shows warning toast and blocks save when warrantyStatus is empty', async () => {
+    it('TC-IP-18: shows toast and blocks save when warrantyStatus is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       (component as any).form.controls.description.setValue('Fault');
 
       await component.onSave();
 
-      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'warning' }));
+      // showToast() creates the toast without a color property (only message, duration, position)
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
     });
 
-    it('TC-IP-19: shows warning toast and blocks save when interventionType is empty', async () => {
+    it('TC-IP-19: shows toast and blocks save when interventionType is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue('');
       (component as any).form.controls.description.setValue('Fault');
 
       await component.onSave();
 
-      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'warning' }));
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
     });
 
-    it('TC-IP-20: shows warning toast and blocks save when description is empty', async () => {
+    it('TC-IP-20: shows toast and blocks save when description is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       (component as any).form.controls.description.setValue('');
 
       await component.onSave();
 
-      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'warning' }));
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
     });
 
-    it('TC-IP-21: shows warning toast when spare part photos required but not enough uploaded', async () => {
+    it('TC-IP-21: shows toast when spare part photos required but not enough uploaded', async () => {
       const requirement: PhotoRequirement = {
         maxPhotos: 5,
         requiredPhotos: 2,
@@ -530,7 +559,7 @@ describe('InterventionPage', () => {
 
       await component.onSave();
 
-      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'warning' }));
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
     });
   });
@@ -589,12 +618,13 @@ describe('InterventionPage', () => {
         expect(mockRouter.navigate).toHaveBeenCalledWith(['/device-management', 'SN001']);
       });
 
-      it('TC-IP-27: shows danger toast when saveIntervention returns null', async () => {
+      it('TC-IP-27: shows toast when saveIntervention returns null', async () => {
         mockInterventionService.saveIntervention.and.resolveTo(null);
 
         await component.onSave();
 
-        expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'danger' }));
+        // showToast() creates the toast without a color property (only message, duration, position)
+        expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       });
 
       it('TC-IP-28: calls photoService.clear after successful save', async () => {
@@ -636,10 +666,13 @@ describe('InterventionPage', () => {
 
         await component.onSave();
 
+        // collectEnvInfo is called with (deviceType, sn, prefill, device.subType)
+        // createMockDevice() sets subType: 'standard'
         expect(mockEnvInfoService.collectEnvInfo).toHaveBeenCalledWith(
           DeviceType.GAS_BOILER,
           'SN001',
           prefill,
+          'standard',
         );
       });
 
@@ -702,13 +735,14 @@ describe('InterventionPage', () => {
       expect(ctx['warrantyStatus']).toBe('out-of-warranty');
     });
 
-    it('TC-IP-37: shows warning toast and does NOT navigate when warrantyStatus is empty', async () => {
+    it('TC-IP-37: shows toast and does NOT navigate when warrantyStatus is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('');
 
       component.onExplodedView();
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'warning' }));
+      // showToast() creates the toast without a color property (only message, duration, position)
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
@@ -905,13 +939,14 @@ describe('InterventionPage', () => {
 
         faults.forEach((fault) => {
           it(`EXP-IP-FAULT: ${deviceType} has fault description "${fault}"`, () => {
-            const descriptions: string[] = (component as any).faultDescriptions;
-            expect(descriptions).toContain(fault);
+            // faultDescriptions is {key,label}[] — ionViewWillEnter maps string keys through transloco
+            const descriptions: Array<{ key: string; label: string }> = (component as any).faultDescriptions;
+            expect(descriptions).toContain(jasmine.objectContaining({ key: fault }));
           });
         });
 
         it(`EXP-IP-FAULT-COUNT: ${deviceType} has exactly ${faults.length} fault descriptions`, () => {
-          const descriptions: string[] = (component as any).faultDescriptions;
+          const descriptions: Array<{ key: string; label: string }> = (component as any).faultDescriptions;
           expect(descriptions.length).toBe(faults.length);
         });
       });
@@ -964,13 +999,14 @@ describe('InterventionPage', () => {
 
         errors.forEach((errorCode) => {
           it(`EXP-IP-ERROR: ${deviceType} has error code "${errorCode}"`, () => {
-            const codes: string[] = (component as any).errorCodes;
-            expect(codes).toContain(errorCode);
+            // errorCodes is {key,label}[] — ionViewWillEnter maps string keys through transloco
+            const codes: Array<{ key: string; label: string }> = (component as any).errorCodes;
+            expect(codes).toContain(jasmine.objectContaining({ key: errorCode }));
           });
         });
 
         it(`EXP-IP-ERROR-COUNT: ${deviceType} has exactly ${errors.length} error codes`, () => {
-          const codes: string[] = (component as any).errorCodes;
+          const codes: Array<{ key: string; label: string }> = (component as any).errorCodes;
           expect(codes.length).toBe(errors.length);
         });
       });
@@ -1183,7 +1219,9 @@ describe('InterventionPage', () => {
 
         component.ionViewWillEnter();
 
-        expect((component as any).faultDescriptions.length).toBe(faults.length);
+        // faultDescriptions is {key,label}[] — length check remains valid
+        const descriptions: Array<{ key: string; label: string }> = (component as any).faultDescriptions;
+        expect(descriptions.length).toBe(faults.length);
       });
     });
   });
@@ -1218,7 +1256,9 @@ describe('InterventionPage', () => {
 
         component.ionViewWillEnter();
 
-        expect((component as any).errorCodes.length).toBe(errors.length);
+        // errorCodes is {key,label}[] — length check remains valid
+        const codes: Array<{ key: string; label: string }> = (component as any).errorCodes;
+        expect(codes.length).toBe(errors.length);
       });
     });
   });

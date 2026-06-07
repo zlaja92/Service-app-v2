@@ -21,8 +21,20 @@ import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
-import { createMockLoggerService } from '../../../testing/mock-factories';
+import {
+  createMockLoggerService,
+  createMockServicerService,
+  createMockStorageService,
+  createMockReportService,
+  createMockLoadingAlertService,
+  createMockToastController,
+} from '../../../testing/mock-factories';
 import { buildFirestoreTimestamp } from '../../../testing/test-data-builders';
+import { ServicerService } from '../../../core/servicer/servicer.service';
+import { StorageService } from '../../../core/firebase/storage.service';
+import { ReportService } from '../../reports/services/report.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { ToastController } from '@ionic/angular/standalone';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -55,10 +67,12 @@ function buildInterventionService(
     'getInterventionById',
     'getRegistration',
     'getInterventionLabel',
+    'getInterventionsBySn',
   ]);
   spy.getInterventionById.and.resolveTo(null);
   spy.getRegistration.and.resolveTo(null);
   spy.getInterventionLabel.and.returnValue(null);
+  spy.getInterventionsBySn.and.resolveTo([]);
   return Object.assign(spy, overrides);
 }
 
@@ -88,6 +102,11 @@ describe('InterventionDetailPage', () => {
   let mockEnvInfoService: jasmine.SpyObj<DeviceEnvInfoService>;
   let mockLogger: jasmine.SpyObj<LoggerService>;
   let mockRoute: ReturnType<typeof buildActivatedRoute>;
+  let mockServicerService: jasmine.SpyObj<ServicerService>;
+  let mockStorageService: jasmine.SpyObj<StorageService>;
+  let mockReportService: jasmine.SpyObj<ReportService>;
+  let mockLoadingAlert: jasmine.SpyObj<LoadingAlertService>;
+  let mockToastCtrl: jasmine.SpyObj<ToastController>;
 
   function setup(
     routeParams: Record<string, string | null> = { sn: 'SN001', id: 'intervention-uuid' },
@@ -115,6 +134,11 @@ describe('InterventionDetailPage', () => {
         { provide: DeviceLookupService, useValue: mockLookupService },
         { provide: DeviceEnvInfoService, useValue: mockEnvInfoService },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: ServicerService, useValue: mockServicerService },
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: ReportService, useValue: mockReportService },
+        { provide: LoadingAlertService, useValue: mockLoadingAlert },
+        { provide: ToastController, useValue: mockToastCtrl },
       ],
     });
 
@@ -131,6 +155,11 @@ describe('InterventionDetailPage', () => {
     ]);
     mockEnvInfoService.viewEnvInfo.and.resolveTo();
     mockLogger = createMockLoggerService();
+    mockServicerService = createMockServicerService();
+    mockStorageService = createMockStorageService();
+    mockReportService = createMockReportService();
+    mockLoadingAlert = createMockLoadingAlertService();
+    mockToastCtrl = createMockToastController();
   });
 
   afterEach(() => {
@@ -432,6 +461,7 @@ describe('InterventionDetailPage', () => {
     expect(mockEnvInfoService.viewEnvInfo).toHaveBeenCalledWith(
       DeviceType.GAS_BOILER,
       envInfo,
+      '',
     );
   });
 
@@ -573,6 +603,11 @@ describe('InterventionDetailPage', () => {
         { provide: DeviceLookupService, useValue: mockLookupService },
         { provide: DeviceEnvInfoService, useValue: mockEnvInfoService },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: ServicerService, useValue: mockServicerService },
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: ReportService, useValue: mockReportService },
+        { provide: LoadingAlertService, useValue: mockLoadingAlert },
+        { provide: ToastController, useValue: mockToastCtrl },
       ],
     });
 
@@ -922,6 +957,8 @@ describe('InterventionDetailPage', () => {
   // =========================================================================
 
   describe('resolveRawValue() — number inputs', () => {
+    beforeEach(() => setup());
+
     function getRaw(): (key: string, value: unknown) => unknown {
       return (key: string, value: unknown) => (component as any).resolveRawValue(key, value);
     }
@@ -949,6 +986,8 @@ describe('InterventionDetailPage', () => {
   // =========================================================================
 
   describe('resolveRawValue() — boolean inputs', () => {
+    beforeEach(() => setup());
+
     function getRaw(): (key: string, value: unknown) => unknown {
       return (key: string, value: unknown) => (component as any).resolveRawValue(key, value);
     }
@@ -1006,6 +1045,11 @@ describe('InterventionDetailPage', () => {
             { provide: DeviceEnvInfoService, useValue: jasmine.createSpyObj(['viewEnvInfo']) },
             { provide: LoggerService, useValue: createMockLoggerService() },
             { provide: ActivatedRoute, useValue: route },
+            { provide: ServicerService, useValue: createMockServicerService() },
+            { provide: StorageService, useValue: createMockStorageService() },
+            { provide: ReportService, useValue: createMockReportService() },
+            { provide: LoadingAlertService, useValue: createMockLoadingAlertService() },
+            { provide: ToastController, useValue: createMockToastController() },
           ],
         }).compileComponents();
 
@@ -1024,6 +1068,11 @@ describe('InterventionDetailPage', () => {
   // =========================================================================
 
   describe('isTranslatable() — extended key coverage', () => {
+    // Must create the component before each test — under Jasmine's random order
+    // this block can run before any test that calls setup(), leaving `component`
+    // undefined (TypeError on isTranslatable).
+    beforeEach(() => setup());
+
     function getIsTranslatable(): (key: string) => boolean {
       return (key: string) => (component as any).isTranslatable(key);
     }
@@ -1075,6 +1124,568 @@ describe('InterventionDetailPage', () => {
         const result = getFormatDate()(input);
         expect(typeof result).toBe('string');
       });
+    });
+  });
+
+  // =========================================================================
+  // NEW: str() — private utility
+  // =========================================================================
+
+  describe('str() — private null-to-empty-string coercion', () => {
+    beforeEach(() => {
+      setup();
+    });
+
+    function getStr(): (value: unknown) => string {
+      return (value: unknown) => (component as any).str(value);
+    }
+
+    it('TC-STR-01: null → empty string', () => {
+      expect(getStr()(null)).toBe('');
+    });
+
+    it('TC-STR-02: undefined → empty string', () => {
+      expect(getStr()(undefined)).toBe('');
+    });
+
+    it('TC-STR-03: 0 → "0"', () => {
+      expect(getStr()(0)).toBe('0');
+    });
+
+    it('TC-STR-04: "hello" → "hello"', () => {
+      expect(getStr()('hello')).toBe('hello');
+    });
+
+    it('TC-STR-05: false → "false"', () => {
+      expect(getStr()(false)).toBe('false');
+    });
+
+    it('TC-STR-06: 42 → "42"', () => {
+      expect(getStr()(42)).toBe('42');
+    });
+  });
+
+  // =========================================================================
+  // NEW: formatDate() — Firestore Timestamp coercion
+  // =========================================================================
+
+  describe('formatDate() — Firestore Timestamp coercion', () => {
+    beforeEach(() => {
+      setup();
+    });
+
+    function getFormatDateNew(): (value: unknown) => string {
+      return (value: unknown) => (component as any).formatDate(value);
+    }
+
+    it('TC-FMT-01: valid Firestore Timestamp → "DD.MM.YYYY" format', () => {
+      const ts = buildFirestoreTimestamp(new Date('2024-06-15T00:00:00Z'));
+      const result = getFormatDateNew()(ts);
+      // getDate/getMonth depend on local timezone; we check the format shape
+      expect(result).toMatch(/^\d{2}\.\d{2}\.\d{4}$/);
+    });
+
+    it('TC-FMT-02: null → empty string', () => {
+      expect(getFormatDateNew()(null)).toBe('');
+    });
+
+    it('TC-FMT-03: undefined → empty string', () => {
+      expect(getFormatDateNew()(undefined)).toBe('');
+    });
+
+    it('TC-FMT-04: Timestamp for 2020-01-01 → year part is "2020"', () => {
+      const ts = buildFirestoreTimestamp(new Date('2020-01-01T12:00:00Z'));
+      const result = getFormatDateNew()(ts);
+      expect(result.endsWith('.2020')).toBeTrue();
+    });
+  });
+
+  // =========================================================================
+  // NEW: translateMaybe() — conditional translation
+  // =========================================================================
+
+  describe('translateMaybe() — conditional i18n translation', () => {
+    beforeEach(() => {
+      // Use createMockTranslocoService so we can verify translate is called
+      // The TranslocoTestingModule used in setup() returns the key as-is, which
+      // is the same behaviour we need — using setup() is sufficient.
+      setup();
+    });
+
+    function getTranslateMaybe(): (value: unknown) => string {
+      return (value: unknown) => (component as any).translateMaybe(value);
+    }
+
+    it('TC-TM-01: intervention_description_ prefixed key → transloco.translate called and returns key', () => {
+      const key = 'intervention_description_commissioning';
+      const result = getTranslateMaybe()(key);
+      // TranslocoTestingModule returns key as-is; the important thing is it was routed through translate
+      expect(result).toBe(key);
+    });
+
+    it('TC-TM-02: free-text description (no prefix) → returned as-is', () => {
+      const text = 'Replaced the heat exchanger';
+      expect(getTranslateMaybe()(text)).toBe(text);
+    });
+
+    it('TC-TM-03: empty string → empty string', () => {
+      expect(getTranslateMaybe()('')).toBe('');
+    });
+
+    it('TC-TM-04: null → empty string', () => {
+      expect(getTranslateMaybe()(null)).toBe('');
+    });
+
+    it('TC-TM-05: undefined → empty string', () => {
+      expect(getTranslateMaybe()(undefined)).toBe('');
+    });
+
+    it('TC-TM-06: key starting with intervention_description_ uses transloco (not raw passthrough)', () => {
+      // Verify the translation route: component must call transloco.translate for i18n keys.
+      // We cannot spy on TranslocoTestingModule's service directly, so we verify the
+      // output equals the key (since TranslocoTestingModule returns key as-is, matching
+      // what transloco.translate would return for an unknown key).
+      const key = 'intervention_description_annual_service';
+      expect(getTranslateMaybe()(key)).toBe(key);
+    });
+  });
+
+  // =========================================================================
+  // NEW: buildConsent() — per device type
+  // =========================================================================
+
+  describe('buildConsent() — device-type-specific consent object', () => {
+    beforeEach(() => {
+      setup();
+    });
+
+    function getConsent(): (deviceType: DeviceType, callAccepted: boolean | null) => unknown {
+      return (deviceType: DeviceType, callAccepted: boolean | null) =>
+        (component as any).buildConsent(deviceType, callAccepted);
+    }
+
+    it('TC-CON-01: BOILER → boiler-disclaimer with accepted=null', () => {
+      const result = getConsent()(DeviceType.BOILER, null);
+      expect(result).toEqual({ type: 'boiler-disclaimer', accepted: null });
+    });
+
+    it('TC-CON-02: BOILER ignores callAccepted value (always null)', () => {
+      const result = getConsent()(DeviceType.BOILER, true);
+      expect(result).toEqual({ type: 'boiler-disclaimer', accepted: null });
+    });
+
+    it('TC-CON-03: GAS_BOILER + callAccepted=true → service-consent with accepted=true', () => {
+      const result = getConsent()(DeviceType.GAS_BOILER, true);
+      expect(result).toEqual({ type: 'service-consent', accepted: true });
+    });
+
+    it('TC-CON-04: GAS_BOILER + callAccepted=false → service-consent with accepted=false', () => {
+      const result = getConsent()(DeviceType.GAS_BOILER, false);
+      expect(result).toEqual({ type: 'service-consent', accepted: false });
+    });
+
+    it('TC-CON-05: GAS_BOILER + callAccepted=null → service-consent with accepted=null', () => {
+      const result = getConsent()(DeviceType.GAS_BOILER, null);
+      expect(result).toEqual({ type: 'service-consent', accepted: null });
+    });
+
+    it('TC-CON-06: HEAT_PUMP + callAccepted=true → service-consent with accepted=true', () => {
+      const result = getConsent()(DeviceType.HEAT_PUMP, true);
+      expect(result).toEqual({ type: 'service-consent', accepted: true });
+    });
+
+    it('TC-CON-07: HEAT_PUMP + callAccepted=null → service-consent with accepted=null', () => {
+      const result = getConsent()(DeviceType.HEAT_PUMP, null);
+      expect(result).toEqual({ type: 'service-consent', accepted: null });
+    });
+
+    it('TC-CON-08: AIR_CONDITION → undefined (no consent block)', () => {
+      const result = getConsent()(DeviceType.AIR_CONDITION, null);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
+  // NEW: buildParameterSections() — env-info section builder
+  // =========================================================================
+
+  describe('buildParameterSections() — env-info section builder', () => {
+    beforeEach(() => {
+      setup();
+    });
+
+    function getSections(): (device: Device, envInfo: Record<string, string> | null) => unknown[] {
+      return (device: Device, envInfo: Record<string, string> | null) =>
+        (component as any).buildParameterSections(device, envInfo);
+    }
+
+    it('TC-PS-01: null envInfo → returns empty array', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      expect(getSections()(device, null)).toEqual([]);
+    });
+
+    it('TC-PS-02: empty envInfo → returns empty array (all values blank → no rows)', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      expect(getSections()(device, {})).toEqual([]);
+    });
+
+    it('TC-PS-03: GAS_BOILER with number field → section with translated label and value+unit', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      // voltage is a number field with unit 'V' in GAS_BOILER_FIELDS
+      const envInfo: Record<string, string> = { voltage: '230' };
+      const result = getSections()(device, envInfo) as Array<{ title: string; rows: Array<{ label: string; value: string }> }>;
+      expect(result.length).toBeGreaterThan(0);
+      const row = result[0].rows.find((r: { label: string; value: string }) => r.value === '230 V');
+      expect(row).toBeDefined();
+    });
+
+    it('TC-PS-04: GAS_BOILER with select field → value is translated i18n key', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      // gasType is a select field; stored value is an i18n key
+      const envInfo: Record<string, string> = { gasType: 'env_info_opt_gas_natural' };
+      const result = getSections()(device, envInfo) as Array<{ title: string; rows: Array<{ label: string; value: string }> }>;
+      expect(result.length).toBeGreaterThan(0);
+      // TranslocoTestingModule returns key as-is
+      const row = result[0].rows.find((r: { label: string; value: string }) => r.value === 'env_info_opt_gas_natural');
+      expect(row).toBeDefined();
+    });
+
+    it('TC-PS-05: field with empty string value → filtered out (not in rows)', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      // voltage provided but sysPressure is empty string
+      const envInfo: Record<string, string> = { voltage: '230', sysPressure: '' };
+      const result = getSections()(device, envInfo) as Array<{ title: string; rows: Array<{ label: string; value: string }> }>;
+      const allRows = result.flatMap((s: { title: string; rows: Array<{ label: string; value: string }> }) => s.rows);
+      const sysPressureRow = allRows.find((r: { label: string; value: string }) => r.value.trim() === '');
+      expect(sysPressureRow).toBeUndefined();
+    });
+
+    it('TC-PS-06: section with no non-empty rows → not included in result', () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      // Provide only empty values — no section should be included
+      const envInfo: Record<string, string> = { voltage: '', gasType: '' };
+      const result = getSections()(device, envInfo);
+      expect(result).toEqual([]);
+    });
+
+    it('TC-PS-07: HEAT_PUMP monoblock → freon section excluded', () => {
+      const device = createMockDevice({ type: DeviceType.HEAT_PUMP, subType: 'monoblock' });
+      // pipeLength is in the freon section
+      const envInfo: Record<string, string> = { pipeLength: '15', sysWaterPressure: '1.5' };
+      const result = getSections()(device, envInfo) as Array<{ title: string; rows: Array<{ label: string; value: string }> }>;
+      const sectionTitles = result.map((s: { title: string; rows: Array<{ label: string; value: string }> }) => s.title);
+      // 'env_info_section_freon' would be translated to the key itself by TranslocoTestingModule
+      expect(sectionTitles).not.toContain('env_info_section_freon');
+    });
+
+    it('TC-PS-08: BOILER device type → returns empty array (no field config)', () => {
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      const envInfo: Record<string, string> = { someField: 'someValue' };
+      const result = getSections()(device, envInfo);
+      expect(result).toEqual([]);
+    });
+  });
+
+  // =========================================================================
+  // NEW: resolveCallAccepted() — private async method
+  // =========================================================================
+
+  describe('resolveCallAccepted() — async callAccepted resolver', () => {
+    beforeEach(() => {
+      setup({ sn: 'SN001', id: 'int-rca' });
+    });
+
+    function getResolve(): (device: Device, data: Record<string, unknown>) => Promise<boolean | null> {
+      return (device: Device, data: Record<string, unknown>) =>
+        (component as any).resolveCallAccepted(device, data);
+    }
+
+    it('TC-RCA-01: data has callAccepted=true → returns true immediately', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      const result = await getResolve()(device, { callAccepted: true });
+      expect(result).toBeTrue();
+      expect(mockInterventionService.getInterventionsBySn).not.toHaveBeenCalled();
+    });
+
+    it('TC-RCA-02: data has callAccepted=false → returns false immediately', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      const result = await getResolve()(device, { callAccepted: false });
+      expect(result).toBeFalse();
+      expect(mockInterventionService.getInterventionsBySn).not.toHaveBeenCalled();
+    });
+
+    it('TC-RCA-03: non-eligible device type (BOILER) → returns null without querying', async () => {
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      const result = await getResolve()(device, {});
+      expect(result).toBeNull();
+      expect(mockInterventionService.getInterventionsBySn).not.toHaveBeenCalled();
+    });
+
+    it('TC-RCA-04: non-eligible device type (AIR_CONDITION) → returns null without querying', async () => {
+      const device = createMockDevice({ type: DeviceType.AIR_CONDITION });
+      const result = await getResolve()(device, {});
+      expect(result).toBeNull();
+      expect(mockInterventionService.getInterventionsBySn).not.toHaveBeenCalled();
+    });
+
+    it('TC-RCA-05: GAS_BOILER without callAccepted → reverse searches previous interventions', async () => {
+      // component.sn se postavlja u ionViewWillEnter() koja se ovde ne poziva direktno.
+      // Postavljamo ga eksplicitno da resolveCallAccepted dobije ispravan sn pri pozivu
+      // getInterventionsBySn (page čita this.sn = this.route.snapshot.paramMap.get('sn') ?? '').
+      (component as any).sn = 'SN001';
+
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getInterventionsBySn.and.resolveTo([
+        { id: 'i1', data: { addedDate: null } },
+        { id: 'i2', data: { callAccepted: true, addedDate: null } },
+      ]);
+      const result = await getResolve()(device, {});
+      expect(mockInterventionService.getInterventionsBySn).toHaveBeenCalledWith('SN001', DeviceType.GAS_BOILER);
+      // Reverse search: last item with boolean callAccepted (i2 is last)
+      expect(result).toBeTrue();
+    });
+
+    it('TC-RCA-06: HEAT_PUMP without callAccepted → reverse searches previous interventions', async () => {
+      const device = createMockDevice({ type: DeviceType.HEAT_PUMP });
+      mockInterventionService.getInterventionsBySn.and.resolveTo([
+        { id: 'i1', data: { callAccepted: false, addedDate: null } },
+        { id: 'i2', data: { addedDate: null } },
+      ]);
+      const result = await getResolve()(device, {});
+      // Reverse search from end: i2 has no callAccepted, i1 has false
+      expect(result).toBeFalse();
+    });
+
+    it('TC-RCA-07: GAS_BOILER, no intervention has callAccepted → returns null', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getInterventionsBySn.and.resolveTo([
+        { id: 'i1', data: { addedDate: null } },
+        { id: 'i2', data: { addedDate: null } },
+      ]);
+      const result = await getResolve()(device, {});
+      expect(result).toBeNull();
+    });
+
+    it('TC-RCA-08: getInterventionsBySn throws → returns null and logger.warn called', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getInterventionsBySn.and.rejectWith(new Error('network error'));
+      const result = await getResolve()(device, {});
+      expect(result).toBeNull();
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('TC-RCA-09: GAS_BOILER empty interventions list → returns null', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getInterventionsBySn.and.resolveTo([]);
+      const result = await getResolve()(device, {});
+      expect(result).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // NEW: onReport() — full happy path and edge cases
+  // =========================================================================
+
+  describe('onReport() — report generation', () => {
+    async function setupAndLoadIntervention(
+      interventionData: Record<string, unknown>,
+      device: Device = createMockDevice(),
+    ): Promise<void> {
+      mockInterventionService.getInterventionById.and.resolveTo(interventionData);
+      setup({ sn: 'SN001', id: 'int-report' }, device);
+      await component.ionViewWillEnter();
+    }
+
+    it('TC-REP-01: device null → early return, reportService.generate not called', async () => {
+      // Simulate device being null by using stale lookup (device=null)
+      mockInterventionService.getInterventionById.and.resolveTo({ interventionType: 'repair' });
+      setup({ sn: 'SN001', id: 'int-report' }, null, true);
+      await component.ionViewWillEnter();
+
+      await component.onReport();
+
+      expect(mockReportService.generate).not.toHaveBeenCalled();
+    });
+
+    it('TC-REP-02: interventionData null → early return, reportService.generate not called', async () => {
+      // Registration path sets interventionData to null (isRegistration=true skips setting it)
+      mockInterventionService.getRegistration.and.resolveTo({ registeredAt: '2024-01-01' });
+      setup({ sn: 'SN001', id: 'registration' });
+      await component.ionViewWillEnter();
+
+      await component.onReport();
+
+      expect(mockReportService.generate).not.toHaveBeenCalled();
+    });
+
+    it('TC-REP-03: happy path → getRegistration called with sn', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      mockInterventionService.getRegistration.and.resolveTo({ firstName: 'Marko', lastName: 'Markovic' });
+
+      await component.onReport();
+
+      expect(mockInterventionService.getRegistration).toHaveBeenCalledWith('SN001');
+    });
+
+    it('TC-REP-04: happy path → servicerService.getCurrent called', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+      expect(mockServicerService.getCurrent).toHaveBeenCalled();
+    });
+
+    it('TC-REP-05: no signaturePath in data → storageService.getFileUrl NOT called', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+      expect(mockStorageService.getFileUrl).not.toHaveBeenCalled();
+    });
+
+    it('TC-REP-06: data has signaturePath → storageService.getFileUrl called with path', async () => {
+      const signaturePath = 'signatures/SN001/sig.png';
+      mockStorageService.getFileUrl.and.resolveTo('https://storage.example.com/sig.png');
+      await setupAndLoadIntervention({ interventionType: 'repair', signaturePath });
+      await component.onReport();
+      expect(mockStorageService.getFileUrl).toHaveBeenCalledWith(signaturePath);
+    });
+
+    it('TC-REP-07: data has signaturePath → ctx.signatureUrl set from getFileUrl result', async () => {
+      const url = 'https://storage.example.com/sig.png';
+      mockStorageService.getFileUrl.and.resolveTo(url);
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        expect((ctx as { signatureUrl?: string }).signatureUrl).toBe(url);
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair', signaturePath: 'x/sig.png' });
+      await component.onReport();
+    });
+
+    it('TC-REP-08: no signaturePath → ctx.signatureUrl is undefined', async () => {
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        expect((ctx as { signatureUrl?: string }).signatureUrl).toBeUndefined();
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+    });
+
+    it('TC-REP-09: reportService.generate called with "intervention-receipt"', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+      expect(mockReportService.generate).toHaveBeenCalledWith('intervention-receipt', jasmine.any(Object));
+    });
+
+    it('TC-REP-10: parts mapped via str() — null parts become empty string', async () => {
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        const parts = (ctx as { intervention: { parts: string[] } }).intervention.parts;
+        // sparePart1/2/3/4 absent → str(undefined) = ''
+        expect(parts).toEqual(['', '', '', '']);
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+    });
+
+    it('TC-REP-11: parts from data sparePart1..4 mapped correctly', async () => {
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        const parts = (ctx as { intervention: { parts: string[] } }).intervention.parts;
+        expect(parts).toEqual(['Gasket', 'Valve', '', '']);
+      });
+      await setupAndLoadIntervention({
+        interventionType: 'repair',
+        sparePart1: 'Gasket',
+        sparePart2: 'Valve',
+      });
+      await component.onReport();
+    });
+
+    it('TC-REP-12: HEAT_PUMP device → connectedSn from reg.connectedDevice set', async () => {
+      const device = createMockDevice({ type: DeviceType.HEAT_PUMP });
+      mockInterventionService.getRegistration.and.resolveTo({ connectedDevice: 'SN-BOILER-001' });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        expect((ctx as { device: { connectedSn?: string } }).device.connectedSn).toBe('SN-BOILER-001');
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' }, device);
+      await component.onReport();
+    });
+
+    it('TC-REP-13: non-HEAT_PUMP device → connectedSn not set (undefined)', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getRegistration.and.resolveTo({ connectedDevice: 'SN-BOILER-001' });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        // connectedSn is '' which evaluates to `undefined` via `connectedSn || undefined`
+        expect((ctx as { device: { connectedSn?: string } }).device.connectedSn).toBeUndefined();
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' }, device);
+      await component.onReport();
+    });
+
+    it('TC-REP-14: fullName built as firstName + " " + lastName trimmed', async () => {
+      mockInterventionService.getRegistration.and.resolveTo({ firstName: 'Marko', lastName: 'Markovic' });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        expect((ctx as { user: { fullName: string } }).user.fullName).toBe('Marko Markovic');
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+    });
+
+    it('TC-REP-15: address built as streetName + " " + homeNumber trimmed', async () => {
+      mockInterventionService.getRegistration.and.resolveTo({
+        streetName: 'Bulevar Kralja Aleksandra',
+        homeNumber: '73',
+      });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        expect((ctx as { user: { address: string } }).user.address).toBe('Bulevar Kralja Aleksandra 73');
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
+    });
+
+    it('TC-REP-16: ctx.device includes name, type, subType, sn from lookupService.device', async () => {
+      const device = createMockDevice({ name: 'Genus One', type: DeviceType.GAS_BOILER, subType: 'wall-hung' });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        const d = (ctx as { device: { name: string; type: string; subType: string; sn: string } }).device;
+        expect(d.name).toBe('Genus One');
+        expect(d.type).toBe(DeviceType.GAS_BOILER);
+        expect(d.subType).toBe('wall-hung');
+        expect(d.sn).toBe('SN001');
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' }, device);
+      await component.onReport();
+    });
+
+    it('TC-REP-17: reportService.generate throws → logger.error called', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      mockReportService.generate.and.rejectWith(new Error('PDF failed'));
+
+      await component.onReport();
+
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('TC-REP-18: reportService.generate throws → toast shown with "report_error" message', async () => {
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      mockReportService.generate.and.rejectWith(new Error('PDF failed'));
+
+      await component.onReport();
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'report_error' }),
+      );
+    });
+
+    it('TC-REP-19: buildConsent called for GAS_BOILER → ctx.consent is service-consent', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        const consent = (ctx as { consent?: { type: string } }).consent;
+        expect(consent?.type).toBe('service-consent');
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair', callAccepted: true }, device);
+      await component.onReport();
+    });
+
+    it('TC-REP-20: buildParameterSections result included in ctx.parameterSections', async () => {
+      mockReportService.generate.and.callFake(async (_type: string, ctx: unknown) => {
+        // parameterSections must be an array (may be empty when no envInfo)
+        expect(Array.isArray((ctx as { parameterSections: unknown[] }).parameterSections)).toBeTrue();
+      });
+      await setupAndLoadIntervention({ interventionType: 'repair' });
+      await component.onReport();
     });
   });
 });

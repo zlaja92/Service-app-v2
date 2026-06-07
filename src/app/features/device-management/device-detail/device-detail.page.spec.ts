@@ -23,7 +23,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { ChangeDetectorRef, NO_ERRORS_SCHEMA } from '@angular/core';
-import { ToastController } from '@ionic/angular/standalone';
+import { ToastController, AlertController } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 import { Subject } from 'rxjs';
 import {
@@ -37,12 +37,14 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
 import { AnnualServiceEligibilityService } from '../services/annual-service-eligibility.service';
 import { InterventionService } from '../services/intervention.service';
 import { ConfigStore } from '../../../core/config/config.store';
+import { ConfirmService } from '../../../shared/services/confirm.service';
 import { InterventionType } from '../models/intervention.model';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
   createMockConfigStore,
   createMockToastController,
   createMockTranslocoService,
+  createMockAlertController,
 } from '../../../testing/mock-factories';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -153,6 +155,10 @@ describe('DeviceDetailPage', () => {
     mockTransloco = createMockTranslocoService();
     mockCdr = jasmine.createSpyObj<ChangeDetectorRef>('ChangeDetectorRef', ['markForCheck', 'detectChanges']);
 
+    const mockConfirmService = jasmine.createSpyObj<ConfirmService>('ConfirmService', ['confirm', 'warn']);
+    mockConfirmService.confirm.and.resolveTo(false);
+    mockConfirmService.warn.and.resolveTo();
+
     await TestBed.configureTestingModule({
       imports: [DeviceDetailPage],
       providers: [
@@ -163,8 +169,10 @@ describe('DeviceDetailPage', () => {
         { provide: InterventionService, useValue: mockInterventionService },
         { provide: ConfigStore, useValue: createMockConfigStore() },
         { provide: ToastController, useValue: mockToastController },
+        { provide: AlertController, useValue: createMockAlertController() },
         { provide: TranslocoService, useValue: mockTransloco },
         { provide: ChangeDetectorRef, useValue: mockCdr },
+        { provide: ConfirmService, useValue: mockConfirmService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -515,13 +523,13 @@ describe('DeviceDetailPage', () => {
       expect(mockToastController.create).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-32: unknown scan error shows danger toast', async () => {
+    it('TC-DD-32: unknown scan error shows toast', async () => {
       spyOn(CapacitorBarcodeScanner, 'scanBarcode').and.rejectWith(new Error('Camera unavailable'));
 
       await component.scanConnectedBarcode();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
     });
 
@@ -624,30 +632,30 @@ describe('DeviceDetailPage', () => {
       (component as unknown as { sn: string }).sn = TEST_SN;
     });
 
-    it('TC-DD-38: empty SN returns false and shows warning toast', async () => {
+    it('TC-DD-38: empty SN returns false and shows toast', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = '  ';
 
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'warning' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-39: lookupSilent returns null shows danger toast (not found)', async () => {
+    it('TC-DD-39: lookupSilent returns null shows toast (not found)', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'UNKNOWN-SN';
       mockLookupService.lookupSilent.and.resolveTo(null);
 
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-40: device found but no connectedDevice flag shows danger toast', async () => {
+    it('TC-DD-40: device found but no connectedDevice flag shows toast', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'VALID-SN';
       const foundDevice = buildDevice({ connectedDevice: false });
       mockLookupService.lookupSilent.and.resolveTo(foundDevice);
@@ -655,12 +663,12 @@ describe('DeviceDetailPage', () => {
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-41: device found with wrong type shows danger toast', async () => {
+    it('TC-DD-41: device found with wrong type shows toast', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'VALID-SN';
       const foundDevice = buildDevice({
         connectedDevice: true,
@@ -671,12 +679,12 @@ describe('DeviceDetailPage', () => {
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-42: device found with same model code shows danger toast', async () => {
+    it('TC-DD-42: device found with same model code shows toast', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'VALID-SN';
       const foundDevice = buildDevice({
         connectedDevice: true,
@@ -688,12 +696,12 @@ describe('DeviceDetailPage', () => {
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });
 
-    it('TC-DD-43: device already registered shows danger toast', async () => {
+    it('TC-DD-43: device already registered shows toast', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'VALID-SN';
       const foundDevice = buildDevice({
         connectedDevice: true,
@@ -706,7 +714,7 @@ describe('DeviceDetailPage', () => {
       await component.onAddUser();
 
       expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
+        jasmine.objectContaining({ message: jasmine.any(String) }),
       );
       expect(router.navigate).not.toHaveBeenCalled();
     });

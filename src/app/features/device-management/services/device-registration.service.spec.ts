@@ -5,8 +5,10 @@
  * =============
  * - FirestoreService: createMockFirestoreService() — jasmine.SpyObj with all methods stubbed
  * - AuthStore: createMockAuthStore() — plain object with Angular signals (NGRx SignalStore)
- * - ServerTimeService: jasmine.createSpyObj with getServerTime
  * - LoggerService: createMockLoggerService() — jasmine.SpyObj with all log-level methods stubbed
+ *
+ * NOTE: ServerTimeService was removed in the Timestamp migration. The service now
+ * uses FieldValue.serverTimestamp() sentinel directly — no server time round-trip.
  *
  * The service uses inject() so dependencies are provided via TestBed.
  * AuthStore is a SignalStore (not a class with constructor injection), so we
@@ -17,7 +19,6 @@ import { TestBed } from '@angular/core/testing';
 import { DeviceRegistrationService } from './device-registration.service';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
@@ -32,27 +33,17 @@ import {
   buildAuthUser,
 } from '../../../testing/test-data-builders';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function createMockServerTimeService(): jasmine.SpyObj<ServerTimeService> {
-  const mock = jasmine.createSpyObj<ServerTimeService>('ServerTimeService', ['getServerTime']);
-  mock.getServerTime.and.resolveTo(new Date('2024-06-15T12:00:00.000Z'));
-  return mock;
-}
-
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('DeviceRegistrationService', () => {
   let service: DeviceRegistrationService;
   let mockFirestore: jasmine.SpyObj<FirestoreService>;
   let mockAuthStore: ReturnType<typeof createMockAuthStore>;
-  let mockServerTime: jasmine.SpyObj<ServerTimeService>;
   let mockLogger: jasmine.SpyObj<LoggerService>;
 
   beforeEach(() => {
     mockFirestore = createMockFirestoreService();
     mockAuthStore = createMockAuthStore();
-    mockServerTime = createMockServerTimeService();
     mockLogger = createMockLoggerService();
 
     // Set a default authenticated user in the auth store
@@ -63,7 +54,6 @@ describe('DeviceRegistrationService', () => {
         DeviceRegistrationService,
         { provide: FirestoreService, useValue: mockFirestore },
         { provide: AuthStore, useValue: mockAuthStore },
-        { provide: ServerTimeService, useValue: mockServerTime },
         { provide: LoggerService, useValue: mockLogger },
       ],
     });
@@ -132,16 +122,18 @@ describe('DeviceRegistrationService', () => {
       expect(service.isRegistered).toBeTrue();
     });
 
-    it('TC-REG-05: server time unavailable → logs error and returns false', async () => {
-      mockServerTime.getServerTime.and.resolveTo(null);
+    it('TC-REG-05: Firestore setTenantDocument error → logs error and returns false', async () => {
+      // After Timestamp migration, server time is no longer fetched separately.
+      // FieldValue.serverTimestamp() is passed directly, so the only failure path
+      // during write is a Firestore error.
+      mockFirestore.setTenantDocument.and.rejectWith(new Error('firestore/unavailable'));
       const device = buildDevice();
 
       const result = await service.register('SN-NOTIME-001', device, {});
 
       expect(result).toBeFalse();
-      expect(mockFirestore.setTenantDocument).not.toHaveBeenCalled();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Registration failed: server time unavailable',
+        'Device registration failed',
         jasmine.objectContaining({ sn: 'SN-NOTIME-001' }),
       );
     });
@@ -169,16 +161,18 @@ describe('DeviceRegistrationService', () => {
       expect(writtenData['addedBy']).toBe('servicer@example.com');
     });
 
-    it('TC-REG-08: includes server timestamp (addedDate) in written document', async () => {
-      const serverDate = new Date('2024-06-15T12:00:00.000Z');
-      mockServerTime.getServerTime.and.resolveTo(serverDate);
+    it('TC-REG-08: includes FieldValue.serverTimestamp() sentinel as addedDate in written document', async () => {
+      // After Timestamp migration, register() uses FieldValue.serverTimestamp()
+      // instead of fetching a Date from ServerTimeService.
       const device = buildDevice();
 
       await service.register('SN-TS-001', device, {});
 
       const callArgs = mockFirestore.setTenantDocument.calls.mostRecent().args;
       const writtenData = callArgs[2] as Record<string, unknown>;
-      expect(writtenData['addedDate']).toEqual(serverDate);
+      // FieldValue.serverTimestamp() returns a FieldValue sentinel object, not a Date.
+      expect(writtenData['addedDate']).toBeDefined();
+      expect(writtenData['addedDate']).not.toBeNull();
     });
   });
 
@@ -201,8 +195,11 @@ describe('DeviceRegistrationService', () => {
       expect(batchOps.length).toBe(2);
     });
 
-    it('TC-REG-10: server time unavailable → rejects entire batch and returns false', async () => {
-      mockServerTime.getServerTime.and.resolveTo(null);
+    it('TC-REG-10: Firestore writeBatch error → rejects entire batch and returns false', async () => {
+      // After Timestamp migration, server time is no longer fetched separately.
+      // FieldValue.serverTimestamp() is used directly; the only failure path is
+      // a Firestore error during the batch write itself.
+      mockFirestore.writeBatch.and.rejectWith(new Error('firestore/unavailable'));
       const entries = [
         { sn: 'SN-NOTIME-B001', device: buildDevice(), dynamicFields: {} },
       ];
@@ -210,9 +207,9 @@ describe('DeviceRegistrationService', () => {
       const result = await service.registerBatch(entries);
 
       expect(result).toBeFalse();
-      expect(mockFirestore.writeBatch).not.toHaveBeenCalled();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Batch registration failed: server time unavailable',
+        'Batch registration failed',
+        jasmine.objectContaining({ error: jasmine.any(String) }),
       );
     });
 
@@ -406,15 +403,10 @@ describe('DeviceRegistrationService', () => {
   // =========================================================================
 
   describe('Edge cases', () => {
-    it('TC-REG-26: concurrent register calls → each writes independently with own server timestamp', async () => {
-      const serverDate1 = new Date('2024-06-10T10:00:00.000Z');
-      const serverDate2 = new Date('2024-06-10T10:00:01.000Z');
-      let callCount = 0;
-      mockServerTime.getServerTime.and.callFake(() => {
-        callCount++;
-        return Promise.resolve(callCount === 1 ? serverDate1 : serverDate2);
-      });
-
+    it('TC-REG-26: concurrent register calls → each writes independently with serverTimestamp sentinel', async () => {
+      // After Timestamp migration, FieldValue.serverTimestamp() is used directly —
+      // no server time round-trip. Concurrent calls are safe since each builds its
+      // own data object and calls setTenantDocument independently.
       const device = buildDevice();
       const [result1, result2] = await Promise.all([
         service.register('SN-CONC-001', device, {}),

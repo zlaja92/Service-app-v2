@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { FieldValue } from '@capacitor-firebase/firestore';
 import { InterventionService } from './intervention.service';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
@@ -48,10 +48,6 @@ function createMockLoggerService(): jasmine.SpyObj<LoggerService> {
   ]);
 }
 
-function createMockServerTimeService(): jasmine.SpyObj<ServerTimeService> {
-  return jasmine.createSpyObj<ServerTimeService>('ServerTimeService', ['getServerTime']);
-}
-
 // AuthStore is a SignalStore — mock it as a plain object with signal-like functions
 function createMockAuthStore(): { userEmail: () => string } {
   return {
@@ -65,13 +61,11 @@ describe('InterventionService', () => {
   let service: InterventionService;
   let mockFirestoreService: jasmine.SpyObj<FirestoreService>;
   let mockAuthStore: { userEmail: () => string };
-  let mockServerTimeService: jasmine.SpyObj<ServerTimeService>;
   let mockLoggerService: jasmine.SpyObj<LoggerService>;
 
   beforeEach(() => {
     mockFirestoreService = createMockFirestoreService();
     mockAuthStore = createMockAuthStore();
-    mockServerTimeService = createMockServerTimeService();
     mockLoggerService = createMockLoggerService();
 
     TestBed.configureTestingModule({
@@ -79,7 +73,6 @@ describe('InterventionService', () => {
         InterventionService,
         { provide: FirestoreService, useValue: mockFirestoreService },
         { provide: AuthStore, useValue: mockAuthStore },
-        { provide: ServerTimeService, useValue: mockServerTimeService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
@@ -91,8 +84,6 @@ describe('InterventionService', () => {
 
   describe('saveIntervention()', () => {
     it('TC-IS-01: should save intervention and return document id on success', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-123');
 
       const device = createMockDevice({ type: DeviceType.GAS_BOILER });
@@ -105,23 +96,20 @@ describe('InterventionService', () => {
       );
     });
 
-    it('TC-IS-02: should return null when server time is unavailable', async () => {
-      mockServerTimeService.getServerTime.and.resolveTo(null);
+    it('TC-IS-02: should always call Firestore (no server time gate)', async () => {
+      // After the Timestamp migration the service no longer fetches server time
+      // before saving — addedDate is set via FieldValue.serverTimestamp() directly.
+      // This test ensures addInterventionDocument is always called (no early-exit guard).
+      mockFirestoreService.addInterventionDocument.and.resolveTo('doc-no-gate');
 
       const device = createMockDevice();
       const result = await service.saveIntervention('SN001', device, {});
 
-      expect(result).toBeNull();
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'Intervention save failed: server time unavailable',
-        jasmine.objectContaining({ sn: 'SN001' }),
-      );
-      expect(mockFirestoreService.addInterventionDocument).not.toHaveBeenCalled();
+      expect(result).toBe('doc-no-gate');
+      expect(mockFirestoreService.addInterventionDocument).toHaveBeenCalledTimes(1);
     });
 
     it('TC-IS-03: should return null when Firestore throws an error', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.rejectWith(new Error('Firestore error'));
 
       const device = createMockDevice();
@@ -135,8 +123,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-04: should include addedBy from AuthStore userEmail', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-xyz');
       (mockAuthStore.userEmail as jasmine.Spy).and.returnValue('servicer@company.com');
 
@@ -148,9 +134,7 @@ describe('InterventionService', () => {
       expect(data['addedBy']).toBe('servicer@company.com');
     });
 
-    it('TC-IS-05: should include addedDate as server timestamp', async () => {
-      const serverTime = new Date('2024-06-01T08:30:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
+    it('TC-IS-05: should include addedDate as FieldValue serverTimestamp sentinel', async () => {
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-abc');
 
       const device = createMockDevice();
@@ -158,12 +142,11 @@ describe('InterventionService', () => {
 
       const callArgs = mockFirestoreService.addInterventionDocument.calls.mostRecent().args;
       const data = callArgs[1] as Record<string, unknown>;
-      expect(data['addedDate']).toBe(serverTime);
+      expect(data['addedDate']).toBeInstanceOf(FieldValue);
+      expect((data['addedDate'] as FieldValue).toJSON()).toEqual({ __type__: 'serverTimestamp' });
     });
 
     it('TC-IS-06: should include extra fields from formData', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-extra');
 
       const device = createMockDevice();
@@ -180,8 +163,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-07: should reset isSaving to false after successful save', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-done');
 
       const device = createMockDevice();
@@ -191,7 +172,7 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-08: should reset isSaving to false even when save fails', async () => {
-      mockServerTimeService.getServerTime.and.resolveTo(null);
+      mockFirestoreService.addInterventionDocument.and.rejectWith(new Error('Network error'));
 
       const device = createMockDevice();
       await service.saveIntervention('SN001', device, {});
@@ -388,8 +369,6 @@ describe('InterventionService', () => {
 
   describe('saveInterventionBatch()', () => {
     it('TC-IS-25: should write batch atomically and return true on success', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValues('id-a', 'id-b');
       mockFirestoreService.buildInterventionReference.and.callFake(
         (deviceType: string, docId: string) => `tenants/tenant1/${deviceType}/${docId}`,
@@ -411,8 +390,12 @@ describe('InterventionService', () => {
       );
     });
 
-    it('TC-IS-26: should return false when server time is unavailable', async () => {
-      mockServerTimeService.getServerTime.and.resolveTo(null);
+    it('TC-IS-26: should always call writeBatch (no server time gate)', async () => {
+      // After the Timestamp migration the service no longer fetches server time —
+      // writeBatch should always be called when entries are provided.
+      mockFirestoreService.generateId.and.returnValue('id-x');
+      mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-x');
+      mockFirestoreService.writeBatch.and.resolveTo(undefined);
 
       const entries = [
         { sn: 'SN-X', device: createMockDevice(), formData: {} },
@@ -420,16 +403,11 @@ describe('InterventionService', () => {
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(false);
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'Intervention batch save failed: server time unavailable',
-      );
-      expect(mockFirestoreService.writeBatch).not.toHaveBeenCalled();
+      expect(result).toBe(true);
+      expect(mockFirestoreService.writeBatch).toHaveBeenCalledTimes(1);
     });
 
     it('TC-IS-27: should return false when Firestore writeBatch throws error', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValue('id-fail');
       mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-fail');
       mockFirestoreService.writeBatch.and.rejectWith(new Error('Batch failed'));
@@ -448,8 +426,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-28: should reset isSaving to false after batch completes', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValue('id-reset');
       mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-reset');
       mockFirestoreService.writeBatch.and.resolveTo(undefined);
@@ -461,8 +437,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-29: should include addedBy and addedDate in each batch operation', async () => {
-      const serverTime = new Date('2024-03-01T12:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValue('id-check');
       mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-check');
       mockFirestoreService.writeBatch.and.resolveTo(undefined);
@@ -478,13 +452,12 @@ describe('InterventionService', () => {
       }>;
       expect(batchOps.length).toBe(1);
       expect(batchOps[0].data['addedBy']).toBe('batch@test.com');
-      expect(batchOps[0].data['addedDate']).toBe(serverTime);
+      expect(batchOps[0].data['addedDate']).toBeInstanceOf(FieldValue);
+      expect((batchOps[0].data['addedDate'] as FieldValue).toJSON()).toEqual({ __type__: 'serverTimestamp' });
       expect(batchOps[0].data['exported']).toBe(false);
     });
 
     it('TC-IS-30: should handle multiple devices in batch correctly', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValues('id-1', 'id-2', 'id-3');
       mockFirestoreService.buildInterventionReference.and.callFake(
         (deviceType: string, docId: string) => `tenants/t1/${deviceType}/${docId}`,
@@ -607,8 +580,6 @@ describe('InterventionService', () => {
 
   describe('Edge cases', () => {
     it('TC-IS-38: should allow empty parts array in formData', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.resolveTo('doc-empty-parts');
 
       const device = createMockDevice();
@@ -621,8 +592,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-39: should handle concurrent saves independently', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.addInterventionDocument.and.returnValues(
         Promise.resolve('doc-concurrent-1'),
         Promise.resolve('doc-concurrent-2'),
@@ -639,8 +608,6 @@ describe('InterventionService', () => {
     });
 
     it('TC-IS-40: should save interventionBatch with empty parts array entries', async () => {
-      const serverTime = new Date('2024-01-15T10:00:00Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
       mockFirestoreService.generateId.and.returnValue('id-ep');
       mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-ep');
       mockFirestoreService.writeBatch.and.resolveTo(undefined);

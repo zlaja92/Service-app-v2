@@ -27,6 +27,7 @@ describe('ConfigStore', () => {
       business: {
         maxPartsPerIntervention: 8,
         currency: 'RSD',
+        exchangeRate: 117.5,
         partNote: 'note',
         partPhotoFolder: 'photos',
         snModelStart: 2,
@@ -35,12 +36,11 @@ describe('ConfigStore', () => {
         snMfgDateLength: 5,
         snMinLength: 21,
         snMaxLength: 21,
-        userSearchPageSize: 20,
-        userSearchMinLength: 2,
         interventionCollections: { default: 'interventions' },
         photoQuality: 70,
         photoMaxWidth: 1280,
         orderEmailRecipients: {},
+        signature: { commissioning: false, annualService: false, intervention: false },
       },
       interventionFaultOptions: {},
       interventionErrorOptions: {},
@@ -197,9 +197,9 @@ describe('ConfigStore', () => {
   });
 
   describe('computed business', () => {
-    it('should return undefined when config is null (no fallback)', () => {
+    it('should return getDefaultConfig().business when config is null (DEFAULT_BUSINESS fallback)', () => {
       expect(store.config()).toBeNull();
-      expect(store.business()).toBeUndefined();
+      expect(store.business()).toEqual(getDefaultConfig().business);
     });
 
     it('should return config.business when config is set', () => {
@@ -209,6 +209,20 @@ describe('ConfigStore', () => {
       expect(store.business()).toBeDefined();
       expect(store.business()!.maxPartsPerIntervention).toBe(8);
       expect(store.business()!.currency).toBe('RSD');
+    });
+
+    it('should return config.business.exchangeRate when config is set', () => {
+      const testConfig = createTestConfig();
+      store.setConfig(testConfig);
+
+      expect(store.business()!.exchangeRate).toBe(117.5);
+    });
+
+    it('should return config.business.signature when config is set', () => {
+      const testConfig = createTestConfig();
+      store.setConfig(testConfig);
+
+      expect(store.business()!.signature).toEqual({ commissioning: false, annualService: false, intervention: false });
     });
   });
 
@@ -336,14 +350,36 @@ describe('ConfigStore', () => {
     });
   });
 
+  describe('isFeatureEnabled() — signatureCapture flag', () => {
+    it('should return false for signatureCapture when config is null (default)', () => {
+      expect(store.config()).toBeNull();
+      expect(store.isFeatureEnabled('signatureCapture')).toBe(false);
+    });
+
+    it('should return true for signatureCapture when explicitly enabled', () => {
+      const cfg = getDefaultConfig();
+      cfg.features.signatureCapture = true;
+      store.setConfig(cfg);
+      expect(store.isFeatureEnabled('signatureCapture')).toBe(true);
+    });
+
+    it('should return false for signatureCapture when explicitly disabled', () => {
+      const cfg = getDefaultConfig();
+      cfg.features.signatureCapture = false;
+      store.setConfig(cfg);
+      expect(store.isFeatureEnabled('signatureCapture')).toBe(false);
+    });
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // EXPANSION: isFeatureEnabled — all 10 feature flags × enabled + disabled
+  // EXPANSION: isFeatureEnabled — all 11 feature flags × enabled + disabled
   // ═══════════════════════════════════════════════════════════════════════════
 
-  describe('isFeatureEnabled() — exhaustive matrix for all 10 flags × enabled/disabled', () => {
+  describe('isFeatureEnabled() — exhaustive matrix for all 11 flags × enabled/disabled', () => {
     const allFeatures: (keyof FeatureFlags)[] = [
       'cart', 'documentation', 'deviceCatalog', 'bugReport', 'pdfReports',
       'emailOrders', 'partPhoto', 'cartNote', 'deviceManagement', 'interventionPhotos',
+      'signatureCapture',
     ];
 
     allFeatures.forEach(feature => {

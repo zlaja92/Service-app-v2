@@ -14,6 +14,7 @@ import { LoadingAlertService } from '../../../shared/services/loading-alert.serv
 import { PhotoService } from '../../photo-upload/services/photo.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfigStore } from '../../../core/config/config.store';
+import { SignatureService } from '../../signature/services/signature.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { InterventionType } from '../models/intervention.model';
 import { getDefaultConfig, PhotoRequirement } from '../../../core/config/config.model';
@@ -96,6 +97,13 @@ function createMockLoadingAlertService(): jasmine.SpyObj<LoadingAlertService> {
   return mock;
 }
 
+function createMockSignatureService(): jasmine.SpyObj<SignatureService> {
+  const mock = jasmine.createSpyObj<SignatureService>('SignatureService', ['captureAndUpload']);
+  // Default: returns null (no signature captured / feature off by default in tests)
+  mock.captureAndUpload.and.resolveTo(null);
+  return mock;
+}
+
 function createMockPhotoService(photos: any[] = []): jasmine.SpyObj<PhotoService> {
   const mock = jasmine.createSpyObj<PhotoService>('PhotoService', [
     'setRequirement',
@@ -121,6 +129,7 @@ describe('AddDevicePage', () => {
   let mockEnvInfoService: jasmine.SpyObj<DeviceEnvInfoService>;
   let mockConfirmService: jasmine.SpyObj<ConfirmService>;
   let mockLoadingAlert: jasmine.SpyObj<LoadingAlertService>;
+  let mockSignatureService: jasmine.SpyObj<SignatureService>;
 
   /**
    * Configures TestBed and instantiates AddDevicePage with the given options.
@@ -160,6 +169,7 @@ describe('AddDevicePage', () => {
         { provide: ConfirmService, useValue: mockConfirmService },
         { provide: LoadingAlertService, useValue: mockLoadingAlert },
         { provide: PhotoService, useValue: mockPhoto },
+        { provide: SignatureService, useValue: mockSignatureService },
       ],
     });
 
@@ -177,6 +187,7 @@ describe('AddDevicePage', () => {
     mockEnvInfoService = createMockEnvInfoService();
     mockConfirmService = createMockConfirmService();
     mockLoadingAlert = createMockLoadingAlertService();
+    mockSignatureService = createMockSignatureService();
 
     // Default: interventionPhotos disabled
     mockConfigStore.setConfig(getDefaultConfig());
@@ -597,7 +608,7 @@ describe('AddDevicePage', () => {
 
   describe('onSave() — envInfo collection', () => {
     it('TC-AD-37: calls DeviceEnvInfoService.collectEnvInfo for HEAT_PUMP', async () => {
-      const device = createMockDevice({ type: DeviceType.HEAT_PUMP });
+      const device = createMockDevice({ type: DeviceType.HEAT_PUMP, subType: 'standard' });
       page = createPage({ device });
 
       mockEnvInfoService.collectEnvInfo.and.resolveTo({ field: 'value' });
@@ -613,11 +624,12 @@ describe('AddDevicePage', () => {
         DeviceType.HEAT_PUMP,
         jasmine.any(String),
         null,
+        'standard',
       );
     });
 
     it('TC-AD-38: calls DeviceEnvInfoService.collectEnvInfo for GAS_BOILER', async () => {
-      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER, subType: 'standard' });
       page = createPage({ device });
 
       mockEnvInfoService.collectEnvInfo.and.resolveTo({ gasType: 'env_info_opt_gas_natural' });
@@ -633,6 +645,7 @@ describe('AddDevicePage', () => {
         DeviceType.GAS_BOILER,
         jasmine.any(String),
         null,
+        'standard',
       );
     });
 

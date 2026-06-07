@@ -4,8 +4,9 @@
  * MOCK STRATEGY
  * =============
  * UserSearchService: plain object with jasmine.createSpy methods + plain properties
- *   (results, isLoading, hasMore are plain arrays/booleans — not signals)
- * ConfigStore:       createMockConfigStore() from mock-factories + setConfig with defaults
+ *   (results, isLoading, hasMore, minSearchLength are plain values — not signals).
+ *   minSearchLength mirrors MIN_SEARCH_LENGTH = 2 (constant in user-search.service.ts).
+ *   ConfigStore is NOT used — SearchByUserPage does not inject it after the redesign.
  * Router:            provideRouter([]) supplies NavController; after TestBed init the
  *                    real Router is retrieved via inject and spied on / property-stubbed
  *                    so ionViewDidLeave() sees the correct `url` value.
@@ -27,9 +28,6 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import { SearchByUserPage } from './search-by-user.page';
 import { UserSearchService, UserSearchResult } from '../services/user-search.service';
-import { ConfigStore } from '../../../core/config/config.store';
-import { createMockConfigStore } from '../../../testing/mock-factories';
-import { getDefaultConfig } from '../../../core/config/config.model';
 
 // ─── Minimal Transloco translations ───────────────────────────────────────────
 
@@ -67,6 +65,8 @@ interface MockUserSearchService {
   results: UserSearchResult[];
   isLoading: boolean;
   hasMore: boolean;
+  /** Mirrors UserSearchService.minSearchLength (MIN_SEARCH_LENGTH constant = 2). */
+  minSearchLength: number;
   search: jasmine.Spy;
   loadMore: jasmine.Spy;
   clear: jasmine.Spy;
@@ -77,6 +77,7 @@ function createMockUserSearchService(): MockUserSearchService {
     results: [],
     isLoading: false,
     hasMore: false,
+    minSearchLength: 2,
     search: jasmine.createSpy('search').and.resolveTo(undefined),
     loadMore: jasmine.createSpy('loadMore').and.resolveTo(undefined),
     clear: jasmine.createSpy('clear'),
@@ -90,7 +91,6 @@ describe('SearchByUserPage', () => {
   let component: SearchByUserPage;
 
   let mockSearchService: MockUserSearchService;
-  let mockConfigStore: ReturnType<typeof createMockConfigStore>;
   let router: Router;
   let navigateSpy: jasmine.Spy;
 
@@ -103,9 +103,9 @@ describe('SearchByUserPage', () => {
   }
 
   beforeEach(async () => {
+    // minSearchLength = 2 is now a constant in UserSearchService (MIN_SEARCH_LENGTH),
+    // exposed as searchService.minSearchLength — no longer read from ConfigStore.
     mockSearchService = createMockUserSearchService();
-    mockConfigStore = createMockConfigStore();
-    mockConfigStore.setConfig(getDefaultConfig()); // userSearchMinLength = 2
 
     await TestBed.configureTestingModule({
       imports: [
@@ -119,7 +119,6 @@ describe('SearchByUserPage', () => {
       providers: [
         provideRouter([]),
         { provide: UserSearchService, useValue: mockSearchService },
-        { provide: ConfigStore, useValue: mockConfigStore },
       ],
     }).compileComponents();
 
@@ -217,9 +216,12 @@ describe('SearchByUserPage', () => {
     });
 
     it('TC-05: calls search even when both inputs are below min length (service handles guard)', async () => {
-      // The page delegates the min-length guard entirely to the service.
-      // onSearch() unconditionally forwards whatever is in the bound fields.
-      (component as any).firstName = 'A'; // length 1 < minLength 2
+      // onSearch() in the page unconditionally calls searchService.search() with
+      // whatever values are in the bound fields — the min-length guard lives in
+      // UserSearchService.search(), not in the page. The button disabled state
+      // (driven by searchService.minSearchLength) prevents accidental invocation
+      // from the UI, but the method itself has no guard.
+      (component as any).firstName = 'A'; // length 1 < minSearchLength 2
       (component as any).lastName = '';
 
       await component.onSearch();
@@ -339,7 +341,7 @@ describe('SearchByUserPage', () => {
 
     it('TC-11b: search button is disabled when both firstName and lastName are below minLength', () => {
       mockSearchService.isLoading = false;
-      (component as any).firstName = 'A'; // length 1 < userSearchMinLength 2
+      (component as any).firstName = 'A'; // length 1 < minSearchLength 2
       (component as any).lastName = '';   // length 0 < 2
       fixture.detectChanges();
 
@@ -351,7 +353,7 @@ describe('SearchByUserPage', () => {
 
     it('TC-11c: search button is enabled when at least one field meets minLength', () => {
       mockSearchService.isLoading = false;
-      (component as any).firstName = 'Ma'; // length 2 >= userSearchMinLength 2
+      (component as any).firstName = 'Ma'; // length 2 >= minSearchLength 2
       (component as any).lastName = '';
       fixture.detectChanges();
 
@@ -539,7 +541,7 @@ describe('SearchByUserPage', () => {
   // =========================================================================
 
   describe('search button disabled — firstName × lastName boundary conditions', () => {
-    // minLength is 2 (userSearchMinLength from getDefaultConfig)
+    // minLength is 2 — sourced from searchService.minSearchLength (MIN_SEARCH_LENGTH constant)
 
     const disabledCases: Array<{ firstName: string; lastName: string; label: string }> = [
       { firstName: '', lastName: '', label: 'both empty' },

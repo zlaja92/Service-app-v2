@@ -9,6 +9,10 @@ import { LoggerService } from '../core/logger/logger.service';
 import { TenantService } from '../core/tenant/tenant.service';
 import { AppConfig, FeatureFlags, getDefaultConfig, getDefaultFeatures, getDefaultTheme } from '../core/config/config.model';
 import { AuthUser } from '../core/auth/auth.model';
+import { ServicerService } from '../core/servicer/servicer.service';
+import { StorageService } from '../core/firebase/storage.service';
+import { ReportService } from '../features/reports/services/report.service';
+import { LoadingAlertService } from '../shared/services/loading-alert.service';
 
 // ─── FirestoreService ─────────────────────────────────────────────────────────
 
@@ -450,4 +454,62 @@ export function createMockPreferences(): MockPreferences {
 
     _store: store,
   };
+}
+
+// ─── ServicerService ────────────────────────────────────────────────────────
+
+/**
+ * Creates a jasmine.SpyObj for ServicerService.
+ * Default: getCurrent/getByEmail resolve to null.
+ */
+export function createMockServicerService(): jasmine.SpyObj<ServicerService> {
+  const mock = jasmine.createSpyObj<ServicerService>('ServicerService', ['getCurrent', 'getByEmail']);
+  mock.getCurrent.and.resolveTo(null);
+  mock.getByEmail.and.resolveTo(null);
+  return mock;
+}
+
+// ─── StorageService ─────────────────────────────────────────────────────────
+
+/**
+ * Creates a jasmine.SpyObj for StorageService.
+ * Default: getFileUrl/resolveFileUrl resolve to empty/null, uploads resolve void.
+ */
+export function createMockStorageService(): jasmine.SpyObj<StorageService> {
+  const mock = jasmine.createSpyObj<StorageService>('StorageService', [
+    'getFileUrl', 'listFolder', 'uploadFile', 'uploadDataUrl', 'resolveFileUrl',
+  ]);
+  mock.getFileUrl.and.resolveTo(null);
+  mock.listFolder.and.resolveTo({ folders: [], files: [] });
+  mock.uploadFile.and.resolveTo();
+  mock.uploadDataUrl.and.resolveTo();
+  mock.resolveFileUrl.and.resolveTo('');
+  return mock;
+}
+
+// ─── ReportService ──────────────────────────────────────────────────────────
+
+/**
+ * Creates a jasmine.SpyObj for ReportService.
+ * Default: generate resolves void.
+ */
+export function createMockReportService(): jasmine.SpyObj<ReportService> {
+  const mock = jasmine.createSpyObj<ReportService>('ReportService', ['generate']);
+  mock.generate.and.resolveTo();
+  return mock;
+}
+
+// ─── LoadingAlertService ────────────────────────────────────────────────────
+
+/**
+ * Creates a jasmine.SpyObj for LoadingAlertService.
+ * Default: show/hide resolve void; wrap() invokes the supplied operation and
+ * returns its result (transparent pass-through, like the real implementation).
+ */
+export function createMockLoadingAlertService(): jasmine.SpyObj<LoadingAlertService> {
+  const mock = jasmine.createSpyObj<LoadingAlertService>('LoadingAlertService', ['show', 'hide', 'wrap']);
+  mock.show.and.resolveTo();
+  mock.hide.and.resolveTo();
+  mock.wrap.and.callFake(<T>(operation: () => Promise<T>) => operation());
+  return mock;
 }

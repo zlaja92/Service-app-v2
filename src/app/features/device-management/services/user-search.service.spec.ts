@@ -2,7 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { UserSearchService } from './user-search.service';
 import { FirestoreService, CollectionQueryResult } from '../../../core/firebase/firestore.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 // ─── Helper types ─────────────────────────────────────────────────────────────
@@ -58,6 +57,9 @@ function createEmptyQueryResult(): CollectionQueryResult<UserDoc> {
 // test time, so we cast to a plain Spy to set up call-fake responses.
 type QuerySpy = jasmine.Spy<(collection: string, options: unknown) => Promise<CollectionQueryResult<UserDoc>>>;
 
+// PAGE_SIZE constant from the service — must match user-search.service.ts
+const PAGE_SIZE = 20;
+
 // ─── Mock factories ───────────────────────────────────────────────────────────
 
 function createMockFirestoreService(): jasmine.SpyObj<FirestoreService> {
@@ -74,19 +76,17 @@ function createMockTenantService(): jasmine.SpyObj<TenantService> {
   return mock;
 }
 
-function createMockConfigStore() {
-  return {
-    business: jasmine.createSpy('business').and.returnValue({
-      userSearchPageSize: 3,
-      userSearchMinLength: 2,
-    }),
-  };
-}
-
 function createMockLoggerService(): jasmine.SpyObj<LoggerService> {
   return jasmine.createSpyObj<LoggerService>('LoggerService', [
     'debug', 'info', 'warn', 'error',
   ]);
+}
+
+// Helper: create exactly PAGE_SIZE docs to trigger hasMore=true
+function createFullPage(snPrefix: string, firstNamePrefix: string): UserDoc[] {
+  return Array.from({ length: PAGE_SIZE }, (_, i) =>
+    createUserDoc({ sn: `${snPrefix}${i}`, firstName: `${firstNamePrefix}${i}` }),
+  );
 }
 
 // ─── Suite ────────────────────────────────────────────────────────────────────
@@ -96,13 +96,11 @@ describe('UserSearchService', () => {
   let mockFirestore: jasmine.SpyObj<FirestoreService>;
   let querySpy: QuerySpy;
   let mockTenant: jasmine.SpyObj<TenantService>;
-  let mockConfigStore: ReturnType<typeof createMockConfigStore>;
   let mockLogger: jasmine.SpyObj<LoggerService>;
 
   beforeEach(() => {
     mockFirestore = createMockFirestoreService();
     mockTenant    = createMockTenantService();
-    mockConfigStore = createMockConfigStore();
     mockLogger    = createMockLoggerService();
 
     TestBed.configureTestingModule({
@@ -110,7 +108,6 @@ describe('UserSearchService', () => {
         UserSearchService,
         { provide: FirestoreService, useValue: mockFirestore },
         { provide: TenantService,    useValue: mockTenant },
-        { provide: ConfigStore,      useValue: mockConfigStore },
         { provide: LoggerService,    useValue: mockLogger },
       ],
     });
@@ -176,22 +173,23 @@ describe('UserSearchService', () => {
     });
   });
 
-  // ─── 3. search() — both fields (intersection) ─────────────────────────────
+  // ─── 3. search() — both fields (single composite query) ───────────────────
+  // Redesigned: both firstName and lastName filters are combined in ONE Firestore
+  // query (composite multi-field range). There is no client-side intersection.
 
-  describe('search() — both fields (intersection)', () => {
+  describe('search() — both fields (single composite query)', () => {
 
-    it('6. returns intersection — only users present in both firstName and lastName result sets', async () => {
-      const sharedDoc  = createUserDoc({ sn: 'SN010', firstName: 'Petar', lastName: 'Petrovic', firstNameSrch: 'PETAR', lastNameSrch: 'PETROVIC' });
-      const onlyFirst  = createUserDoc({ sn: 'SN011', firstName: 'Petar', lastName: 'Jovic',    firstNameSrch: 'PETAR', lastNameSrch: 'JOVIC' });
+    it('6. both valid terms produce ONE Firestore call with both filters', async () => {
+      querySpy.and.resolveTo(createEmptyQueryResult());
 
-      // firstName query (call 1) returns both; lastName query (call 2) returns only sharedDoc
-      let callCount = 0;
-      querySpy.and.callFake(async () => {
-        callCount++;
-        return callCount === 1
-          ? createQueryResult([sharedDoc, onlyFirst])
-          : createQueryResult([sharedDoc]);
-      });
+      await service.search('Petar', 'Petrovic');
+
+      expect(mockFirestore.queryTenantCollection).toHaveBeenCalledTimes(1);
+    });
+
+    it('7. single query returns only documents matching both name prefixes', async () => {
+      const matchingDoc = createUserDoc({ sn: 'SN010', firstName: 'Petar', lastName: 'Petrovic' });
+      querySpy.and.resolveTo(createQueryResult([matchingDoc]));
 
       await service.search('Petar', 'Petrovic');
 
@@ -199,29 +197,12 @@ describe('UserSearchService', () => {
       expect(service.results[0].sn).toBe('SN010');
     });
 
-    it('7. empty intersection — returns empty array when no user matches both fields', async () => {
-      const firstDoc = createUserDoc({ sn: 'SN020', firstName: 'Ana',      lastName: 'Anic' });
-      const lastDoc  = createUserDoc({ sn: 'SN021', firstName: 'Branislav', lastName: 'Markovic' });
-
-      let callCount = 0;
-      querySpy.and.callFake(async () => {
-        callCount++;
-        return callCount === 1
-          ? createQueryResult([firstDoc])
-          : createQueryResult([lastDoc]);
-      });
-
-      await service.search('Ana', 'Markovic');
-
-      expect(service.results.length).toBe(0);
-    });
-
-    it('8. both fields required — two Firestore calls are made when both firstName and lastName are provided', async () => {
+    it('8. single Firestore call is made when both firstName and lastName are provided', async () => {
       querySpy.and.resolveTo(createEmptyQueryResult());
 
       await service.search('Marko', 'Markovic');
 
-      expect(mockFirestore.queryTenantCollection).toHaveBeenCalledTimes(2);
+      expect(mockFirestore.queryTenantCollection).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -282,51 +263,44 @@ describe('UserSearchService', () => {
   });
 
   // ─── 5. loadMore() ────────────────────────────────────────────────────────
+  // hasMore is true only when results.length === PAGE_SIZE (20).
 
   describe('loadMore()', () => {
 
     it('11. loads next page using lastDocumentPath cursor', async () => {
-      const page1 = [
-        createUserDoc({ sn: 'SN100', firstName: 'Adam' }),
-        createUserDoc({ sn: 'SN101', firstName: 'Boris' }),
-        createUserDoc({ sn: 'SN102', firstName: 'Cerko' }),
-      ];
-      const page2 = [createUserDoc({ sn: 'SN103', firstName: 'Damir' })];
+      const page1 = createFullPage('SN1', 'User');
+      const page2 = [createUserDoc({ sn: 'SN_NEXT', firstName: 'Last' })];
 
       let callCount = 0;
       querySpy.and.callFake(async () => {
         callCount++;
         return callCount === 1
-          ? createQueryResult(page1, 'path/doc2')
+          ? createQueryResult(page1, 'path/doc19')
           : createQueryResult(page2);
       });
 
-      await service.search('Ad', '');
+      await service.search('Us', '');
       expect(service.hasMore).toBeTrue();
 
       await service.loadMore();
 
-      expect(service.results.length).toBe(4);
+      expect(service.results.length).toBe(PAGE_SIZE + 1);
       expect(mockFirestore.queryTenantCollection).toHaveBeenCalledTimes(2);
     });
 
     it('12. appends to existing results without duplicates', async () => {
-      const page1 = [
-        createUserDoc({ sn: 'SN200', firstName: 'Ante' }),
-        createUserDoc({ sn: 'SN201', firstName: 'Branka' }),
-        createUserDoc({ sn: 'SN202', firstName: 'Cveta' }),
-      ];
-      const page2 = [createUserDoc({ sn: 'SN203', firstName: 'Dragan' })];
+      const page1 = createFullPage('SN2', 'User');
+      const page2 = [createUserDoc({ sn: 'SN_EXTRA', firstName: 'Dragan' })];
 
       let callCount = 0;
       querySpy.and.callFake(async () => {
         callCount++;
         return callCount === 1
-          ? createQueryResult(page1)
+          ? createQueryResult(page1, 'path/last')
           : createQueryResult(page2);
       });
 
-      await service.search('An', '');
+      await service.search('Us', '');
       const afterFirst = service.results.length;
       await service.loadMore();
 
@@ -353,14 +327,11 @@ describe('UserSearchService', () => {
   describe('clear()', () => {
 
     it('14. resets results, isLoading, and hasMore to initial values', async () => {
-      const page1 = [
-        createUserDoc({ sn: 'SN400', firstName: 'Aaa' }),
-        createUserDoc({ sn: 'SN401', firstName: 'Bbb' }),
-        createUserDoc({ sn: 'SN402', firstName: 'Ccc' }),
-      ];
-      querySpy.and.resolveTo(createQueryResult(page1));
+      const page1 = createFullPage('SN4', 'Aaa');
+      querySpy.and.resolveTo(createQueryResult(page1, 'path/last'));
 
       await service.search('Aa', '');
+      expect(service.hasMore).toBeTrue();
 
       service.clear();
 
@@ -370,11 +341,7 @@ describe('UserSearchService', () => {
     });
 
     it('15. resets lastDocumentPath — subsequent search starts from the beginning (no startAfter)', async () => {
-      const page1 = [
-        createUserDoc({ sn: 'SN500', firstName: 'Alpha' }),
-        createUserDoc({ sn: 'SN501', firstName: 'Beta' }),
-        createUserDoc({ sn: 'SN502', firstName: 'Gamma' }),
-      ];
+      const page1 = createFullPage('SN5', 'Alpha');
       const freshDocs = [createUserDoc({ sn: 'SN503', firstName: 'Delta' })];
 
       let callCount = 0;
@@ -399,22 +366,41 @@ describe('UserSearchService', () => {
     });
   });
 
-  // ─── 7. mergeResults (deduplication and sorting) ─────────────────────────
+  // ─── 7. appendResults (deduplication) ────────────────────────────────────
+  // Results are returned in Firestore order. No client-side sorting.
+  // Deduplication runs when loadMore appends a new page.
 
-  describe('mergeResults (deduplication and sorting)', () => {
+  describe('appendResults (deduplication)', () => {
 
-    it('16. deduplication — same SN from both field queries is not added twice', async () => {
-      const doc = createUserDoc({ sn: 'DUPESN', firstName: 'Ivan', lastName: 'Ivanovic', firstNameSrch: 'IVAN', lastNameSrch: 'IVANOVIC' });
+    it('16. deduplication — SN already in page 1 is not added again from loadMore page 2', async () => {
+      const dupDoc = createUserDoc({ sn: 'DUPESN', firstName: 'Ivan', lastName: 'Ivanovic' });
+      // page1 has PAGE_SIZE docs, including DUPESN as the last entry
+      const page1: UserDoc[] = createFullPage('OTHER', 'Other');
+      page1[PAGE_SIZE - 1] = dupDoc;  // place DUPESN inside page1
 
-      // Both firstName and lastName queries return the same doc
-      querySpy.and.callFake(async () => createQueryResult([doc]));
+      // page2 returns DUPESN again (e.g. Firestore cursor overlap) plus a new doc
+      const page2 = [dupDoc, createUserDoc({ sn: 'NEWDOC', firstName: 'New' })];
 
-      await service.search('Ivan', 'Ivanovic');
+      let callCount = 0;
+      querySpy.and.callFake(async () => {
+        callCount++;
+        return callCount === 1
+          ? createQueryResult(page1, 'path/last')
+          : createQueryResult(page2);
+      });
 
+      await service.search('Iv', '');
+      await service.loadMore();
+
+      // DUPESN was already in results from page1 — must not appear twice
       expect(service.results.filter(r => r.sn === 'DUPESN').length).toBe(1);
+      // NEWDOC is truly new and must be added
+      expect(service.results.some(r => r.sn === 'NEWDOC')).toBeTrue();
     });
 
-    it('17. results are sorted alphabetically by lastName then firstName', async () => {
+    it('17. results are returned in Firestore order (no client-side sort)', async () => {
+      // Firestore returns docs in the order the query orders them.
+      // The service does NOT re-sort on the client side.
       const docs = [
         createUserDoc({ sn: 'SN600', firstName: 'Zoran', lastName: 'Zivkovic' }),
         createUserDoc({ sn: 'SN601', firstName: 'Ana',   lastName: 'Anic' }),
@@ -424,9 +410,10 @@ describe('UserSearchService', () => {
 
       await service.search('Za', '');
 
-      expect(service.results[0].lastName).toBe('Anic');
-      expect(service.results[1].lastName).toBe('Milic');
-      expect(service.results[2].lastName).toBe('Zivkovic');
+      // Results arrive in Firestore order, unchanged
+      expect(service.results[0].sn).toBe('SN600');
+      expect(service.results[1].sn).toBe('SN601');
+      expect(service.results[2].sn).toBe('SN602');
     });
   });
 
@@ -434,33 +421,18 @@ describe('UserSearchService', () => {
 
   describe('edge cases', () => {
 
-    it('18. business() returns null — service throws due to non-null assertion (BUG)', async () => {
-      // The service uses this.configStore.business()! — if business() returns null,
-      // accessing .userSearchPageSize or .userSearchMinLength on null throws a TypeError.
-      // This is a known design bug documented in src/app/testing/BUGS-FROM-TEST-PLAN.md.
-      mockConfigStore.business.and.returnValue(null);
+    it('18. configStore is no longer used — service reads PAGE_SIZE and MIN_SEARCH_LENGTH from constants', async () => {
+      // The service uses hardcoded constants (PAGE_SIZE=20, MIN_SEARCH_LENGTH=2).
+      // No ConfigStore injection is needed. A single-char term still does not trigger.
+      querySpy.and.resolveTo(createEmptyQueryResult());
 
-      let threw = false;
-      try {
-        await service.search('Marko', '');
-      } catch {
-        threw = true;
-      }
+      await service.search('M', '');
 
-      // The bug is confirmed: service throws instead of handling null gracefully
-      expect(threw).toBeTrue();
+      expect(mockFirestore.queryTenantCollection).not.toHaveBeenCalled();
     });
 
-    it('19. configStore returns undefined — service throws when business config is not yet loaded', async () => {
-      mockConfigStore.business.and.returnValue(undefined as unknown as null);
-
-      let threw = false;
-      try {
-        await service.search('Te', '');
-      } catch {
-        threw = true;
-      }
-      expect(threw).toBeTrue();
+    it('19. minSearchLength property exposes the constant value (2)', () => {
+      expect(service.minSearchLength).toBe(2);
     });
 
     it('20. multiple sequential searches — only results from the latest search are present', async () => {
@@ -499,8 +471,9 @@ describe('UserSearchService', () => {
       expect(service.results[0].sn).toBe('AFTER_RESET');
     });
 
-    it('22. (bonus) Cyrillic characters — terms are uppercased and forwarded to Firestore', async () => {
-      const doc = createUserDoc({ sn: 'CYR001', firstName: 'Никола', firstNameSrch: 'НИКОЛА' });
+    it('22. (bonus) Cyrillic characters — toLatinUpperCase transliterates to Latin before Firestore', async () => {
+      // 'Никола' → toLatinUpperCase → 'NIKOLA' (Cyrillic→Latin transliteration)
+      const doc = createUserDoc({ sn: 'CYR001', firstName: 'Никола', firstNameSrch: 'NIKOLA' });
       querySpy.and.resolveTo(createQueryResult([doc]));
 
       await service.search('Никола', '');
@@ -509,7 +482,7 @@ describe('UserSearchService', () => {
 
       const callArgs = querySpy.calls.mostRecent().args;
       const opts = callArgs[1] as { compositeFilter: { queryConstraints: Array<{ value?: string }> } };
-      const termConstraint = opts.compositeFilter.queryConstraints.find(c => c.value === 'НИКОЛА');
+      const termConstraint = opts.compositeFilter.queryConstraints.find(c => c.value === 'NIKOLA');
       expect(termConstraint).toBeDefined();
     });
 

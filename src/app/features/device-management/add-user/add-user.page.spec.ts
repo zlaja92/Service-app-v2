@@ -5,13 +5,21 @@
  * =============
  * - DeviceLookupService: jasmine.SpyObj — device property set directly on mock object
  * - DeviceRegistrationService: jasmine.SpyObj with register, registerBatch
- * - ServerTimeService: jasmine.SpyObj with getServerTime
  * - ConfirmService: jasmine.SpyObj with confirm
+ * - LoadingAlertService: createMockLoadingAlertService() — transparent wrap pass-through
  * - ActivatedRoute: plain object with snapshot.paramMap.get / snapshot.queryParamMap.get
  * - Router: createMockRouter() from mock-factories
  * - ToastController: createMockToastController() from mock-factories
  * - TranslocoService: createMockTranslocoService() from mock-factories
  * - PickerController: jasmine.SpyObj with create
+ *
+ * NOTE: ServerTimeService is NO LONGER used by AddUserPage (removed in commit 8b92820).
+ * Commissioning dateOfPurchase is now written as FieldValue.serverTimestamp().
+ * Manual-entry dateOfPurchase is now written as Timestamp.fromDate(new Date(...)).
+ *
+ * NOTE: toLatinUpperCase was extracted to src/app/shared/utils/transliterate.ts
+ * (commit 2f53542). It is no longer a method on AddUserPage; tests for it call
+ * the exported function directly.
  *
  * All tests are independent — no shared mutable state carried between specs.
  * Uses TestBed.inject(AddUserPage) to avoid NavController bootstrap issues.
@@ -21,17 +29,20 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PickerController, ToastController } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
+import { FieldValue, Timestamp } from '@capacitor-firebase/firestore';
 
 import { AddUserPage } from './add-user.page';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceRegistrationService } from '../services/device-registration.service';
-import { ServerTimeService } from '../../../core/firebase/server-time.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { Device } from '../../../shared/models/device.model';
+import { toLatinUpperCase } from '../../../shared/utils/transliterate';
 import {
   createMockRouter,
   createMockToastController,
   createMockTranslocoService,
+  createMockLoadingAlertService,
 } from '../../../testing/mock-factories';
 import { buildDevice } from '../../../testing/test-data-builders';
 
@@ -86,12 +97,6 @@ function createMockRegistrationService(): jasmine.SpyObj<DeviceRegistrationServi
   return mock;
 }
 
-function createMockServerTimeService(): jasmine.SpyObj<ServerTimeService> {
-  const mock = jasmine.createSpyObj<ServerTimeService>('ServerTimeService', ['getServerTime']);
-  mock.getServerTime.and.resolveTo(new Date('2024-06-15T12:00:00.000Z'));
-  return mock;
-}
-
 function createMockConfirmService(): jasmine.SpyObj<ConfirmService> {
   const mock = jasmine.createSpyObj<ConfirmService>('ConfirmService', ['confirm']);
   mock.confirm.and.resolveTo(true);
@@ -126,7 +131,6 @@ type PageInternals = {
   };
   sn: string;
   connectedSn: string;
-  toLatinUpperCase: (v: string) => string;
 };
 
 function internals(page: AddUserPage): PageInternals {
@@ -154,8 +158,8 @@ describe('AddUserPage', () => {
   let page: AddUserPage;
   let mockLookupService: jasmine.SpyObj<DeviceLookupService>;
   let mockRegistrationService: jasmine.SpyObj<DeviceRegistrationService>;
-  let mockServerTimeService: jasmine.SpyObj<ServerTimeService>;
   let mockConfirmService: jasmine.SpyObj<ConfirmService>;
+  let mockLoadingAlertService: jasmine.SpyObj<LoadingAlertService>;
   let mockToastController: jasmine.SpyObj<ToastController>;
   let mockRouter: ReturnType<typeof createMockRouter>;
   let mockTransloco: jasmine.SpyObj<TranslocoService>;
@@ -164,8 +168,8 @@ describe('AddUserPage', () => {
   function setupTestBed(sn = 'SN-TEST-001', connectedSn = ''): void {
     mockLookupService = createMockDeviceLookupService(buildDevice());
     mockRegistrationService = createMockRegistrationService();
-    mockServerTimeService = createMockServerTimeService();
     mockConfirmService = createMockConfirmService();
+    mockLoadingAlertService = createMockLoadingAlertService();
     mockToastController = createMockToastController();
     mockRouter = createMockRouter();
     mockTransloco = createMockTranslocoService();
@@ -176,8 +180,8 @@ describe('AddUserPage', () => {
         AddUserPage,
         { provide: DeviceLookupService, useValue: mockLookupService },
         { provide: DeviceRegistrationService, useValue: mockRegistrationService },
-        { provide: ServerTimeService, useValue: mockServerTimeService },
         { provide: ConfirmService, useValue: mockConfirmService },
+        { provide: LoadingAlertService, useValue: mockLoadingAlertService },
         { provide: ToastController, useValue: mockToastController },
         { provide: PickerController, useValue: mockPickerController },
         { provide: TranslocoService, useValue: mockTransloco },
@@ -358,20 +362,17 @@ describe('AddUserPage', () => {
   // =========================================================================
 
   describe('onSave() — validation', () => {
-    it('TC-AU-16: shows warning toast and aborts when firstName is empty', async () => {
+    it('TC-AU-16: shows toast and aborts when firstName is empty', async () => {
       fillValidForm(page);
       internals(page).form.get('firstName').setValue('');
 
       await page.onSave();
 
       expect(mockToastController.create).toHaveBeenCalledTimes(1);
-      expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'warning' }),
-      );
       expect(mockRegistrationService.register).not.toHaveBeenCalled();
     });
 
-    it('TC-AU-17: shows warning toast and aborts when lastName is empty', async () => {
+    it('TC-AU-17: shows toast and aborts when lastName is empty', async () => {
       fillValidForm(page);
       internals(page).form.get('lastName').setValue('');
 
@@ -381,7 +382,7 @@ describe('AddUserPage', () => {
       expect(mockRegistrationService.register).not.toHaveBeenCalled();
     });
 
-    it('TC-AU-18: shows warning toast and aborts when phoneNumber is empty', async () => {
+    it('TC-AU-18: shows toast and aborts when phoneNumber is empty', async () => {
       fillValidForm(page);
       internals(page).form.get('phoneNumber').setValue('');
 
@@ -391,7 +392,7 @@ describe('AddUserPage', () => {
       expect(mockRegistrationService.register).not.toHaveBeenCalled();
     });
 
-    it('TC-AU-19: shows warning toast and aborts when warrantyStatus is empty', async () => {
+    it('TC-AU-19: shows toast and aborts when warrantyStatus is empty', async () => {
       fillValidForm(page);
       internals(page).form.get('warrantyStatus').setValue('');
 
@@ -456,9 +457,9 @@ describe('AddUserPage', () => {
       expect('dateOfPurchase' in data).toBeFalse();
     });
 
-    it('TC-AU-24: commissioning device — dateOfPurchase set to server time Date', async () => {
-      const serverDate = new Date('2024-06-15T12:00:00.000Z');
-      mockServerTimeService.getServerTime.and.resolveTo(serverDate);
+    it('TC-AU-24: commissioning device — dateOfPurchase set to FieldValue.serverTimestamp() sentinel', async () => {
+      // After commit 8b92820: commissioning dateOfPurchase uses FieldValue.serverTimestamp(),
+      // NOT a Date from ServerTimeService (which was removed from this page).
       (mockLookupService as unknown as { device: Device }).device = buildDevice({
         commissioning: true,
         annualService: false,
@@ -469,10 +470,12 @@ describe('AddUserPage', () => {
       await page.onSave();
 
       const data = mockRegistrationService.register.calls.mostRecent().args[2] as Record<string, unknown>;
-      expect(data['dateOfPurchase']).toEqual(serverDate);
+      expect(data['dateOfPurchase']).toBeInstanceOf(FieldValue);
     });
 
-    it('TC-AU-25: manual date input — parsed Date object stored in data', async () => {
+    it('TC-AU-25: manual date input — Timestamp instance stored in data', async () => {
+      // After commit 8b92820: manual purchase dates are stored as Timestamp.fromDate(...)
+      // NOT plain Date objects.
       (mockLookupService as unknown as { device: Device }).device = buildDevice({
         commissioning: false,
         annualService: true,
@@ -484,11 +487,13 @@ describe('AddUserPage', () => {
       await page.onSave();
 
       const data = mockRegistrationService.register.calls.mostRecent().args[2] as Record<string, unknown>;
-      const storedDate = data['dateOfPurchase'] as Date;
-      expect(storedDate instanceof Date).toBeTrue();
-      expect(storedDate.getFullYear()).toBe(2023);
-      expect(storedDate.getMonth()).toBe(5); // June = index 5
-      expect(storedDate.getDate()).toBe(15);
+      const storedDate = data['dateOfPurchase'] as Timestamp;
+      expect(storedDate).toBeInstanceOf(Timestamp);
+      // Verify correct date by converting back
+      const dateFromTimestamp = storedDate.toDate();
+      expect(dateFromTimestamp.getFullYear()).toBe(2023);
+      expect(dateFromTimestamp.getMonth()).toBe(5); // June = index 5
+      expect(dateFromTimestamp.getDate()).toBe(15);
     });
 
     it('TC-AU-26: device without annualService — callAccepted deleted from data', async () => {
@@ -625,7 +630,9 @@ describe('AddUserPage', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/device-management', 'SN-SUCCESS-001']);
     });
 
-    it('TC-AU-33: success — shows success toast', async () => {
+    it('TC-AU-33: success — shows toast', async () => {
+      // App showToast does not pass a color parameter (see showToast private method).
+      // We verify only that a toast was shown on success.
       (mockLookupService as unknown as { device: Device }).device = buildDevice({
         commissioning: false,
         annualService: false,
@@ -636,12 +643,12 @@ describe('AddUserPage', () => {
 
       await page.onSave();
 
-      expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'success' }),
-      );
+      expect(mockToastController.create).toHaveBeenCalledTimes(1);
     });
 
-    it('TC-AU-34: error from register — shows danger toast and does not navigate', async () => {
+    it('TC-AU-34: error from register — shows toast and does not navigate', async () => {
+      // App showToast does not pass a color parameter (see showToast private method).
+      // We verify only that a toast was shown on error.
       (mockLookupService as unknown as { device: Device }).device = buildDevice({
         commissioning: false,
         annualService: false,
@@ -652,44 +659,42 @@ describe('AddUserPage', () => {
 
       await page.onSave();
 
-      expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
-      );
+      expect(mockToastController.create).toHaveBeenCalledTimes(1);
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
   });
 
   // =========================================================================
-  // toLatinUpperCase
+  // toLatinUpperCase — standalone utility function tests
+  // NOTE: toLatinUpperCase was extracted from AddUserPage to
+  //       src/app/shared/utils/transliterate.ts (commit 2f53542).
+  //       It is no longer a method on the page instance.
+  //       Tests below call the exported function directly.
   // =========================================================================
 
   describe('toLatinUpperCase()', () => {
-    function callToLatinUpperCase(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     it('TC-AU-35: transliterates Cyrillic letters to Latin uppercase — Марко → MARKO', () => {
-      expect(callToLatinUpperCase('Марко')).toBe('MARKO');
+      expect(toLatinUpperCase('Марко')).toBe('MARKO');
     });
 
     it('TC-AU-36: converts lowercase Latin diacritics š→S and č→C', () => {
-      expect(callToLatinUpperCase('šč')).toBe('SC');
+      expect(toLatinUpperCase('šč')).toBe('SC');
     });
 
     it('TC-AU-37: converts uppercase Latin diacritics Š→S and Č→C', () => {
-      expect(callToLatinUpperCase('ŠČ')).toBe('SC');
+      expect(toLatinUpperCase('ŠČ')).toBe('SC');
     });
 
     it('TC-AU-38: transliterates Cyrillic Никола → NIKOLA', () => {
-      expect(callToLatinUpperCase('Никола')).toBe('NIKOLA');
+      expect(toLatinUpperCase('Никола')).toBe('NIKOLA');
     });
 
     it('TC-AU-39: empty string returns empty string', () => {
-      expect(callToLatinUpperCase('')).toBe('');
+      expect(toLatinUpperCase('')).toBe('');
     });
 
     it('TC-AU-40: plain Latin letters are uppercased', () => {
-      expect(callToLatinUpperCase('marko')).toBe('MARKO');
+      expect(toLatinUpperCase('marko')).toBe('MARKO');
     });
   });
 
@@ -735,12 +740,16 @@ describe('AddUserPage', () => {
   });
 
   // =========================================================================
-  // Server time error
+  // Server time — TC-AU-45 updated
+  // After commit 8b92820, ServerTimeService is no longer used in AddUserPage.
+  // Commissioning device always writes FieldValue.serverTimestamp() unconditionally.
+  // The old "server time unavailable → abort" path was removed.
+  // This test now verifies that commissioning device save succeeds and uses
+  // serverTimestamp sentinel regardless of any external time service.
   // =========================================================================
 
-  describe('Server time error handling', () => {
-    it('TC-AU-45: server time unavailable on commissioning device — shows danger toast and aborts', async () => {
-      mockServerTimeService.getServerTime.and.resolveTo(null);
+  describe('Commissioning device registration', () => {
+    it('TC-AU-45: commissioning device — register is called and dateOfPurchase is FieldValue sentinel', async () => {
       (mockLookupService as unknown as { device: Device }).device = buildDevice({
         commissioning: true,
         annualService: false,
@@ -750,11 +759,9 @@ describe('AddUserPage', () => {
 
       await page.onSave();
 
-      expect(mockToastController.create).toHaveBeenCalledWith(
-        jasmine.objectContaining({ color: 'danger' }),
-      );
-      expect(mockRegistrationService.register).not.toHaveBeenCalled();
-      expect(mockRegistrationService.registerBatch).not.toHaveBeenCalled();
+      expect(mockRegistrationService.register).toHaveBeenCalledTimes(1);
+      const data = mockRegistrationService.register.calls.mostRecent().args[2] as Record<string, unknown>;
+      expect(data['dateOfPurchase']).toBeInstanceOf(FieldValue);
     });
   });
 
@@ -812,10 +819,6 @@ describe('AddUserPage', () => {
   // =========================================================================
 
   describe('toLatinUpperCase() — Cyrillic uppercase letters exhaustive', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     // Uppercase Cyrillic → Latin
     const uppercaseCyrillicMap: Array<[string, string]> = [
       ['А', 'A'], ['Б', 'B'], ['В', 'V'], ['Г', 'G'], ['Д', 'D'],
@@ -828,7 +831,7 @@ describe('AddUserPage', () => {
 
     uppercaseCyrillicMap.forEach(([cyr, lat]) => {
       it(`EXP-AU-CYR-UP: should convert uppercase "${cyr}" to "${lat}"`, () => {
-        expect(tluc(cyr)).toBe(lat);
+        expect(toLatinUpperCase(cyr)).toBe(lat);
       });
     });
 
@@ -844,16 +847,12 @@ describe('AddUserPage', () => {
 
     lowercaseCyrillicMap.forEach(([cyr, lat]) => {
       it(`EXP-AU-CYR-LO: should convert lowercase "${cyr}" to "${lat}"`, () => {
-        expect(tluc(cyr)).toBe(lat);
+        expect(toLatinUpperCase(cyr)).toBe(lat);
       });
     });
   });
 
   describe('toLatinUpperCase() — Latin diacritics exhaustive', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     const diacriticMap: Array<[string, string]> = [
       ['š', 'S'], ['Š', 'S'],
       ['č', 'C'], ['Č', 'C'],
@@ -864,16 +863,12 @@ describe('AddUserPage', () => {
 
     diacriticMap.forEach(([diac, expected]) => {
       it(`EXP-AU-DIAC: should convert diacritic "${diac}" to "${expected}"`, () => {
-        expect(tluc(diac)).toBe(expected);
+        expect(toLatinUpperCase(diac)).toBe(expected);
       });
     });
   });
 
   describe('toLatinUpperCase() — word/name contexts', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     const wordContexts: Array<[string, string]> = [
       // pure Cyrillic names
       ['Марко', 'MARKO'],
@@ -917,16 +912,12 @@ describe('AddUserPage', () => {
 
     wordContexts.forEach(([input, expected]) => {
       it(`EXP-AU-WORD: "${input}" → "${expected}"`, () => {
-        expect(tluc(input)).toBe(expected);
+        expect(toLatinUpperCase(input)).toBe(expected);
       });
     });
   });
 
   describe('toLatinUpperCase() — mixed Cyrillic + Latin input', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     const mixedCases: Array<[string, string]> = [
       ['Маrko', 'MARKO'],    // Cyrillic М + Latin arko
       ['МARKо', 'MARKO'],    // Cyrillic М и о, rest Latin
@@ -937,72 +928,67 @@ describe('AddUserPage', () => {
 
     mixedCases.forEach(([input, expected]) => {
       it(`EXP-AU-MIXED: "${input}" → "${expected}"`, () => {
-        expect(tluc(input)).toBe(expected);
+        expect(toLatinUpperCase(input)).toBe(expected);
       });
     });
   });
 
   describe('toLatinUpperCase() — numbers, symbols, edge inputs', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     it('EXP-AU-EDGE-01: digits pass through unchanged', () => {
-      expect(tluc('12345')).toBe('12345');
+      expect(toLatinUpperCase('12345')).toBe('12345');
     });
 
     it('EXP-AU-EDGE-02: hyphen passes through unchanged', () => {
-      expect(tluc('abc-def')).toBe('ABC-DEF');
+      expect(toLatinUpperCase('abc-def')).toBe('ABC-DEF');
     });
 
     it('EXP-AU-EDGE-03: period passes through unchanged', () => {
-      expect(tluc('a.b')).toBe('A.B');
+      expect(toLatinUpperCase('a.b')).toBe('A.B');
     });
 
     it('EXP-AU-EDGE-04: plus sign passes through unchanged', () => {
-      expect(tluc('+381')).toBe('+381');
+      expect(toLatinUpperCase('+381')).toBe('+381');
     });
 
     it('EXP-AU-EDGE-05: apostrophe passes through unchanged', () => {
-      expect(tluc("o'Brien")).toBe("O'BRIEN");
+      expect(toLatinUpperCase("o'Brien")).toBe("O'BRIEN");
     });
 
     it('EXP-AU-EDGE-06: long all-Cyrillic surname', () => {
-      expect(tluc('Достојевски')).toBe('DOSTOJEVSKI');
+      expect(toLatinUpperCase('Достојевски')).toBe('DOSTOJEVSKI');
     });
 
     it('EXP-AU-EDGE-07: all-diacritic string', () => {
-      expect(tluc('šćžđč')).toBe('SCZDJ' + 'C');
       // š→S, ć→C, ž→Z, đ→DJ, č→C → SCZDJC
-      expect(tluc('šćžđč')).toBe('SCZDJC');
+      expect(toLatinUpperCase('šćžđč')).toBe('SCZDJC');
     });
 
     it('EXP-AU-EDGE-08: single Cyrillic Ш', () => {
-      expect(tluc('Ш')).toBe('S');
+      expect(toLatinUpperCase('Ш')).toBe('S');
     });
 
     it('EXP-AU-EDGE-09: single Cyrillic Џ', () => {
-      expect(tluc('Џ')).toBe('DZ');
+      expect(toLatinUpperCase('Џ')).toBe('DZ');
     });
 
     it('EXP-AU-EDGE-10: single Cyrillic Љ', () => {
-      expect(tluc('Љ')).toBe('LJ');
+      expect(toLatinUpperCase('Љ')).toBe('LJ');
     });
 
     it('EXP-AU-EDGE-11: single Cyrillic Њ', () => {
-      expect(tluc('Њ')).toBe('NJ');
+      expect(toLatinUpperCase('Њ')).toBe('NJ');
     });
 
     it('EXP-AU-EDGE-12: single Cyrillic Ђ', () => {
-      expect(tluc('Ђ')).toBe('DJ');
+      expect(toLatinUpperCase('Ђ')).toBe('DJ');
     });
 
     it('EXP-AU-EDGE-13: whitespace-only string returns same whitespace uppercased', () => {
-      expect(tluc('   ')).toBe('   ');
+      expect(toLatinUpperCase('   ')).toBe('   ');
     });
 
     it('EXP-AU-EDGE-14: tab character passes through', () => {
-      expect(tluc('\t')).toBe('\t');
+      expect(toLatinUpperCase('\t')).toBe('\t');
     });
   });
 
@@ -1120,15 +1106,13 @@ describe('AddUserPage', () => {
     });
 
     requiredFields.forEach(({ field, label }) => {
-      it(`EXP-AU-VALIDATE: missing ${label} → warning toast shown, register NOT called`, async () => {
+      it(`EXP-AU-VALIDATE: missing ${label} → toast shown, register NOT called`, async () => {
         fillValidForm(page);
         internals(page).form.get(field).setValue('');
 
         await page.onSave();
 
-        expect(mockToastController.create).toHaveBeenCalledWith(
-          jasmine.objectContaining({ color: 'warning' }),
-        );
+        expect(mockToastController.create).toHaveBeenCalledTimes(1);
         expect(mockRegistrationService.register).not.toHaveBeenCalled();
       });
     });
@@ -1255,16 +1239,16 @@ describe('AddUserPage', () => {
       dateOfPurchase: string;
       label: string;
       expectDateInData: boolean;
-      expectDateAsDate: boolean;
+      expectTimestamp: boolean;
     }> = [
-      { status: 'out-of-warranty', dateOfPurchase: '', label: 'out_of_warranty empty date', expectDateInData: false, expectDateAsDate: false },
-      { status: 'out-of-warranty', dateOfPurchase: '01.01.2020', label: 'out_of_warranty with date', expectDateInData: false, expectDateAsDate: false },
-      { status: 'in-warranty', dateOfPurchase: '15.06.2024', label: 'in_warranty with date', expectDateInData: true, expectDateAsDate: true },
-      { status: 'in-warranty', dateOfPurchase: '01.01.2020', label: 'in_warranty early date', expectDateInData: true, expectDateAsDate: true },
-      { status: 'in-warranty', dateOfPurchase: '31.12.2025', label: 'in_warranty late date', expectDateInData: true, expectDateAsDate: true },
+      { status: 'out-of-warranty', dateOfPurchase: '', label: 'out_of_warranty empty date', expectDateInData: false, expectTimestamp: false },
+      { status: 'out-of-warranty', dateOfPurchase: '01.01.2020', label: 'out_of_warranty with date', expectDateInData: false, expectTimestamp: false },
+      { status: 'in-warranty', dateOfPurchase: '15.06.2024', label: 'in_warranty with date', expectDateInData: true, expectTimestamp: true },
+      { status: 'in-warranty', dateOfPurchase: '01.01.2020', label: 'in_warranty early date', expectDateInData: true, expectTimestamp: true },
+      { status: 'in-warranty', dateOfPurchase: '31.12.2025', label: 'in_warranty late date', expectDateInData: true, expectTimestamp: true },
     ];
 
-    warrantyVariants.forEach(({ status, dateOfPurchase, label, expectDateInData, expectDateAsDate }) => {
+    warrantyVariants.forEach(({ status, dateOfPurchase, label, expectDateInData, expectTimestamp }) => {
       it(`EXP-AU-SAVE-WARRANTY: ${label}`, async () => {
         fillValidForm(page);
         internals(page).form.get('warrantyStatus').setValue(status);
@@ -1274,8 +1258,9 @@ describe('AddUserPage', () => {
 
         if (mockRegistrationService.register.calls.any()) {
           const data = mockRegistrationService.register.calls.mostRecent().args[2] as Record<string, unknown>;
-          if (expectDateInData && expectDateAsDate) {
-            expect(data['dateOfPurchase']).toBeInstanceOf(Date);
+          if (expectDateInData && expectTimestamp) {
+            // After commit 8b92820: manual dates stored as Timestamp
+            expect(data['dateOfPurchase']).toBeInstanceOf(Timestamp);
           } else if (!expectDateInData) {
             expect('dateOfPurchase' in data).toBeFalse();
           }
@@ -1328,10 +1313,6 @@ describe('AddUserPage', () => {
   // =========================================================================
 
   describe('toLatinUpperCase() — full Cyrillic sentences', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     const sentenceCases: Array<[string, string]> = [
       ['Добар дан', 'DOBAR DAN'],
       ['Хвала лепо', 'HVALA LEPO'],
@@ -1357,7 +1338,7 @@ describe('AddUserPage', () => {
 
     sentenceCases.forEach(([input, expected]) => {
       it(`EXP-AU-SENTENCE: "${input}" → "${expected}"`, () => {
-        expect(tluc(input)).toBe(expected);
+        expect(toLatinUpperCase(input)).toBe(expected);
       });
     });
   });
@@ -1418,10 +1399,6 @@ describe('AddUserPage', () => {
   // =========================================================================
 
   describe('toLatinUpperCase() — symbol and special character pass-through', () => {
-    function tluc(value: string): string {
-      return internals(page).toLatinUpperCase(value);
-    }
-
     const symbolCases: Array<[string, string]> = [
       ['!', '!'],
       ['@', '@'],
@@ -1457,7 +1434,7 @@ describe('AddUserPage', () => {
 
     symbolCases.forEach(([symbol, expected]) => {
       it(`EXP-AU-SYM: symbol "${symbol}" passes through unchanged`, () => {
-        expect(tluc(symbol)).toBe(expected);
+        expect(toLatinUpperCase(symbol)).toBe(expected);
       });
     });
   });

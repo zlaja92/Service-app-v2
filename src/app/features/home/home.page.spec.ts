@@ -64,6 +64,7 @@ const translocoLangs = {
     home_search_by_user: 'Search by user',
     home_device_not_found: 'home_device_not_found',
     home_scan_error: 'home_scan_error',
+    home_sn_no_spaces: 'home_sn_no_spaces',
   },
 };
 
@@ -180,26 +181,47 @@ describe('HomePage', () => {
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('TC-01b: searchBySn — whitespace-only input returns early without calling lookup', async () => {
+  // TEST-BUG-04: old test expected silent early return for whitespace-only input.
+  // Current code: hasWhitespace('   ') === true → shows toast 'home_sn_no_spaces' + returns.
+  it('TC-01b: searchBySn — whitespace-only input shows home_sn_no_spaces toast and does not call lookup', async () => {
     createAndDetect();
     component.snInput = '   ';
 
     await component.searchBySn();
 
+    expect(mockToastCtrl.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        message: 'home_sn_no_spaces',
+        color: 'warning',
+        duration: 3000,
+        position: 'bottom',
+      }),
+    );
     expect(mockLookupService.lookup).not.toHaveBeenCalled();
-    expect(mockToastCtrl.create).not.toHaveBeenCalled();
   });
 
-  // ─── TC-02: searchBySn — trimmed input used ───────────────────────────────────
+  // ─── TC-02: searchBySn — input with whitespace rejected via toast ────────────
+  // TEST-BUG-04: old test expected trim+lookup for padded SN.
+  // Current code: hasWhitespace('  SN12345678901234567890  ') === true
+  //   → shows toast 'home_sn_no_spaces', returns early, lookup NOT called.
 
-  it('TC-02: searchBySn — passes trimmed value to lookup', async () => {
+  it('TC-02: searchBySn — input with surrounding whitespace shows home_sn_no_spaces toast and does not call lookup', async () => {
     createAndDetect();
     const sn = 'SN12345678901234567890';
     component.snInput = `  ${sn}  `;
 
     await component.searchBySn();
 
-    expect(mockLookupService.lookup).toHaveBeenCalledWith(sn);
+    expect(mockToastCtrl.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        message: 'home_sn_no_spaces',
+        color: 'warning',
+        duration: 3000,
+        position: 'bottom',
+      }),
+    );
+    expect(mockLookupService.lookup).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
   // ─── TC-03: searchBySn — device found → navigate to device detail ─────────────
@@ -426,8 +448,21 @@ describe('HomePage', () => {
   // ─── EXPANSION — searchBySn SN format variations (parameterized) ─────────────
 
   describe('searchBySn — SN format variations', () => {
-    const emptyOrWhitespaceCases = [
-      '',
+    // TEST-BUG-04: old tests only checked that lookup was not called for all of
+    // these. Now we distinguish: empty string → silent early return (no toast);
+    // whitespace-only string → hasWhitespace true → toast 'home_sn_no_spaces'.
+
+    it('should return early silently for empty string ""', async () => {
+      createAndDetect();
+      component.snInput = '';
+
+      await component.searchBySn();
+
+      expect(mockLookupService.lookup).not.toHaveBeenCalled();
+      expect(mockToastCtrl.create).not.toHaveBeenCalled();
+    });
+
+    const whitespaceCases = [
       ' ',
       '  ',
       '\t',
@@ -435,13 +470,20 @@ describe('HomePage', () => {
       '   \t   ',
     ];
 
-    emptyOrWhitespaceCases.forEach((input) => {
-      it(`should return early for input="${JSON.stringify(input)}"`, async () => {
+    whitespaceCases.forEach((input) => {
+      // TEST-BUG-04: hasWhitespace(input) === true → toast 'home_sn_no_spaces' shown, lookup not called.
+      it(`should show home_sn_no_spaces toast and not call lookup for input=${JSON.stringify(input)}`, async () => {
         createAndDetect();
         component.snInput = input;
 
         await component.searchBySn();
 
+        expect(mockToastCtrl.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            message: 'home_sn_no_spaces',
+            color: 'warning',
+          }),
+        );
         expect(mockLookupService.lookup).not.toHaveBeenCalled();
       });
     });
@@ -462,6 +504,9 @@ describe('HomePage', () => {
     ];
 
     validSnFormats.forEach((sn) => {
+      // TEST-BUG-04: old tests used sn.trim() as expected arg; code does NOT trim,
+      // it passes snInput directly. All these SNs have no whitespace so sn === sn.trim(),
+      // but we now use sn directly to reflect actual code behaviour.
       it(`should call lookup for non-empty SN="${sn}"`, async () => {
         createAndDetect();
         component.snInput = sn;
@@ -469,31 +514,42 @@ describe('HomePage', () => {
 
         await component.searchBySn();
 
-        expect(mockLookupService.lookup).toHaveBeenCalledWith(sn.trim());
+        expect(mockLookupService.lookup).toHaveBeenCalledWith(sn);
       });
     });
   });
 
-  // ─── EXPANSION — searchBySn whitespace trimming (parameterized) ──────────────
+  // ─── EXPANSION — searchBySn rejects input with whitespace (parameterized) ────
+  // TEST-BUG-04: old describe was titled "whitespace trimming" and expected
+  // trim+lookup. Current code: hasWhitespace(input) → toast 'home_sn_no_spaces'
+  // + early return. Lookup is NEVER called for any of these inputs.
 
-  describe('searchBySn — whitespace trimming', () => {
-    const snWithWhitespace: Array<{ input: string; expectedTrimmed: string }> = [
-      { input: '  SN12345  ', expectedTrimmed: 'SN12345' },
-      { input: '\tSN-TABBED\t', expectedTrimmed: 'SN-TABBED' },
-      { input: 'SN-TRAILING   ', expectedTrimmed: 'SN-TRAILING' },
-      { input: '   SN-LEADING', expectedTrimmed: 'SN-LEADING' },
-      { input: '  BOTH  ', expectedTrimmed: 'BOTH' },
+  describe('searchBySn — rejects input containing whitespace', () => {
+    const snWithWhitespace = [
+      '  SN12345  ',
+      '\tSN-TABBED\t',
+      'SN-TRAILING   ',
+      '   SN-LEADING',
+      '  BOTH  ',
     ];
 
-    snWithWhitespace.forEach(({ input, expectedTrimmed }) => {
-      it(`should trim "${input}" to "${expectedTrimmed}" before lookup`, async () => {
+    snWithWhitespace.forEach((input) => {
+      it(`should show home_sn_no_spaces toast and NOT call lookup for "${input}"`, async () => {
         createAndDetect();
         component.snInput = input;
         mockLookupService.lookup.and.resolveTo(null);
 
         await component.searchBySn();
 
-        expect(mockLookupService.lookup).toHaveBeenCalledWith(expectedTrimmed);
+        expect(mockToastCtrl.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            message: 'home_sn_no_spaces',
+            color: 'warning',
+            duration: 3000,
+            position: 'bottom',
+          }),
+        );
+        expect(mockLookupService.lookup).not.toHaveBeenCalled();
       });
     });
   });
@@ -501,22 +557,27 @@ describe('HomePage', () => {
   // ─── EXPANSION — scanBarcode ScanResult variations ──────────────────────────
 
   describe('scanBarcode — ScanResult format variations', () => {
-    const validBarcodes = [
-      'SN12345678901234567890',
-      '1234567890',
-      'ABC-DEF-GHI',
-      '   SN-WITH-SPACES   ',
-      'SHORT',
+    // TEST-BUG-04: old tests expected snInput === raw ScanResult (including spaces).
+    // Current code: snInput = stripWhitespace(ScanResult) — ALL whitespace removed.
+    // '   SN-WITH-SPACES   ' → stripWhitespace → 'SN-WITH-SPACES'
+    const validBarcodes: Array<{ raw: string; expected: string }> = [
+      { raw: 'SN12345678901234567890', expected: 'SN12345678901234567890' },
+      { raw: '1234567890', expected: '1234567890' },
+      { raw: 'ABC-DEF-GHI', expected: 'ABC-DEF-GHI' },
+      { raw: '   SN-WITH-SPACES   ', expected: 'SN-WITH-SPACES' },
+      { raw: 'SN 123 456', expected: 'SN123456' },
+      { raw: '  SN-X  ', expected: 'SN-X' },
+      { raw: 'SHORT', expected: 'SHORT' },
     ];
 
-    validBarcodes.forEach((barcode) => {
-      it(`should set snInput to "${barcode}" after successful scan`, async () => {
+    validBarcodes.forEach(({ raw, expected }) => {
+      it(`should set snInput to "${expected}" after scanning raw="${raw}"`, async () => {
         createAndDetect();
-        spyScanBarcodeResolve({ ScanResult: barcode, format: 17 as any });
+        spyScanBarcodeResolve({ ScanResult: raw, format: 17 as any });
 
         await component.scanBarcode();
 
-        expect(component.snInput).toBe(barcode);
+        expect(component.snInput).toBe(expected);
       });
     });
 
@@ -600,15 +661,24 @@ describe('HomePage', () => {
       expect(presentSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should NOT call lookup when snInput has only whitespace variations', async () => {
+    // TEST-BUG-04: old test only checked lookup not called. Current code also shows
+    // toast 'home_sn_no_spaces' for every whitespace-only input.
+    it('should show home_sn_no_spaces toast and NOT call lookup for whitespace-only variations', async () => {
       const whitespaceInputs = ['\t', '\n', '\r\n', ' \t \n '];
       createAndDetect();
 
       for (const ws of whitespaceInputs) {
         mockLookupService.lookup.calls.reset();
+        mockToastCtrl.create.calls.reset();
         component.snInput = ws;
         await component.searchBySn();
         expect(mockLookupService.lookup).not.toHaveBeenCalled();
+        expect(mockToastCtrl.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            message: 'home_sn_no_spaces',
+            color: 'warning',
+          }),
+        );
       }
     });
   });

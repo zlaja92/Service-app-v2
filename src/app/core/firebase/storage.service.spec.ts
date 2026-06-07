@@ -38,6 +38,8 @@ import { TestBed } from '@angular/core/testing';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseStorageWeb } from '@capacitor-firebase/storage/dist/esm/web';
 import { UploadFileOptions, UploadFileCallbackEvent } from '@capacitor-firebase/storage';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { FilesystemWeb } from '@capacitor/filesystem/dist/esm/web';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { StorageService } from './storage.service';
 import { LoggerService } from '../logger/logger.service';
@@ -862,6 +864,223 @@ describe('StorageService', () => {
 
         expect(result.files.length).toBe(count);
       });
+    });
+  });
+
+  // =========================================================================
+  // uploadDataUrl() — web path
+  // =========================================================================
+
+  describe('uploadDataUrl() — web platform (isNativePlatform = false)', () => {
+    beforeEach(() => {
+      spyOn(Capacitor, 'isNativePlatform').and.returnValue(false);
+      mockLogger = createMockLoggerService();
+
+      TestBed.configureTestingModule({
+        providers: [
+          StorageService,
+          { provide: LoggerService, useValue: mockLogger },
+        ],
+      });
+
+      service = TestBed.inject(StorageService);
+    });
+
+    it('TC-SDU01: web path delegates to uploadFile with dataUrl directly', async () => {
+      const uploadFileSpy = spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png');
+
+      expect(uploadFileSpy).toHaveBeenCalledOnceWith(
+        'devices/01/sig.png',
+        'data:image/png;base64,ABC',
+        'image/png',
+      );
+    });
+
+    it('TC-SDU02: web path passes contentType through to uploadFile', async () => {
+      const uploadFileSpy = spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('some/path.jpg', 'data:image/jpeg;base64,XYZ', 'image/jpeg');
+
+      const args = uploadFileSpy.calls.first().args as [string, string, string];
+      expect(args[2]).toBe('image/jpeg');
+    });
+
+    it('TC-SDU03: web path does NOT call Filesystem.writeFile', async () => {
+      const writeFileSpy = spyOn(Filesystem, 'writeFile').and.resolveTo({ uri: 'file:///tmp.tmp' });
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('path/file.png', 'data:image/png;base64,ABC', 'image/png');
+
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
+
+    it('TC-SDU04: web path resolves when uploadFile resolves', async () => {
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await expectAsync(
+        service.uploadDataUrl('path/file.png', 'data:image/png;base64,ABC', 'image/png'),
+      ).toBeResolved();
+    });
+
+    it('TC-SDU05: web path rejects when uploadFile rejects', async () => {
+      spyOn(service, 'uploadFile').and.rejectWith(new Error('upload-fail'));
+
+      await expectAsync(
+        service.uploadDataUrl('path/file.png', 'data:image/png;base64,ABC', 'image/png'),
+      ).toBeRejectedWithError('upload-fail');
+    });
+  });
+
+  // =========================================================================
+  // uploadDataUrl() — native path
+  // =========================================================================
+
+  describe('uploadDataUrl() — native platform (isNativePlatform = true)', () => {
+    beforeEach(() => {
+      spyOn(Capacitor, 'isNativePlatform').and.returnValue(true);
+      mockLogger = createMockLoggerService();
+
+      TestBed.configureTestingModule({
+        providers: [
+          StorageService,
+          { provide: LoggerService, useValue: mockLogger },
+        ],
+      });
+
+      service = TestBed.inject(StorageService);
+    });
+
+    it('TC-SDU06: native path extracts base64 after first comma and writes to temp file', async () => {
+      // FilesystemWeb.prototype spy intercepts Filesystem.writeFile on web/Karma:
+      // Capacitor proxy routes calls through registered web impl (FilesystemWeb).
+      const writeFileSpy = spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_123.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,THEBASE64DATA', 'image/png');
+
+      expect(writeFileSpy).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({
+          data: 'THEBASE64DATA',
+          directory: Directory.Cache,
+        }),
+      );
+    });
+
+    it('TC-SDU07: native path calls uploadFile with the URI returned by Filesystem.writeFile', async () => {
+      spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_999.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      const uploadFileSpy = spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,THEBASE64DATA', 'image/png');
+
+      expect(uploadFileSpy).toHaveBeenCalledOnceWith(
+        'devices/01/sig.png',
+        'file:///cache/upload_999.tmp',
+        'image/png',
+      );
+    });
+
+    it('TC-SDU08: native path calls Filesystem.deleteFile in finally after successful upload', async () => {
+      spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_1.tmp' });
+      const deleteFileSpy = spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png');
+
+      expect(deleteFileSpy).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ directory: Directory.Cache }),
+      );
+    });
+
+    it('TC-SDU09: native path calls Filesystem.deleteFile in finally even when uploadFile rejects', async () => {
+      spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_2.tmp' });
+      const deleteFileSpy = spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.rejectWith(new Error('upload-failed'));
+
+      await expectAsync(
+        service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png'),
+      ).toBeRejected();
+
+      expect(deleteFileSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('TC-SDU10: deleteFile failing in finally does NOT prevent upload resolve (catch is silent)', async () => {
+      // Verifies that Filesystem.deleteFile().catch(() => undefined) in the source
+      // swallows the delete error silently — upload still resolves.
+      spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_3.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.rejectWith(new Error('delete-failed'));
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await expectAsync(
+        service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png'),
+      ).toBeResolved();
+    });
+
+    it('TC-SDU11: EDGE — dataUrl without comma: indexOf returns -1, substring(0) sends full string as base64', async () => {
+      // Slabost koda (ne bug): realni data: URL uvek ima zarez; nema validacije.
+      // Dokumentuje ponašanje, ne menja app kod.
+      const writeFileSpy = spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_4.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'rawbase64nocomma', 'image/png');
+
+      // indexOf(',') = -1 → indexOf(',') + 1 = 0 → substring(0) = full string
+      expect(writeFileSpy).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ data: 'rawbase64nocomma' }),
+      );
+    });
+
+    it('TC-SDU12: EDGE — dataUrl with multiple commas: substring uses FIRST comma only', async () => {
+      const writeFileSpy = spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_5.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,AB,CD', 'image/png');
+
+      // indexOf(',') finds first comma → substring after it → 'AB,CD'
+      expect(writeFileSpy).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ data: 'AB,CD' }),
+      );
+    });
+
+    it('TC-SDU13: native path writes temp file to Directory.Cache', async () => {
+      const writeFileSpy = spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_6.tmp' });
+      spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png');
+
+      expect(writeFileSpy).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ directory: Directory.Cache }),
+      );
+    });
+
+    it('TC-SDU14: native path uses a path string (tempName) for both writeFile and deleteFile', async () => {
+      const writeFileSpy = spyOn(FilesystemWeb.prototype, 'writeFile').and.resolveTo({ uri: 'file:///cache/upload_7.tmp' });
+      const deleteFileSpy = spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+      spyOn(service, 'uploadFile').and.resolveTo();
+
+      await service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png');
+
+      const writtenPath = (writeFileSpy.calls.first().args[0] as { path: string }).path;
+      const deletedPath = (deleteFileSpy.calls.first().args[0] as { path: string }).path;
+      expect(writtenPath).toBe(deletedPath);
+    });
+
+    it('TC-SDU15: native path rejects when Filesystem.writeFile rejects', async () => {
+      spyOn(FilesystemWeb.prototype, 'writeFile').and.rejectWith(new Error('disk-full'));
+      // deleteFile should NOT be called when writeFile fails (before try block)
+      const deleteFileSpy = spyOn(FilesystemWeb.prototype, 'deleteFile').and.resolveTo();
+
+      await expectAsync(
+        service.uploadDataUrl('devices/01/sig.png', 'data:image/png;base64,ABC', 'image/png'),
+      ).toBeRejectedWithError('disk-full');
+
+      expect(deleteFileSpy).not.toHaveBeenCalled();
     });
   });
 

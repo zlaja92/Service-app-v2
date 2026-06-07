@@ -1373,4 +1373,330 @@ describe('FirestoreService', () => {
       });
     });
   });
+
+  // =========================================================================
+  // trimDeep integration — write boundary
+  //
+  // Verified from source:
+  //   setDocument        line 68:  trimDeep(data)
+  //   addTenantDocument  line 86:  trimDeep(data)
+  //   addInterventionDocument line 156: trimDeep(data)
+  //   writeBatch         line 126: op.data ? { ...op, data: trimDeep(op.data) } : op
+  //   setTenantDocument delegates to setDocument — trimming is applied indirectly.
+  //
+  // trimDeep behaviour (from trim.ts):
+  //   - Strings: trimmed
+  //   - Plain objects (prototype === Object.prototype): recurse into values
+  //   - Class instances (Timestamp, FieldValue, Date, etc.): returned AS-IS
+  //     (prototype !== Object.prototype — guard on line 35 of trim.ts)
+  //   - Primitives (number, boolean, null, undefined): returned as-is
+  // =========================================================================
+
+  describe('trimDeep integration — write boundary', () => {
+
+    // -----------------------------------------------------------------------
+    // setDocument() — direct trimDeep call
+    // -----------------------------------------------------------------------
+
+    it('TC-FS53: setDocument trims leading/trailing whitespace from string fields before write', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      await service.setDocument('col/doc', { name: '  ALEKSANDAR  ', city: ' Beograd ' });
+
+      expect(setDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'col/doc',
+        data: { name: 'ALEKSANDAR', city: 'Beograd' },
+      });
+    });
+
+    it('TC-FS54: setDocument trims nested string fields recursively', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      await service.setDocument('col/doc', {
+        client: { name: '  Ana  ', address: '  Knez Mihailova 1  ' },
+        status: '  open  ',
+      });
+
+      expect(setDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'col/doc',
+        data: {
+          client: { name: 'Ana', address: 'Knez Mihailova 1' },
+          status: 'open',
+        },
+      });
+    });
+
+    it('TC-FS55: setDocument leaves non-string primitives untouched (number, boolean, null)', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      await service.setDocument('col/doc', {
+        count: 42,
+        active: true,
+        deleted: false,
+        ref: null,
+      });
+
+      expect(setDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'col/doc',
+        data: { count: 42, active: true, deleted: false, ref: null },
+      });
+    });
+
+    it('TC-FS56: setDocument does not modify class instances — Timestamp-like object passes through unchanged', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      // Simulate a Timestamp-like class instance: prototype !== Object.prototype,
+      // so trimDeep returns it as-is without recursing into it.
+      class FakeTimestamp {
+        constructor(public seconds: number, public nanoseconds: number) {}
+      }
+      const ts = new FakeTimestamp(1700000000, 0);
+
+      await service.setDocument('col/doc', { createdAt: ts as unknown as Record<string, unknown> });
+
+      const callArg = setDocSpy.calls.mostRecent().args[0] as unknown as { data: { createdAt: unknown } };
+      // Capacitor proxy klonira argumente na web-impl granici → instanca gubi prototip (postaje plain
+      // Object), pa se ni referenca (toBe) ni tip (toEqual sa instancom) ne mogu potvrditi ovde.
+      // Verifikujemo da je SADRŽAJ očuvan (nije trimovan/rebuildovan). Očuvanje class instance je
+      // dokazano na unit granici u trim.spec.ts.
+      expect(callArg.data.createdAt).toEqual(jasmine.objectContaining({ seconds: ts.seconds, nanoseconds: ts.nanoseconds }));
+    });
+
+    it('TC-FS57: setDocument trims strings inside arrays', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      await service.setDocument('col/doc', { tags: ['  boiler  ', ' gas ', '  heat-pump'] });
+
+      expect(setDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'col/doc',
+        data: { tags: ['boiler', 'gas', 'heat-pump'] },
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // setTenantDocument() — delegates to setDocument which calls trimDeep
+    // -----------------------------------------------------------------------
+
+    it('TC-FS58: setTenantDocument passes trimmed data through setDocument', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      await service.setTenantDocument('configs', 'cfg-1', { theme: '  dark  ', lang: ' sr ' });
+
+      expect(setDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'tenants/T1/configs/cfg-1',
+        data: { theme: 'dark', lang: 'sr' },
+      });
+    });
+
+    it('TC-FS59: setTenantDocument preserves class instances — Timestamp-like object unchanged', async () => {
+      const setDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'setDocument').and.resolveTo();
+
+      class FakeTimestamp {
+        constructor(public seconds: number, public nanoseconds: number) {}
+      }
+      const ts = new FakeTimestamp(1700000000, 0);
+
+      await service.setTenantDocument('configs', 'cfg-2', {
+        updatedAt: ts as unknown as Record<string, unknown>,
+        label: '  Config  ',
+      });
+
+      const callArg = setDocSpy.calls.mostRecent().args[0] as unknown as { data: { updatedAt: unknown; label: unknown } };
+      // Capacitor proxy klonira argumente na web-impl granici → instanca gubi prototip (postaje plain
+      // Object), pa se ni referenca (toBe) ni tip (toEqual sa instancom) ne mogu potvrditi ovde.
+      // Verifikujemo da je SADRŽAJ očuvan (nije trimovan/rebuildovan). Očuvanje class instance je
+      // dokazano na unit granici u trim.spec.ts.
+      expect(callArg.data.updatedAt).toEqual(jasmine.objectContaining({ seconds: ts.seconds, nanoseconds: ts.nanoseconds }));
+      expect(callArg.data.label).toBe('Config'); // trimmed
+    });
+
+    // -----------------------------------------------------------------------
+    // addTenantDocument() — direct trimDeep call
+    // -----------------------------------------------------------------------
+
+    it('TC-FS60: addTenantDocument passes trimmed data to addDocument', async () => {
+      const addDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'addDocument').and.resolveTo({
+        reference: { id: 'new-id', path: 'tenants/T1/devices/new-id' },
+      } as any);
+
+      await service.addTenantDocument('devices', { name: '  Boiler A  ', serial: ' SN-001 ' });
+
+      expect(addDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'tenants/T1/devices',
+        data: { name: 'Boiler A', serial: 'SN-001' },
+      });
+    });
+
+    it('TC-FS61: addTenantDocument preserves class instances — Timestamp-like object unchanged', async () => {
+      const addDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'addDocument').and.resolveTo({
+        reference: { id: 'ts-id', path: 'tenants/T1/orders/ts-id' },
+      } as any);
+
+      class FakeTimestamp {
+        constructor(public seconds: number, public nanoseconds: number) {}
+      }
+      const ts = new FakeTimestamp(1700000000, 0);
+
+      await service.addTenantDocument('orders', {
+        createdAt: ts as unknown as Record<string, unknown>,
+        status: '  pending  ',
+      });
+
+      const callArg = addDocSpy.calls.mostRecent().args[0] as unknown as { data: { createdAt: unknown; status: unknown } };
+      // Capacitor proxy klonira argumente na web-impl granici → instanca gubi prototip (postaje plain
+      // Object), pa se ni referenca (toBe) ni tip (toEqual sa instancom) ne mogu potvrditi ovde.
+      // Verifikujemo da je SADRŽAJ očuvan (nije trimovan/rebuildovan). Očuvanje class instance je
+      // dokazano na unit granici u trim.spec.ts.
+      expect(callArg.data.createdAt).toEqual(jasmine.objectContaining({ seconds: ts.seconds, nanoseconds: ts.nanoseconds }));
+      expect(callArg.data.status).toBe('pending'); // trimmed
+    });
+
+    // -----------------------------------------------------------------------
+    // addInterventionDocument() — direct trimDeep call
+    // -----------------------------------------------------------------------
+
+    it('TC-FS62: addInterventionDocument passes trimmed data to addDocument', async () => {
+      const addDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'addDocument').and.resolveTo({
+        reference: { id: 'intv-trim-id', path: 'tenants/T1/interventions_gas-boiler/intv-trim-id' },
+      } as any);
+
+      await service.addInterventionDocument('gas-boiler', {
+        clientName: '  Marko Markovic  ',
+        address: '  Bulevar 22  ',
+      });
+
+      expect(addDocSpy).toHaveBeenCalledOnceWith({
+        reference: 'tenants/T1/interventions_gas-boiler',
+        data: { clientName: 'Marko Markovic', address: 'Bulevar 22' },
+      });
+    });
+
+    it('TC-FS63: addInterventionDocument preserves class instances — Timestamp-like object unchanged', async () => {
+      const addDocSpy = spyOn(FirebaseFirestoreWeb.prototype, 'addDocument').and.resolveTo({
+        reference: { id: 'ts-intv-id', path: 'tenants/T1/interventions_heat-pump/ts-intv-id' },
+      } as any);
+
+      class FakeTimestamp {
+        constructor(public seconds: number, public nanoseconds: number) {}
+      }
+      const ts = new FakeTimestamp(1700000000, 0);
+
+      await service.addInterventionDocument('heat-pump', {
+        scheduledAt: ts as unknown as Record<string, unknown>,
+        technician: '  Stefan  ',
+      });
+
+      const callArg = addDocSpy.calls.mostRecent().args[0] as unknown as { data: { scheduledAt: unknown; technician: unknown } };
+      // Capacitor proxy klonira argumente na web-impl granici → instanca gubi prototip (postaje plain
+      // Object), pa se ni referenca (toBe) ni tip (toEqual sa instancom) ne mogu potvrditi ovde.
+      // Verifikujemo da je SADRŽAJ očuvan (nije trimovan/rebuildovan). Očuvanje class instance je
+      // dokazano na unit granici u trim.spec.ts.
+      expect(callArg.data.scheduledAt).toEqual(jasmine.objectContaining({ seconds: ts.seconds, nanoseconds: ts.nanoseconds }));
+      expect(callArg.data.technician).toBe('Stefan'); // trimmed
+    });
+
+    // -----------------------------------------------------------------------
+    // writeBatch() — conditional trimDeep: op.data present → trim; absent → pass through
+    // -----------------------------------------------------------------------
+
+    it('TC-FS64: writeBatch trims string fields in operations that have a data property', async () => {
+      const writeBatchSpy = spyOn(FirebaseFirestoreWeb.prototype, 'writeBatch').and.resolveTo();
+
+      const operations = [
+        { type: 'set', reference: 'col/doc1', data: { name: '  Alpha  ', code: '  A1  ' } },
+        { type: 'update', reference: 'col/doc2', data: { status: '  active  ' } },
+      ] as any;
+
+      await service.writeBatch(operations);
+
+      const callArg = writeBatchSpy.calls.mostRecent().args[0] as { operations: any[] };
+      expect(callArg.operations[0].data).toEqual({ name: 'Alpha', code: 'A1' });
+      expect(callArg.operations[1].data).toEqual({ status: 'active' });
+    });
+
+    it('TC-FS65: writeBatch passes operations without a data field through unchanged (e.g. delete ops before normalization)', async () => {
+      const writeBatchSpy = spyOn(FirebaseFirestoreWeb.prototype, 'writeBatch').and.resolveTo();
+
+      // An operation with no data property at all — should not be modified by trimDeep logic.
+      // The service uses: op.data ? { ...op, data: trimDeep(op.data) } : op
+      // So the original op reference (or a structurally identical op) is kept.
+      const noDataOp = { type: 'delete', reference: 'col/doc-del' };
+      const operations = [noDataOp] as any;
+
+      await service.writeBatch(operations);
+
+      const callArg = writeBatchSpy.calls.mostRecent().args[0] as { operations: any[] };
+      // The op without data must NOT gain a data property from the trimming logic
+      expect(callArg.operations[0]).toEqual(jasmine.objectContaining({ type: 'delete', reference: 'col/doc-del' }));
+      expect((callArg.operations[0] as any).data).toBeUndefined();
+    });
+
+    it('TC-FS66: writeBatch preserves class instances inside operation data — Timestamp-like object unchanged', async () => {
+      const writeBatchSpy = spyOn(FirebaseFirestoreWeb.prototype, 'writeBatch').and.resolveTo();
+
+      class FakeTimestamp {
+        constructor(public seconds: number, public nanoseconds: number) {}
+      }
+      const ts = new FakeTimestamp(1700000000, 0);
+
+      const operations = [
+        {
+          type: 'set',
+          reference: 'col/doc-ts',
+          data: {
+            createdAt: ts as unknown as Record<string, unknown>,
+            label: '  TS Doc  ',
+          },
+        },
+      ] as any;
+
+      await service.writeBatch(operations);
+
+      const callArg = writeBatchSpy.calls.mostRecent().args[0] as { operations: any[] };
+      // Capacitor proxy klonira argumente na web-impl granici → instanca gubi prototip (postaje plain
+      // Object), pa se ni referenca (toBe) ni tip (toEqual sa instancom) ne mogu potvrditi ovde.
+      // Verifikujemo da je SADRŽAJ očuvan (nije trimovan/rebuildovan). Očuvanje class instance je
+      // dokazano na unit granici u trim.spec.ts.
+      expect(callArg.operations[0].data.createdAt).toEqual(jasmine.objectContaining({ seconds: ts.seconds, nanoseconds: ts.nanoseconds }));
+      expect(callArg.operations[0].data.label).toBe('TS Doc'); // trimmed
+    });
+
+    it('TC-FS67: writeBatch trims mixed batch — set (with data) and delete (without data)', async () => {
+      const writeBatchSpy = spyOn(FirebaseFirestoreWeb.prototype, 'writeBatch').and.resolveTo();
+
+      const operations = [
+        { type: 'set', reference: 'col/a', data: { name: '  Device X  ' } },
+        { type: 'delete', reference: 'col/b' },
+      ] as any;
+
+      await service.writeBatch(operations);
+
+      const callArg = writeBatchSpy.calls.mostRecent().args[0] as { operations: any[] };
+      expect(callArg.operations[0].data).toEqual({ name: 'Device X' }); // trimmed
+      // delete op is passed through — may or may not have data: undefined after
+      // plugin normalization; we only verify reference is correct
+      expect(callArg.operations[1].reference).toBe('col/b');
+      expect(callArg.operations[1].type).toBe('delete');
+    });
+
+    // -----------------------------------------------------------------------
+    // generateId() — already covered in TC-FS48..TC-FS50 and TC-FSGID-* but
+    // adding targeted single-call checks requested in the task spec.
+    // -----------------------------------------------------------------------
+
+    it('TC-FS68: generateId returns a string of exactly 20 characters', () => {
+      const id = service.generateId();
+
+      expect(typeof id).toBe('string');
+      expect(id.length).toBe(20);
+    });
+
+    it('TC-FS69: generateId returns only alphanumeric characters [A-Za-z0-9]', () => {
+      // Run 20 times to reduce the probability of a false positive
+      for (let i = 0; i < 20; i++) {
+        expect(service.generateId()).toMatch(/^[A-Za-z0-9]{20}$/);
+      }
+    });
+
+  }); // end trimDeep integration + generateId
 });

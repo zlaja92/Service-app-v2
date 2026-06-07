@@ -119,7 +119,9 @@ describe('DeviceSearchService', () => {
       await service.search('abc');
       const callArgs = mockFirestoreService.queryTenantCollection.calls.mostRecent().args;
       const filter = callArgs[1].compositeFilter;
-      expect(filter.queryConstraints[0].queryConstraints[0].value).toBe('ABC');
+      // compositeFilter: and → [whereDeviceType, or → [andName, andCode]]
+      const nameAndConstraints = filter.queryConstraints[1].queryConstraints[0].queryConstraints;
+      expect(nameAndConstraints[0].value).toBe('ABC');
     });
 
     it('should trim search term', async () => {
@@ -127,7 +129,9 @@ describe('DeviceSearchService', () => {
       await service.search('  ab  ');
       const callArgs = mockFirestoreService.queryTenantCollection.calls.mostRecent().args;
       const filter = callArgs[1].compositeFilter;
-      expect(filter.queryConstraints[0].queryConstraints[0].value).toBe('AB');
+      // compositeFilter: and → [whereDeviceType, or → [andName, andCode]]
+      const nameAndConstraints = filter.queryConstraints[1].queryConstraints[0].queryConstraints;
+      expect(nameAndConstraints[0].value).toBe('AB');
     });
 
     it('should clear previous devices on new search', async () => {
@@ -161,22 +165,31 @@ describe('DeviceSearchService', () => {
       expect(service.isLoading).toBeFalse();
     });
 
-    it('should use composite OR filter for name and code', async () => {
+    it('should use composite AND filter wrapping deviceType and OR filter for name/code', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.search('TEST');
       const callArgs = mockFirestoreService.queryTenantCollection.calls.mostRecent().args;
       const filter = callArgs[1].compositeFilter;
-      expect(filter.type).toBe('or');
+      // Outer AND: [deviceType-in-where, OR-group]
+      expect(filter.type).toBe('and');
       expect(filter.queryConstraints.length).toBe(2);
-      expect(filter.queryConstraints[0].type).toBe('and');
-      expect(filter.queryConstraints[1].type).toBe('and');
+      // First constraint: deviceType in allowedTypes
+      expect(filter.queryConstraints[0].type).toBe('where');
+      expect(filter.queryConstraints[0].fieldPath).toBe('deviceType');
+      expect(filter.queryConstraints[0].opStr).toBe('in');
+      // Second constraint: OR of name/code ranges
+      expect(filter.queryConstraints[1].type).toBe('or');
+      expect(filter.queryConstraints[1].queryConstraints.length).toBe(2);
+      expect(filter.queryConstraints[1].queryConstraints[0].type).toBe('and');
+      expect(filter.queryConstraints[1].queryConstraints[1].type).toBe('and');
     });
 
     it('should query Device Name with >= and <= range', async () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.search('TEST');
       const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
-      const nameFilter = filter.queryConstraints[0].queryConstraints;
+      // compositeFilter: and \u2192 [whereDeviceType, or \u2192 [andName, andCode]]
+      const nameFilter = filter.queryConstraints[1].queryConstraints[0].queryConstraints;
       expect(nameFilter[0].fieldPath).toBe("deviceName");
       expect(nameFilter[0].opStr).toBe('>=');
       expect(nameFilter[0].value).toBe('TEST');
@@ -189,7 +202,8 @@ describe('DeviceSearchService', () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.search('TEST');
       const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
-      const codeFilter = filter.queryConstraints[1].queryConstraints;
+      // compositeFilter: and \u2192 [whereDeviceType, or \u2192 [andName, andCode]]
+      const codeFilter = filter.queryConstraints[1].queryConstraints[1].queryConstraints;
       expect(codeFilter[0].fieldPath).toBe("deviceCode");
       expect(codeFilter[0].opStr).toBe('>=');
       expect(codeFilter[0].value).toBe('TEST');
@@ -653,7 +667,10 @@ describe('DeviceSearchService', () => {
       mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.search('ŠĐ');
       const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
-      expect(filter.queryConstraints[0].queryConstraints[0].value).toBe('ŠĐ');
+      // toLatinUpperCase('ŠĐ') → 'S' + 'DJ' = 'SDJ'
+      // compositeFilter: and → [whereDeviceType, or → [andName, andCode]]
+      const nameAndConstraints = filter.queryConstraints[1].queryConstraints[0].queryConstraints;
+      expect(nameAndConstraints[0].value).toBe('SDJ');
     });
 
     // BUG-02 FIXED: mapToDevice returns null when Device type is missing,
@@ -693,29 +710,23 @@ describe('DeviceSearchService', () => {
 
   // ── allowedTypes filter ──
   describe('allowedTypes filter', () => {
-    it('should filter devices whose type is not in allowedTypes', async () => {
-      mockFirestoreService.queryTenantCollection.and.resolveTo({
-        documents: [
-          { id: '1', path: 'devices/1', data: { deviceName: 'A', deviceCode: 'A1', deviceType: DeviceType.HEAT_PUMP } },
-          { id: '2', path: 'devices/2', data: { deviceName: 'B', deviceCode: 'B1', deviceType: 'unknown_type' } },
-          { id: '3', path: 'devices/3', data: { deviceName: 'C', deviceCode: 'C1', deviceType: DeviceType.BOILER } },
-        ],
-        lastDocumentPath: null,
-      });
+    it('should pass allowedTypes as server-side "in" filter to Firestore', async () => {
+      mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.search('AB');
-      // Only heat_pump and boiler are in ALLOWED_TYPES — unknown_type is excluded
-      expect(service.devices.length).toBe(2);
-      expect(service.devices.map(d => d.type)).toEqual([DeviceType.HEAT_PUMP, DeviceType.BOILER]);
+      const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
+      // compositeFilter: and → [whereDeviceType, or → [andName, andCode]]
+      const deviceTypeWhere = filter.queryConstraints[0];
+      expect(deviceTypeWhere.type).toBe('where');
+      expect(deviceTypeWhere.fieldPath).toBe('deviceType');
+      expect(deviceTypeWhere.opStr).toBe('in');
+      expect(deviceTypeWhere.value).toEqual(ALLOWED_TYPES);
     });
 
-    it('should return empty array when no devices match allowedTypes', async () => {
-      mockFirestoreService.queryTenantCollection.and.resolveTo({
-        documents: [
-          { id: '1', path: 'devices/1', data: { deviceName: 'A', deviceCode: 'A1', deviceType: 'forbidden_type' } },
-        ],
-        lastDocumentPath: null,
-      });
+    it('should short-circuit and return empty array when getAllowedDeviceTypes returns empty array', async () => {
+      mockTenantService.getAllowedDeviceTypes.and.returnValue([]);
       await service.search('AB');
+      // Firestore is never called when there are no allowed types
+      expect(mockFirestoreService.queryTenantCollection).not.toHaveBeenCalled();
       expect(service.devices.length).toBe(0);
     });
 
@@ -738,23 +749,21 @@ describe('DeviceSearchService', () => {
       expect(service.devices.length).toBe(2);
     });
 
-    it('should filter devices before appending on loadMore', async () => {
+    it('should include allowedTypes in-filter on loadMore call', async () => {
       const page1 = Array.from({ length: 20 }, (_, i) => ({ id: `${i}`, name: `D${i}`, code: `C${i}` }));
       mockFirestoreService.queryTenantCollection.and.resolveTo(createQueryResult(page1, 'devices/19'));
       await service.search('DE');
 
-      // Page 2 has mixed types — only allowed ones should be appended
-      mockFirestoreService.queryTenantCollection.and.resolveTo({
-        documents: [
-          { id: '20', path: 'devices/20', data: { deviceName: 'Allowed', deviceCode: 'A20', deviceType: DeviceType.HEAT_PUMP } },
-          { id: '21', path: 'devices/21', data: { deviceName: 'Blocked', deviceCode: 'B21', deviceType: 'forbidden' } },
-        ],
-        lastDocumentPath: null,
-      });
+      mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
       await service.loadMore();
 
-      expect(service.devices.length).toBe(21); // 20 + 1 allowed
-      expect(service.devices[20].name).toBe('Allowed');
+      // The loadMore call must also include the deviceType in filter server-side
+      const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
+      const deviceTypeWhere = filter.queryConstraints[0];
+      expect(deviceTypeWhere.type).toBe('where');
+      expect(deviceTypeWhere.fieldPath).toBe('deviceType');
+      expect(deviceTypeWhere.opStr).toBe('in');
+      expect(deviceTypeWhere.value).toEqual(ALLOWED_TYPES);
     });
 
     // BUG-02 FIXED: mapToDevice returns null when deviceType field is absent,
@@ -875,7 +884,8 @@ describe('DeviceSearchService', () => {
 
         const callArgs = mockFirestoreService.queryTenantCollection.calls.mostRecent().args;
         const filter = callArgs[1].compositeFilter;
-        const nameValue = filter.queryConstraints[0].queryConstraints[0].value;
+        // compositeFilter: and → [whereDeviceType, or → [andName, andCode]]
+        const nameValue = filter.queryConstraints[1].queryConstraints[0].queryConstraints[0].value;
         expect(nameValue).toBe(expected);
       });
     });
@@ -1032,18 +1042,21 @@ describe('DeviceSearchService', () => {
   });
 
   // ── EXPANSION — allowedTypes filtering matrix ──────────────────────────────────
+  // allowedTypes filtering is now SERVER-side via a Firestore "in" filter.
+  // The service passes ALLOWED_TYPES to the query; Firestore handles exclusion.
+  // Client-side, mapToDevice only skips docs where deviceType field is absent.
 
   describe('allowedTypes — filtering matrix (parameterized)', () => {
-    const typeCases: Array<{ type: string; expectedCount: number; desc: string }> = [
-      { type: DeviceType.HEAT_PUMP, expectedCount: 1, desc: 'HEAT_PUMP is allowed' },
-      { type: DeviceType.BOILER, expectedCount: 1, desc: 'BOILER is allowed' },
-      { type: DeviceType.GAS_BOILER, expectedCount: 1, desc: 'GAS_BOILER is in ALLOWED_TYPES' },
-      { type: 'unknown_type', expectedCount: 0, desc: 'unknown type is filtered' },
-      { type: 'forbidden_device', expectedCount: 0, desc: 'forbidden type is filtered' },
+    // Verify that each known allowed type produces a mapped device when the mock
+    // simulates a Firestore response (as Firestore would in production).
+    const allowedTypeCases: Array<{ type: string; desc: string }> = [
+      { type: DeviceType.HEAT_PUMP, desc: 'HEAT_PUMP is allowed' },
+      { type: DeviceType.BOILER, desc: 'BOILER is allowed' },
+      { type: DeviceType.GAS_BOILER, desc: 'GAS_BOILER is in ALLOWED_TYPES' },
     ];
 
-    typeCases.forEach(({ type, expectedCount, desc }) => {
-      it(`${desc}: type="${type}" should yield ${expectedCount} results`, async () => {
+    allowedTypeCases.forEach(({ type, desc }) => {
+      it(`${desc}: type="${type}" yields 1 result when mock returns it`, async () => {
         mockFirestoreService.queryTenantCollection.and.resolveTo({
           documents: [{ id: '1', path: 'devices/1', data: { deviceName: 'Test', deviceCode: 'T1', deviceType: type } }],
           lastDocumentPath: null,
@@ -1051,8 +1064,19 @@ describe('DeviceSearchService', () => {
 
         await service.search('TE');
 
-        expect(service.devices.length).toBe(expectedCount);
+        expect(service.devices.length).toBe(1);
       });
+    });
+
+    // Verify the server-side "in" filter is always sent with the correct value list.
+    it('should send deviceType "in" filter with ALLOWED_TYPES for every query', async () => {
+      mockFirestoreService.queryTenantCollection.and.resolveTo(emptyResult());
+      await service.search('TE');
+      const filter = mockFirestoreService.queryTenantCollection.calls.mostRecent().args[1].compositeFilter;
+      const deviceTypeWhere = filter.queryConstraints[0];
+      expect(deviceTypeWhere.fieldPath).toBe('deviceType');
+      expect(deviceTypeWhere.opStr).toBe('in');
+      expect(deviceTypeWhere.value).toEqual(ALLOWED_TYPES);
     });
   });
 });

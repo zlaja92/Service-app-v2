@@ -129,7 +129,7 @@ describe('app.routes configuration', () => {
       version: 0,
       theme: { primaryColor: '', secondaryColor: '', accentColor: '', logoUrl: '', appTitle: '', menuHeaderBackground: '' },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr'] },
-      business: { maxPartsPerIntervention: 4, currency: 'EUR', partNote: '', partPhotoFolder: '', snModelStart: 0, snModelLength: 7, snMfgDateStart: 9, snMfgDateLength: 5, snMinLength: 21, snMaxLength: 21, userSearchPageSize: 20, userSearchMinLength: 2, interventionCollections: {}, photoQuality: 70, photoMaxWidth: 1280, orderEmailRecipients: {} },
+      business: { maxPartsPerIntervention: 4, currency: 'EUR', partNote: '', partPhotoFolder: '', snModelStart: 0, snModelLength: 7, snMfgDateStart: 9, snMfgDateLength: 5, snMinLength: 21, snMaxLength: 21, interventionCollections: {}, photoQuality: 70, photoMaxWidth: 1280, orderEmailRecipients: {}, exchangeRate: 1, signature: { commissioning: false, annualService: false, intervention: false } },
       interventionFaultOptions: {},
       interventionErrorOptions: {},
       interventionPhotoConfig: {},
@@ -348,10 +348,10 @@ describe('app.routes configuration', () => {
 
     store.setConfig({
       version: 0,
-      features: { cart: false, documentation: false, deviceCatalog: true, bugReport: false, pdfReports: false, emailOrders: false, partPhoto: false, cartNote: false, deviceManagement: false, interventionPhotos: false },
+      features: { cart: false, documentation: false, deviceCatalog: true, bugReport: false, pdfReports: false, emailOrders: false, partPhoto: false, cartNote: false, deviceManagement: false, interventionPhotos: false, signatureCapture: false },
       theme: { primaryColor: '', secondaryColor: '', accentColor: '', logoUrl: '', appTitle: '', menuHeaderBackground: '' },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr'] },
-      business: { maxPartsPerIntervention: 4, currency: 'EUR', partNote: '', partPhotoFolder: '', snModelStart: 0, snModelLength: 7, snMfgDateStart: 9, snMfgDateLength: 5, snMinLength: 21, snMaxLength: 21, userSearchPageSize: 20, userSearchMinLength: 2, interventionCollections: {}, photoQuality: 70, photoMaxWidth: 1280, orderEmailRecipients: {} },
+      business: { maxPartsPerIntervention: 4, currency: 'EUR', partNote: '', partPhotoFolder: '', snModelStart: 0, snModelLength: 7, snMfgDateStart: 9, snMfgDateLength: 5, snMinLength: 21, snMaxLength: 21, interventionCollections: {}, photoQuality: 70, photoMaxWidth: 1280, orderEmailRecipients: {}, exchangeRate: 1, signature: { commissioning: false, annualService: false, intervention: false } },
       interventionFaultOptions: {},
       interventionErrorOptions: {},
       interventionPhotoConfig: {},

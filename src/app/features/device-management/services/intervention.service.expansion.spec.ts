@@ -14,6 +14,7 @@ import { InterventionService } from './intervention.service';
 import { FirestoreService } from '../../../core/firebase/firestore.service';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { ServerTimeService } from '../../../core/firebase/server-time.service';
+import { FieldValue } from '@capacitor-firebase/firestore';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
@@ -690,24 +691,20 @@ describe('InterventionService — EXPANSION: saveIntervention addedDate timestam
     mockFirestoreService.addInterventionDocument.and.resolveTo('doc-ts');
   });
 
-  const serverTimeCases = [
-    new Date('2020-01-01T00:00:00Z'),
-    new Date('2024-06-15T12:30:45.123Z'),
-    new Date('2024-12-31T23:59:59.999Z'),
-    new Date('2000-01-01T00:00:00Z'), // Y2K boundary
-    new Date('2038-01-19T03:14:07Z'), // Unix timestamp 2^31 boundary
-  ];
+  // The service no longer fetches a server time (ServerTimeService is gone); it
+  // writes a FieldValue.serverTimestamp() sentinel that Firestore expands on the
+  // server. So addedDate is always the same sentinel regardless of clock value —
+  // the old per-timestamp parameterization no longer applies.
+  it('writes a serverTimestamp() sentinel as addedDate in the written doc', async () => {
+    const device = createMockDevice();
 
-  serverTimeCases.forEach(serverTime => {
-    it(`SERVER-TIME: ${serverTime.toISOString()} is used as addedDate in written doc`, async () => {
-      mockServerTimeService.getServerTime.and.resolveTo(serverTime);
-      const device = createMockDevice();
+    await service.saveIntervention('SN-TS', device, {});
 
-      await service.saveIntervention('SN-TS', device, {});
-
-      const callArgs = mockFirestoreService.addInterventionDocument.calls.mostRecent().args;
-      const data = callArgs[1] as Record<string, unknown>;
-      expect(data['addedDate']).toBe(serverTime);
-    });
+    const callArgs = mockFirestoreService.addInterventionDocument.calls.mostRecent().args;
+    const data = callArgs[1] as Record<string, unknown>;
+    expect(data['addedDate']).toBeInstanceOf(FieldValue);
+    expect((data['addedDate'] as FieldValue).toJSON()).toEqual(
+      jasmine.objectContaining({ __type__: 'serverTimestamp' }),
+    );
   });
 });

@@ -10,6 +10,8 @@ import { InterventionService } from '../services/intervention.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { SignatureService } from '../../signature/services/signature.service';
+import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
@@ -18,6 +20,7 @@ import {
   ANNUAL_SERVICE_DESCRIPTION,
   DEFAULT_DISTANCE,
 } from '../models/intervention.model';
+import { createMockConfigStore } from '../../../testing/mock-factories';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -91,6 +94,12 @@ function createMockTranslocoService(): jasmine.SpyObj<TranslocoService> {
   return spy;
 }
 
+function createMockSignatureService(): jasmine.SpyObj<SignatureService> {
+  const spy = jasmine.createSpyObj<SignatureService>('SignatureService', ['captureAndUpload']);
+  spy.captureAndUpload.and.resolveTo(null);
+  return spy;
+}
+
 
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +113,8 @@ describe('AnnualServicePage', () => {
   let mockLogger: jasmine.SpyObj<LoggerService>;
   let mockToastCtrl: jasmine.SpyObj<ToastController>;
   let mockTransloco: jasmine.SpyObj<TranslocoService>;
+  let mockSignatureService: jasmine.SpyObj<SignatureService>;
+  let mockConfigStore: ReturnType<typeof createMockConfigStore>;
   let router: Router;
 
   const TEST_SN = 'SN-TEST-001';
@@ -117,6 +128,11 @@ describe('AnnualServicePage', () => {
     mockLogger = createMockLoggerService();
     mockToastCtrl = createMockToastController();
     mockTransloco = createMockTranslocoService();
+    mockSignatureService = createMockSignatureService();
+    // ConfigStore is an NgRx SignalStore — must use plain object mock, not jasmine.createSpyObj
+    mockConfigStore = createMockConfigStore();
+    // Ensure signatureCapture feature flag is OFF by default so signature step is skipped
+    // (getDefaultFeatures() returns signatureCapture: false, so no override needed)
 
     await TestBed.configureTestingModule({
       imports: [AnnualServicePage],
@@ -130,6 +146,8 @@ describe('AnnualServicePage', () => {
         { provide: LoggerService, useValue: mockLogger },
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: TranslocoService, useValue: mockTransloco },
+        { provide: SignatureService, useValue: mockSignatureService },
+        { provide: ConfigStore, useValue: mockConfigStore },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -290,7 +308,13 @@ describe('AnnualServicePage', () => {
       await component.onSave();
 
       expect(mockEnvInfoService.getLastEnvInfo).toHaveBeenCalledWith(TEST_SN, DeviceType.HEAT_PUMP);
-      expect(mockEnvInfoService.collectEnvInfo).toHaveBeenCalledWith(DeviceType.HEAT_PUMP, TEST_SN, null);
+      // collectEnvInfo called with (deviceType, sn, prefill, subType) — subType is '' for mock device
+      expect(mockEnvInfoService.collectEnvInfo).toHaveBeenCalledWith(
+        DeviceType.HEAT_PUMP,
+        TEST_SN,
+        null,
+        '',
+      );
     });
 
     it('should include envInfo in saved data when HEAT_PUMP', async () => {
@@ -341,10 +365,12 @@ describe('AnnualServicePage', () => {
 
       await component.onSave();
 
+      // collectEnvInfo called with (deviceType, sn, prefill, subType) — subType is '' for mock device
       expect(mockEnvInfoService.collectEnvInfo).toHaveBeenCalledWith(
         DeviceType.GAS_BOILER,
         TEST_SN,
         null,
+        '',
       );
       const callArgs = mockInterventionService.saveIntervention.calls.mostRecent().args;
       expect(callArgs[2]['envInfo']).toEqual(envInfoData);
@@ -925,9 +951,11 @@ describe('AnnualServicePage', () => {
         expect(ANNUAL_SERVICE_TYPES[type]).toBeDefined();
       });
 
-      it(`EXP2-AS-TYPES-NONEMPTY: ANNUAL_SERVICE_TYPES[${type}] is non-empty array`, () => {
-        const types = ANNUAL_SERVICE_TYPES[type];
-        expect(Array.isArray(types) ? types.length > 0 : !!types).toBeTrue();
+      it(`EXP2-AS-TYPES-NONEMPTY: ANNUAL_SERVICE_TYPES[${type}] is a non-null object with a key property`, () => {
+        // ANNUAL_SERVICE_TYPES[type] is an InterventionTypeOption object (not an array)
+        const typeOption = ANNUAL_SERVICE_TYPES[type];
+        expect(typeOption).toBeTruthy();
+        expect((typeOption as { key: string }).key).toBeDefined();
       });
     });
 
@@ -991,7 +1019,9 @@ describe('AnnualServicePage', () => {
   // =========================================================================
 
   describe('form construction — all controls present', () => {
-    const expectedControls = ['callAccepted', 'note', 'distance', 'serviceType'];
+    // The form has: callAccepted, note, distance
+    // serviceType is a component property, NOT a form control
+    const expectedControls = ['callAccepted', 'note', 'distance'];
 
     beforeEach(() => {
       (mockLookupService as unknown as { device: Device | null }).device =
@@ -1004,6 +1034,15 @@ describe('AnnualServicePage', () => {
         const form = (component as any).form;
         expect(form.get(controlName)).toBeDefined();
       });
+    });
+
+    it('EXP2-AS-FORM-CTRL: serviceType is a component property (not a form control)', () => {
+      // serviceType is set via ionViewWillEnter(), not a FormControl
+      // After ionViewWillEnter (called in beforeEach), serviceType is non-null for GAS_BOILER
+      const form = (component as any).form;
+      expect(form.get('serviceType')).toBeNull();
+      // After ionViewWillEnter for GAS_BOILER, serviceType is set to ANNUAL_SERVICE_TYPES[GAS_BOILER]
+      expect((component as any).serviceType).toBeTruthy();
     });
   });
 

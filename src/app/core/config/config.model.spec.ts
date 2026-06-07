@@ -1,19 +1,19 @@
 import { getDefaultConfig, getDefaultFeatures, getDefaultTheme, FeatureFlags } from './config.model';
 
 describe('getDefaultFeatures()', () => {
-  it('should return an object with exactly 10 keys', () => {
+  it('should return an object with exactly 11 keys', () => {
     const result = getDefaultFeatures();
-    expect(Object.keys(result).length).toBe(10);
+    expect(Object.keys(result).length).toBe(11);
   });
 
-  it('should return correct default values for all 10 feature flags', () => {
+  it('should return correct default values for all 11 feature flags', () => {
     const result = getDefaultFeatures();
 
     // TRUE by default (2)
     expect(result.deviceManagement).toBe(true);
     expect(result.deviceCatalog).toBe(true);
 
-    // FALSE by default (8)
+    // FALSE by default (9)
     expect(result.cart).toBe(false);
     expect(result.documentation).toBe(false);
     expect(result.bugReport).toBe(false);
@@ -22,6 +22,7 @@ describe('getDefaultFeatures()', () => {
     expect(result.partPhoto).toBe(false);
     expect(result.cartNote).toBe(false);
     expect(result.interventionPhotos).toBe(false);
+    expect(result.signatureCapture).toBe(false);
   });
 
   it('should return a new object on every call (referential independence)', () => {
@@ -258,8 +259,7 @@ describe('getDefaultTheme() — all fields are strings', () => {
 describe('getDefaultConfig() — business field types', () => {
   const numericFields = [
     'maxPartsPerIntervention', 'snModelStart', 'snModelLength', 'snMfgDateStart',
-    'snMfgDateLength', 'snMinLength', 'snMaxLength', 'userSearchPageSize',
-    'userSearchMinLength', 'photoQuality', 'photoMaxWidth',
+    'snMfgDateLength', 'snMinLength', 'snMaxLength', 'photoQuality', 'photoMaxWidth',
   ];
 
   numericFields.forEach(field => {
@@ -286,19 +286,5 @@ describe('getDefaultConfig() — business field types', () => {
   it('business.orderEmailRecipients is an object', () => {
     const config = getDefaultConfig();
     expect(typeof config.business.orderEmailRecipients).toBe('object');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// EXPANSION: getDefaultConfig — userSearch defaults
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('getDefaultConfig() — userSearch defaults', () => {
-  it('userSearchPageSize should be 20', () => {
-    expect(getDefaultConfig().business.userSearchPageSize).toBe(20);
-  });
-
-  it('userSearchMinLength should be 2', () => {
-    expect(getDefaultConfig().business.userSearchMinLength).toBe(2);
   });
 });

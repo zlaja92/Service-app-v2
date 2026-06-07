@@ -5,18 +5,24 @@
  *   - firstName length boundary variations (0..1000)
  *   - lastName length boundary variations
  *   - Combined firstName+lastName search matrix
- *   - Character type variations: Cyrillic, Latin diacritics, mixed
+ *   - Character type variations: Cyrillic (transliterated to Latin), Latin diacritics, mixed
  *   - Case sensitivity (uppercase normalization)
- *   - minSearchLength boundary exactly
+ *   - minSearchLength boundary (constant = 2, not configurable)
  *   - Whitespace trimming matrix
  *   - Special characters
+ *
+ * Architecture note (post-redesign):
+ *   - PAGE_SIZE = 20 (constant, not from ConfigStore)
+ *   - MIN_SEARCH_LENGTH = 2 (constant, not from ConfigStore)
+ *   - ConfigStore is NOT injected by UserSearchService
+ *   - Both firstName and lastName filters use ONE composite Firestore query
+ *   - Cyrillic input is transliterated to Latin uppercase via toLatinUpperCase()
  */
 
 import { TestBed } from '@angular/core/testing';
 import { UserSearchService } from './user-search.service';
 import { FirestoreService, CollectionQueryResult } from '../../../core/firebase/firestore.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -82,15 +88,6 @@ function createMockTenantService(): jasmine.SpyObj<TenantService> {
   return mock;
 }
 
-function createMockConfigStore(minLength = 2, pageSize = 10) {
-  return {
-    business: jasmine.createSpy('business').and.returnValue({
-      userSearchPageSize: pageSize,
-      userSearchMinLength: minLength,
-    }),
-  };
-}
-
 function createMockLoggerService(): jasmine.SpyObj<LoggerService> {
   return jasmine.createSpyObj<LoggerService>('LoggerService', [
     'debug', 'info', 'warn', 'error',
@@ -98,11 +95,11 @@ function createMockLoggerService(): jasmine.SpyObj<LoggerService> {
 }
 
 // ─── Setup factory ────────────────────────────────────────────────────────────
+// ConfigStore is no longer used by UserSearchService — not provided here.
 
-function createTestBedSetup(minLength = 2, pageSize = 10) {
+function createTestBedSetup() {
   const mockFirestore = createMockFirestoreService();
   const mockTenant = createMockTenantService();
-  const mockConfigStore = createMockConfigStore(minLength, pageSize);
   const mockLogger = createMockLoggerService();
 
   TestBed.configureTestingModule({
@@ -110,7 +107,6 @@ function createTestBedSetup(minLength = 2, pageSize = 10) {
       UserSearchService,
       { provide: FirestoreService, useValue: mockFirestore },
       { provide: TenantService, useValue: mockTenant },
-      { provide: ConfigStore, useValue: mockConfigStore },
       { provide: LoggerService, useValue: mockLogger },
     ],
   });
@@ -118,8 +114,12 @@ function createTestBedSetup(minLength = 2, pageSize = 10) {
   const service = TestBed.inject(UserSearchService);
   const querySpy = mockFirestore.queryTenantCollection as unknown as QuerySpy;
 
-  return { service, mockFirestore, querySpy, mockTenant, mockConfigStore, mockLogger };
+  return { service, mockFirestore, querySpy, mockTenant, mockLogger };
 }
+
+// Constant matching the service — must stay in sync with user-search.service.ts
+const PAGE_SIZE = 20;
+const MIN_SEARCH_LENGTH = 2;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Suite 1: firstName length boundary variations
@@ -130,11 +130,10 @@ describe('UserSearchService — EXPANSION: firstName length boundaries', () => {
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    // minSearchLength=2
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
-  // Lengths that should NOT trigger search (< minLength=2)
+  // Lengths that should NOT trigger search (< MIN_SEARCH_LENGTH=2)
   const belowMinLengths = [0, 1];
   belowMinLengths.forEach(len => {
     const name = 'A'.repeat(len);
@@ -145,7 +144,7 @@ describe('UserSearchService — EXPANSION: firstName length boundaries', () => {
     });
   });
 
-  // Lengths that SHOULD trigger search (>= minLength=2)
+  // Lengths that SHOULD trigger search (>= MIN_SEARCH_LENGTH=2)
   const aboveMinLengths = [2, 3, 5, 10, 20, 50, 100];
   aboveMinLengths.forEach(len => {
     const name = 'A'.repeat(len);
@@ -182,7 +181,7 @@ describe('UserSearchService — EXPANSION: lastName length boundaries', () => {
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   // Lengths below min
@@ -207,54 +206,46 @@ describe('UserSearchService — EXPANSION: lastName length boundaries', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Suite 3: minSearchLength variations (different config values)
+// Suite 3: minSearchLength is a fixed constant (= 2), not configurable
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('UserSearchService — EXPANSION: minSearchLength config variations', () => {
+describe('UserSearchService — EXPANSION: minSearchLength constant boundary', () => {
+  let service: UserSearchService;
+  let querySpy: QuerySpy;
 
-  // Test different minLength config values
-  const minLengthCases = [1, 2, 3, 4, 5];
+  beforeEach(() => {
+    ({ service, querySpy } = createTestBedSetup());
+  });
 
-  minLengthCases.forEach(minLen => {
-    describe(`minSearchLength=${minLen}`, () => {
-      let service: UserSearchService;
-      let querySpy: QuerySpy;
+  it(`MIN-LEN: service.minSearchLength exposes the constant value ${MIN_SEARCH_LENGTH}`, () => {
+    expect(service.minSearchLength).toBe(MIN_SEARCH_LENGTH);
+  });
 
-      beforeEach(() => {
-        ({ service, querySpy } = createTestBedSetup(minLen));
-      });
+  it(`MIN-LEN: length==${MIN_SEARCH_LENGTH} (boundary) triggers search`, async () => {
+    querySpy.and.resolveTo(createEmptyQueryResult());
+    const name = 'X'.repeat(MIN_SEARCH_LENGTH);
+    await service.search(name, '');
+    expect(querySpy).toHaveBeenCalled();
+  });
 
-      // Exactly at boundary (length == minLen) → should trigger
-      it(`MIN-LEN=${minLen}: length==${minLen} triggers search`, async () => {
-        querySpy.and.resolveTo(createEmptyQueryResult());
-        const name = 'X'.repeat(minLen);
-        await service.search(name, '');
-        expect(querySpy).toHaveBeenCalled();
-      });
+  it(`MIN-LEN: length==${MIN_SEARCH_LENGTH - 1} (one below boundary) does NOT trigger search`, async () => {
+    querySpy.and.resolveTo(createEmptyQueryResult());
+    const name = 'X'.repeat(MIN_SEARCH_LENGTH - 1);
+    await service.search(name, '');
+    expect(querySpy).not.toHaveBeenCalled();
+  });
 
-      if (minLen > 0) {
-        // One below boundary → should NOT trigger
-        it(`MIN-LEN=${minLen}: length==${minLen - 1} does NOT trigger search`, async () => {
-          querySpy.and.resolveTo(createEmptyQueryResult());
-          const name = 'X'.repeat(minLen - 1);
-          await service.search(name, '');
-          expect(querySpy).not.toHaveBeenCalled();
-        });
-      }
-
-      // Well above boundary → should trigger
-      it(`MIN-LEN=${minLen}: length==${minLen + 5} triggers search`, async () => {
-        querySpy.and.resolveTo(createEmptyQueryResult());
-        const name = 'X'.repeat(minLen + 5);
-        await service.search(name, '');
-        expect(querySpy).toHaveBeenCalled();
-      });
-    });
+  it(`MIN-LEN: length==${MIN_SEARCH_LENGTH + 5} (well above boundary) triggers search`, async () => {
+    querySpy.and.resolveTo(createEmptyQueryResult());
+    const name = 'X'.repeat(MIN_SEARCH_LENGTH + 5);
+    await service.search(name, '');
+    expect(querySpy).toHaveBeenCalled();
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Suite 4: Combined firstName + lastName search matrix
+// ONE composite Firestore query is used for all combinations.
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('UserSearchService — EXPANSION: combined firstName + lastName matrix', () => {
@@ -262,7 +253,7 @@ describe('UserSearchService — EXPANSION: combined firstName + lastName matrix'
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   interface CombinedSearchCase {
@@ -272,6 +263,8 @@ describe('UserSearchService — EXPANSION: combined firstName + lastName matrix'
     desc: string;
   }
 
+  // New architecture: SINGLE composite query for any combination of active terms.
+  // 0 calls when neither term meets minLength; 1 call when at least one term qualifies.
   const combinedCases: CombinedSearchCase[] = [
     { firstName: '', lastName: '', expectedCalls: 0, desc: 'both empty → 0 calls' },
     { firstName: 'A', lastName: '', expectedCalls: 0, desc: 'firstName too short, lastName empty → 0 calls' },
@@ -279,11 +272,12 @@ describe('UserSearchService — EXPANSION: combined firstName + lastName matrix'
     { firstName: 'A', lastName: 'B', expectedCalls: 0, desc: 'both too short → 0 calls' },
     { firstName: 'Ma', lastName: '', expectedCalls: 1, desc: 'firstName valid, lastName empty → 1 call' },
     { firstName: '', lastName: 'Ma', expectedCalls: 1, desc: 'firstName empty, lastName valid → 1 call' },
-    { firstName: 'Ma', lastName: 'Ma', expectedCalls: 2, desc: 'both valid → 2 calls (intersection)' },
-    { firstName: 'Marko', lastName: 'Ma', expectedCalls: 2, desc: 'both valid, different lengths → 2 calls' },
-    // Guard: skips ONLY if BOTH below minLength; one non-empty → searchBothFields → 2 Firestore calls
-    { firstName: 'A', lastName: 'Markovic', expectedCalls: 2, desc: 'firstName too short (non-empty), lastName valid → 2 calls (searchBothFields)' },
-    { firstName: 'Marko', lastName: 'B', expectedCalls: 2, desc: 'firstName valid, lastName too short (non-empty) → 2 calls (searchBothFields)' },
+    { firstName: 'Ma', lastName: 'Ma', expectedCalls: 1, desc: 'both valid → 1 composite call' },
+    { firstName: 'Marko', lastName: 'Ma', expectedCalls: 1, desc: 'both valid, different lengths → 1 composite call' },
+    // When one term is non-empty but below minLength, only the qualifying term is used in the query.
+    // Either way: exactly 1 composite Firestore call is made.
+    { firstName: 'A', lastName: 'Markovic', expectedCalls: 1, desc: 'firstName too short (non-empty), lastName valid → 1 call (lastName filter only)' },
+    { firstName: 'Marko', lastName: 'B', expectedCalls: 1, desc: 'firstName valid, lastName too short (non-empty) → 1 call (firstName filter only)' },
   ];
 
   combinedCases.forEach(({ firstName, lastName, expectedCalls, desc }) => {
@@ -297,6 +291,7 @@ describe('UserSearchService — EXPANSION: combined firstName + lastName matrix'
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Suite 5: Character type variations — Cyrillic
+// toLatinUpperCase() transliterates Cyrillic to Latin uppercase.
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('UserSearchService — EXPANSION: Cyrillic character variations', () => {
@@ -304,27 +299,28 @@ describe('UserSearchService — EXPANSION: Cyrillic character variations', () =>
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
+  // Cyrillic input is transliterated to Latin uppercase by toLatinUpperCase().
   const cyrillicNames = [
-    { input: 'Ни', expectedUpper: 'НИ' },
-    { input: 'Никола', expectedUpper: 'НИКОЛА' },
-    { input: 'Јован', expectedUpper: 'ЈОВАН' },
-    { input: 'Александар', expectedUpper: 'АЛЕКСАНДАР' },
-    { input: 'Ђорђе', expectedUpper: 'ЂОРЂЕ' },
-    { input: 'Зоран', expectedUpper: 'ЗОРАН' },
-    { input: 'Ћирић', expectedUpper: 'ЋИРИЋ' },
-    { input: 'Петровић', expectedUpper: 'ПЕТРОВИЋ' },
-    { input: 'Николић', expectedUpper: 'НИКОЛИЋ' },
-    { input: 'Здравковић', expectedUpper: 'ЗДРАВКОВИЋ' },
+    { input: 'Ни', expectedUpper: 'NI' },
+    { input: 'Никола', expectedUpper: 'NIKOLA' },
+    { input: 'Јован', expectedUpper: 'JOVAN' },
+    { input: 'Александар', expectedUpper: 'ALEKSANDAR' },
+    { input: 'Ђорђе', expectedUpper: 'DJORDJE' },
+    { input: 'Зоран', expectedUpper: 'ZORAN' },
+    { input: 'Ћирић', expectedUpper: 'CIRIC' },
+    { input: 'Петровић', expectedUpper: 'PETROVIC' },
+    { input: 'Николић', expectedUpper: 'NIKOLIC' },
+    { input: 'Здравковић', expectedUpper: 'ZDRAVKOVIC' },
   ];
 
   cyrillicNames.forEach(({ input, expectedUpper }) => {
-    it(`CYRILLIC-FN: "${input}" → Firestore receives "${expectedUpper}"`, async () => {
+    it(`CYRILLIC-FN: "${input}" → Firestore receives "${expectedUpper}" (Latin transliteration)`, async () => {
       querySpy.and.resolveTo(createEmptyQueryResult());
       await service.search(input, '');
-      if (input.length >= 2) {
+      if (input.length >= MIN_SEARCH_LENGTH) {
         const args = querySpy.calls.mostRecent().args;
         const opts = args[1] as { compositeFilter: { queryConstraints: Array<{ value?: string }> } };
         const termConstraint = opts.compositeFilter.queryConstraints.find(
@@ -335,19 +331,19 @@ describe('UserSearchService — EXPANSION: Cyrillic character variations', () =>
     });
   });
 
-  it('CYRILLIC-BOTH: Cyrillic firstName and lastName both sent uppercase', async () => {
+  it('CYRILLIC-BOTH: Cyrillic firstName and lastName are both transliterated — single composite call', async () => {
     querySpy.and.resolveTo(createEmptyQueryResult());
     await service.search('Никола', 'Николић');
-    expect(querySpy).toHaveBeenCalledTimes(2);
+    expect(querySpy).toHaveBeenCalledTimes(1);
   });
 
-  it('CYRILLIC-RESULT: search returns Cyrillic user correctly', async () => {
+  it('CYRILLIC-RESULT: search returns Cyrillic user correctly (original name preserved in result)', async () => {
     const doc = createUserDoc({
       sn: 'CYR001',
       firstName: 'Никола',
       lastName: 'Николић',
-      firstNameSrch: 'НИКОЛА',
-      lastNameSrch: 'НИКОЛИЋ',
+      firstNameSrch: 'NIKOLA',
+      lastNameSrch: 'NIKOLIC',
     });
     querySpy.and.resolveTo(createQueryResult([doc]));
 
@@ -360,6 +356,8 @@ describe('UserSearchService — EXPANSION: Cyrillic character variations', () =>
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Suite 6: Latin diacritics and special characters
+// Serbian Latin diacritics (Č,Ć,Đ,Š,Ž) are transliterated.
+// Other Latin diacritics (ü,ä,ö,ñ,ç,Ł) are uppercased as-is.
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('UserSearchService — EXPANSION: Latin diacritics and special chars', () => {
@@ -367,24 +365,24 @@ describe('UserSearchService — EXPANSION: Latin diacritics and special chars', 
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   const diacriticCases = [
-    { input: 'Müller', expectedUpper: 'MÜLLER', desc: 'German umlaut ü' },
-    { input: 'Schäfer', expectedUpper: 'SCHÄFER', desc: 'German umlaut ä' },
-    { input: 'Björk', expectedUpper: 'BJÖRK', desc: 'Swedish ö' },
-    { input: 'Ñoño', expectedUpper: 'ÑOÑO', desc: 'Spanish ñ' },
-    { input: 'François', expectedUpper: 'FRANÇOIS', desc: 'French ç' },
-    { input: 'Łukasz', expectedUpper: 'ŁUKASZ', desc: 'Polish Ł' },
-    { input: 'Čović', expectedUpper: 'ČOVIĆ', desc: 'Croatian č' },
-    { input: 'Šarić', expectedUpper: 'ŠARIĆ', desc: 'Croatian š' },
-    { input: 'Žižek', expectedUpper: 'ŽIŽEK', desc: 'Croatian ž' },
-    { input: 'Ančić', expectedUpper: 'ANČIĆ', desc: 'Mixed diacritics' },
+    { input: 'Müller', expectedUpper: 'MÜLLER', desc: 'German umlaut ü (no transliteration mapping, uppercased as-is)' },
+    { input: 'Schäfer', expectedUpper: 'SCHÄFER', desc: 'German umlaut ä (uppercased as-is)' },
+    { input: 'Björk', expectedUpper: 'BJÖRK', desc: 'Swedish ö (uppercased as-is)' },
+    { input: 'Ñoño', expectedUpper: 'ÑOÑO', desc: 'Spanish ñ (uppercased as-is)' },
+    { input: 'François', expectedUpper: 'FRANÇOIS', desc: 'French ç (uppercased as-is)' },
+    { input: 'Łukasz', expectedUpper: 'ŁUKASZ', desc: 'Polish Ł (uppercased as-is)' },
+    { input: 'Čović', expectedUpper: 'COVIC', desc: 'Croatian č → C (transliterated)' },
+    { input: 'Šarić', expectedUpper: 'SARIC', desc: 'Croatian š → S, ć → C (transliterated)' },
+    { input: 'Žižek', expectedUpper: 'ZIZEK', desc: 'Croatian ž → Z (transliterated)' },
+    { input: 'Ančić', expectedUpper: 'ANCIC', desc: 'Mixed: č → C, ć → C (transliterated)' },
   ];
 
   diacriticCases.forEach(({ input, expectedUpper, desc }) => {
-    it(`DIACRITICS: ${desc} → uppercase conversion and forwarded to Firestore`, async () => {
+    it(`DIACRITICS: ${desc} → Firestore receives "${expectedUpper}"`, async () => {
       querySpy.and.resolveTo(createEmptyQueryResult());
       await service.search(input, '');
       const args = querySpy.calls.mostRecent().args;
@@ -427,7 +425,7 @@ describe('UserSearchService — EXPANSION: case sensitivity / uppercase normaliz
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   const caseCombinations = [
@@ -463,7 +461,7 @@ describe('UserSearchService — EXPANSION: whitespace trimming', () => {
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   const whitespaceCases = [
@@ -506,18 +504,19 @@ describe('UserSearchService — EXPANSION: whitespace trimming', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Suite 9: Search results sorting matrix
+// Suite 9: Search results ordering
+// Results are returned in Firestore order. No client-side sorting.
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('UserSearchService — EXPANSION: results sorting matrix', () => {
+describe('UserSearchService — EXPANSION: results ordering (Firestore order preserved)', () => {
   let service: UserSearchService;
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
-  it('SORT: users sorted by lastName ascending', async () => {
+  it('SORT: results are returned in the same order Firestore provides them', async () => {
     const docs = [
       createUserDoc({ sn: 'SN1', lastName: 'Zivkovic' }),
       createUserDoc({ sn: 'SN2', lastName: 'Anic' }),
@@ -525,11 +524,13 @@ describe('UserSearchService — EXPANSION: results sorting matrix', () => {
     ];
     querySpy.and.resolveTo(createQueryResult(docs));
     await service.search('Ma', '');
-    const lastNames = service.results.map(r => r.lastName);
-    expect(lastNames).toEqual(['Anic', 'Markovic', 'Zivkovic']);
+    // No client sort — order matches Firestore response
+    expect(service.results[0].sn).toBe('SN1');
+    expect(service.results[1].sn).toBe('SN2');
+    expect(service.results[2].sn).toBe('SN3');
   });
 
-  it('SORT: same lastName sorted by firstName', async () => {
+  it('SORT: firstName-search uses firstNameSrch orderBy (Firestore-ordered, not client-sorted)', async () => {
     const docs = [
       createUserDoc({ sn: 'SN1', firstName: 'Zoran', lastName: 'Markovic' }),
       createUserDoc({ sn: 'SN2', firstName: 'Ana', lastName: 'Markovic' }),
@@ -537,25 +538,24 @@ describe('UserSearchService — EXPANSION: results sorting matrix', () => {
     ];
     querySpy.and.resolveTo(createQueryResult(docs));
     await service.search('Ma', '');
-    expect(service.results[0].firstName).toBe('Ana');
-    expect(service.results[1].firstName).toBe('Milan');
-    expect(service.results[2].firstName).toBe('Zoran');
+    // Preserved in Firestore order
+    expect(service.results[0].sn).toBe('SN1');
+    expect(service.results[1].sn).toBe('SN2');
+    expect(service.results[2].sn).toBe('SN3');
   });
 
-  it('SORT: Cyrillic names sorted correctly (after Latin)', async () => {
-    // Cyrillic should sort after Latin in standard JS string comparison
+  it('SORT: Cyrillic and Latin results — order preserved as-is from Firestore', async () => {
     const docs = [
       createUserDoc({ sn: 'SN1', lastName: 'Zivkovic', firstName: 'Ana' }),
       createUserDoc({ sn: 'SN2', lastName: 'Anic', firstName: 'Marko' }),
     ];
     querySpy.and.resolveTo(createQueryResult(docs));
     await service.search('Ma', '');
-    // Should still be sorted by lastName
-    expect(service.results[0].lastName).toBe('Anic');
-    expect(service.results[1].lastName).toBe('Zivkovic');
+    expect(service.results[0].sn).toBe('SN1');
+    expect(service.results[1].sn).toBe('SN2');
   });
 
-  it('SORT: single result — no sort needed, returned as-is', async () => {
+  it('SORT: single result — returned as-is', async () => {
     const doc = createUserDoc({ sn: 'SINGLE', lastName: 'Onlyone' });
     querySpy.and.resolveTo(createQueryResult([doc]));
     await service.search('On', '');
@@ -569,38 +569,24 @@ describe('UserSearchService — EXPANSION: results sorting matrix', () => {
     expect(service.results).toEqual([]);
   });
 
-  it('SORT: 10 users — all sorted correctly by lastName then firstName', async () => {
+  it('SORT: multiple results — order from Firestore is preserved unchanged', async () => {
     const docs = [
       createUserDoc({ sn: 'S1', firstName: 'Z', lastName: 'M' }),
       createUserDoc({ sn: 'S2', firstName: 'A', lastName: 'Z' }),
       createUserDoc({ sn: 'S3', firstName: 'M', lastName: 'A' }),
       createUserDoc({ sn: 'S4', firstName: 'B', lastName: 'B' }),
-      createUserDoc({ sn: 'S5', firstName: 'A', lastName: 'M' }),
-      createUserDoc({ sn: 'S6', firstName: 'C', lastName: 'A' }),
-      createUserDoc({ sn: 'S7', firstName: 'D', lastName: 'B' }),
-      createUserDoc({ sn: 'S8', firstName: 'E', lastName: 'M' }),
-      createUserDoc({ sn: 'S9', firstName: 'F', lastName: 'Z' }),
-      createUserDoc({ sn: 'S10', firstName: 'G', lastName: 'A' }),
     ];
     querySpy.and.resolveTo(createQueryResult(docs));
     await service.search('Te', '');
 
-    const sorted = service.results;
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1];
-      const curr = sorted[i];
-      const cmp = prev.lastName.localeCompare(curr.lastName);
-      if (cmp === 0) {
-        expect(prev.firstName.localeCompare(curr.firstName)).toBeLessThanOrEqual(0);
-      } else {
-        expect(cmp).toBeLessThanOrEqual(0);
-      }
-    }
+    // Verify order is unchanged (matches Firestore response)
+    expect(service.results.map(r => r.sn)).toEqual(['S1', 'S2', 'S3', 'S4']);
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Suite 10: Deduplication matrix — same SN from multiple queries
+// Suite 10: Deduplication matrix — same SN across loadMore pages
+// Dedup runs in appendResults() when loadMore() adds a new page.
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('UserSearchService — EXPANSION: deduplication matrix', () => {
@@ -608,82 +594,133 @@ describe('UserSearchService — EXPANSION: deduplication matrix', () => {
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
-  it('DEDUP: same SN in both firstName and lastName queries → appears once', async () => {
-    const doc = createUserDoc({ sn: 'SAME-SN', firstName: 'Ivan', lastName: 'Ivanovic' });
-    querySpy.and.callFake(async () => createQueryResult([doc]));
-    await service.search('Ivan', 'Ivanovic');
+  it('DEDUP: same SN appearing in loadMore page is not added twice', async () => {
+    // page1 = full page of PAGE_SIZE docs, page2 contains a doc already seen
+    const sharedDoc = createUserDoc({ sn: 'SAME-SN', firstName: 'Ivan', lastName: 'Ivanovic' });
+    const page1 = Array.from({ length: PAGE_SIZE }, (_, i) =>
+      createUserDoc({ sn: `PAGE1-${i}`, firstName: `User${i}` }),
+    );
+    // Insert sharedDoc into page1 at index 0 so it's already present
+    page1[0] = sharedDoc;
+
+    let callCount = 0;
+    querySpy.and.callFake(async () => {
+      callCount++;
+      return callCount === 1
+        ? createQueryResult(page1, 'path/last')
+        : createQueryResult([sharedDoc, createUserDoc({ sn: 'NEW-SN', firstName: 'New' })]);
+    });
+
+    await service.search('Iv', '');
+    await service.loadMore();
+
     expect(service.results.filter(r => r.sn === 'SAME-SN').length).toBe(1);
   });
 
-  it('DEDUP: 3 users, 2 in both queries and 1 only in firstName → intersection = 2', async () => {
-    const shared1 = createUserDoc({ sn: 'SHARED-1', firstName: 'Petar', lastName: 'Petrovic' });
-    const shared2 = createUserDoc({ sn: 'SHARED-2', firstName: 'Petar', lastName: 'Popovic' });
-    const firstOnly = createUserDoc({ sn: 'FIRST-ONLY', firstName: 'Petar', lastName: 'Stojanovic' });
+  it('DEDUP: 3 unique docs from loadMore page 2 appended correctly', async () => {
+    const page1 = Array.from({ length: PAGE_SIZE }, (_, i) =>
+      createUserDoc({ sn: `P1-${i}`, firstName: `First${i}` }),
+    );
+    const page2 = [
+      createUserDoc({ sn: 'P2-NEW-1', firstName: 'New1' }),
+      createUserDoc({ sn: 'P2-NEW-2', firstName: 'New2' }),
+    ];
 
     let callCount = 0;
     querySpy.and.callFake(async () => {
       callCount++;
       return callCount === 1
-        ? createQueryResult([shared1, shared2, firstOnly])
-        : createQueryResult([shared1, shared2]);
+        ? createQueryResult(page1, 'path/last')
+        : createQueryResult(page2);
     });
 
-    await service.search('Petar', 'Pe');
-    expect(service.results.length).toBe(2);
-    expect(service.results.map(r => r.sn).sort()).toEqual(['SHARED-1', 'SHARED-2']);
+    await service.search('Fi', '');
+    await service.loadMore();
+
+    expect(service.results.length).toBe(PAGE_SIZE + 2);
   });
 
-  it('DEDUP: empty first query, non-empty last query → intersection = 0', async () => {
-    const lastDoc = createUserDoc({ sn: 'LAST-ONLY', firstName: 'Other', lastName: 'Markovic' });
-    let callCount = 0;
-    querySpy.and.callFake(async () => {
-      callCount++;
-      return callCount === 1
-        ? createEmptyQueryResult()
-        : createQueryResult([lastDoc]);
-    });
+  it('DEDUP: single composite query for both fields — no duplicate concern between queries', async () => {
+    // Both firstName and lastName search is ONE query, so there is no possibility
+    // of the same doc appearing from two separate query responses.
+    const doc = createUserDoc({ sn: 'UNIQUE-SN', firstName: 'Petar', lastName: 'Petrovic' });
+    querySpy.and.resolveTo(createQueryResult([doc]));
 
-    await service.search('Ma', 'Markovic');
-    expect(service.results.length).toBe(0);
+    await service.search('Petar', 'Petrovic');
+
+    expect(service.results.filter(r => r.sn === 'UNIQUE-SN').length).toBe(1);
+    expect(querySpy).toHaveBeenCalledTimes(1);
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Suite 11: loadMore() — page size matrix
+// Suite 11: loadMore() — page size (constant = 20)
+// PAGE_SIZE is a fixed constant; hasMore is based on documents.length === PAGE_SIZE
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('UserSearchService — EXPANSION: loadMore pageSize matrix', () => {
+describe('UserSearchService — EXPANSION: loadMore pageSize constant', () => {
+  let service: UserSearchService;
+  let querySpy: QuerySpy;
 
-  [3, 5, 10, 20].forEach(pageSize => {
-    describe(`pageSize=${pageSize}`, () => {
-      let service: UserSearchService;
-      let querySpy: QuerySpy;
+  beforeEach(() => {
+    ({ service, querySpy } = createTestBedSetup());
+  });
 
-      beforeEach(() => {
-        ({ service, querySpy } = createTestBedSetup(2, pageSize));
-      });
+  it(`PAGE-SIZE: hasMore=true when results == PAGE_SIZE (${PAGE_SIZE})`, async () => {
+    const docs = Array.from({ length: PAGE_SIZE }, (_, i) =>
+      createUserDoc({ sn: `SN${i}`, firstName: `User${i}` }),
+    );
+    querySpy.and.resolveTo(createQueryResult(docs, 'path/last'));
+    await service.search('Us', '');
+    expect(service.hasMore).toBeTrue();
+  });
 
-      it(`PAGE-SIZE=${pageSize}: hasMore=true when results == pageSize`, async () => {
-        const docs = Array.from({ length: pageSize }, (_, i) =>
-          createUserDoc({ sn: `SN${i}`, firstName: `User${i}` }),
-        );
-        querySpy.and.resolveTo(createQueryResult(docs, 'path/last'));
-        await service.search('Us', '');
-        expect(service.hasMore).toBeTrue();
-      });
+  it(`PAGE-SIZE: hasMore=false when results < PAGE_SIZE (${PAGE_SIZE})`, async () => {
+    const docs = Array.from({ length: PAGE_SIZE - 1 }, (_, i) =>
+      createUserDoc({ sn: `SN${i}`, firstName: `User${i}` }),
+    );
+    querySpy.and.resolveTo(createQueryResult(docs));
+    await service.search('Us', '');
+    expect(service.hasMore).toBeFalse();
+  });
 
-      it(`PAGE-SIZE=${pageSize}: hasMore=false when results < pageSize`, async () => {
-        const docs = Array.from({ length: pageSize - 1 }, (_, i) =>
-          createUserDoc({ sn: `SN${i}`, firstName: `User${i}` }),
-        );
-        querySpy.and.resolveTo(createQueryResult(docs));
-        await service.search('Us', '');
-        expect(service.hasMore).toBeFalse();
-      });
+  it('PAGE-SIZE: hasMore=false when results === 0', async () => {
+    querySpy.and.resolveTo(createEmptyQueryResult());
+    await service.search('Us', '');
+    expect(service.hasMore).toBeFalse();
+  });
+
+  it('PAGE-SIZE: hasMore=false when results === 1', async () => {
+    const docs = [createUserDoc({ sn: 'SINGLE', firstName: 'User' })];
+    querySpy.and.resolveTo(createQueryResult(docs));
+    await service.search('Us', '');
+    expect(service.hasMore).toBeFalse();
+  });
+
+  it('PAGE-SIZE: hasMore=true triggers loadMore() to execute another query', async () => {
+    const page1 = Array.from({ length: PAGE_SIZE }, (_, i) =>
+      createUserDoc({ sn: `PAGE1-${i}`, firstName: `User${i}` }),
+    );
+    const page2 = [createUserDoc({ sn: 'PAGE2-0', firstName: 'LastUser' })];
+
+    let callCount = 0;
+    querySpy.and.callFake(async () => {
+      callCount++;
+      return callCount === 1
+        ? createQueryResult(page1, 'path/last')
+        : createQueryResult(page2);
     });
+
+    await service.search('Us', '');
+    expect(service.hasMore).toBeTrue();
+
+    await service.loadMore();
+
+    expect(querySpy).toHaveBeenCalledTimes(2);
+    expect(service.results.length).toBe(PAGE_SIZE + 1);
   });
 });
 
@@ -697,7 +734,7 @@ describe('UserSearchService — EXPANSION: error handling matrix', () => {
   let mockLogger: jasmine.SpyObj<LoggerService>;
 
   beforeEach(() => {
-    ({ service, querySpy, mockLogger } = createTestBedSetup(2));
+    ({ service, querySpy, mockLogger } = createTestBedSetup());
   });
 
   const errorTypes = [
@@ -746,7 +783,7 @@ describe('UserSearchService — EXPANSION: clear() state reset matrix', () => {
   let querySpy: QuerySpy;
 
   beforeEach(() => {
-    ({ service, querySpy } = createTestBedSetup(2, 10));
+    ({ service, querySpy } = createTestBedSetup());
   });
 
   it('CLEAR: clear() on fresh service leaves state unchanged (idempotent)', () => {

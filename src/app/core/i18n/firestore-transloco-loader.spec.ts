@@ -412,4 +412,76 @@ describe('FirestoreTranslocoLoader', () => {
       });
     });
   });
+
+  // ─── Merge order tests ────────────────────────────────────────────────────────
+  // These tests explicitly verify the merge precedence: base < cached and base < remote.
+  // Existing tests above do not verify merge because getBundledTranslation defaults to null
+  // (so base = {}) and only the remote/cached value is observed.
+
+  describe('merge order', () => {
+    // TC-FTL-MERGE-01: Cache hit — cached keys override base, base-only keys survive
+    it('TC-FTL-MERGE-01: cache hit should override base keys but preserve base-only keys', async () => {
+      // base = { a: 'base_a', b: 'base_b' }
+      mockCache.getBundledTranslation.and.returnValue({ a: 'base_a', b: 'base_b' });
+      // cached has overlapping key 'b' and new key 'c'
+      mockCache.getCachedTranslation.and.resolveTo({ b: 'cached_b', c: 'cached_c' });
+
+      const result = await firstValueFrom(loader.getTranslation('sr'));
+
+      // cached 'b' overrides base 'b'; base 'a' survives; cached 'c' is added
+      expect(result).toEqual({ a: 'base_a', b: 'cached_b', c: 'cached_c' });
+    });
+
+    // TC-FTL-MERGE-02: Firestore hit — remote keys override base, base-only keys survive
+    it('TC-FTL-MERGE-02: firestore hit should override base keys but preserve base-only keys', async () => {
+      // base = { a: 'base_a', b: 'base_b' }
+      mockCache.getBundledTranslation.and.returnValue({ a: 'base_a', b: 'base_b' });
+      // cache miss
+      mockCache.getCachedTranslation.and.resolveTo(null);
+      // tenant present (default mock already returns a tenant id, but be explicit)
+      // remote has overlapping key 'b' only
+      mockFirestore.getTenantDocument.and.resolveTo({ b: 'remote_b' } as unknown as null);
+
+      const result = await firstValueFrom(loader.getTranslation('sr'));
+
+      // remote 'b' overrides base 'b'; base 'a' survives
+      expect(result).toEqual({ a: 'base_a', b: 'remote_b' });
+    });
+
+    // TC-FTL-MERGE-03: Firestore returns null and bundled exists — bundled base is returned as-is
+    it('TC-FTL-MERGE-03: firestore null + bundled present should return full bundled base', async () => {
+      const bundled: Translation = { a: 'base_a', b: 'base_b' };
+      // getBundledTranslation is called twice: once at top for base, once in step-3 guard
+      mockCache.getBundledTranslation.and.returnValue(bundled);
+      // cache miss
+      mockCache.getCachedTranslation.and.resolveTo(null);
+      // tenant present; Firestore returns null (document not found)
+      mockFirestore.getTenantDocument.and.resolveTo(null);
+
+      const result = await firstValueFrom(loader.getTranslation('sr'));
+
+      // Falls through to step-3 bundled fallback, must return the bundled object (not {})
+      expect(result).toEqual(bundled);
+      expect(result).not.toEqual({});
+    });
+
+    // TC-FTL-MERGE-04: getCurrentTenantId throws — Observable errors out
+    // Regression guard: current implementation returns string|null synchronously (does NOT throw).
+    // The current code has no try/catch around getCurrentTenantId(), so a synchronous throw
+    // propagates through the async loadTranslation function as a rejected Promise, which
+    // from() converts to an Observable error notification.
+    // This test passes today and guards against future changes that might accidentally swallow
+    // the error (e.g., wrapping getCurrentTenantId in a try/catch without re-throwing).
+    // NOTE: This is NOT an app bug — getCurrentTenantId returning null is the normal "no tenant"
+    // path; throwing is an abnormal contract violation that should surface, not be hidden.
+    it('TC-FTL-MERGE-04: getCurrentTenantId throwing should cause the Observable to error', async () => {
+      mockCache.getBundledTranslation.and.returnValue(null);
+      mockCache.getCachedTranslation.and.resolveTo(null);
+      mockTenant.getCurrentTenantId.and.throwError('Tenant not resolved');
+
+      // The Observable wraps an async function via from(Promise); a synchronous throw inside
+      // the async function causes the Promise to reject, which from() converts to an error.
+      await expectAsync(firstValueFrom(loader.getTranslation('sr'))).toBeRejected();
+    });
+  });
 });

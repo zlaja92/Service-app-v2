@@ -542,4 +542,64 @@ describe('LoginPage', () => {
       expect(falseCalls.length).toBe(2);
     });
   });
+
+  // =========================================================================
+  // EXPANSION — Email normalization (trim + toLowerCase) in onLogin
+  // =========================================================================
+
+  describe('onLogin() — email normalization', () => {
+    it('TC-LP-EN01: mixed-case email is lowercased before calling authService.login', async () => {
+      component.loginForm.setValue({ email: 'User@Example.COM', password: 'pass' });
+
+      await component.onLogin();
+
+      const calledEmail = mockAuthService.login.calls.mostRecent().args[0] as string;
+      expect(calledEmail).toBe('user@example.com');
+    });
+
+    it('TC-LP-EN02: email with surrounding whitespace is trimmed and lowercased', async () => {
+      // The form value is set directly to simulate pre-filled value with spaces.
+      // The regex validator would reject spaces within the email, but trim() on
+      // a value that has only leading/trailing spaces still passes pattern-check
+      // because the control value is what the validator sees pre-trim. We bypass
+      // form validity by setting a value that passes the pattern after trim.
+      // To keep the test simple we set the control value directly and call
+      // setValue so the form stays valid (email without internal spaces passes).
+      component.loginForm.controls['email'].setValue('  USER@EXAMPLE.COM  ');
+      // Manually mark as valid so onLogin does not short-circuit.
+      component.loginForm.controls['email'].setErrors(null);
+      component.loginForm.controls['password'].setValue('pass');
+
+      await component.onLogin();
+
+      const calledEmail = mockAuthService.login.calls.mostRecent().args[0] as string;
+      expect(calledEmail).toBe('user@example.com');
+    });
+
+    it('TC-LP-EN03: password is passed verbatim — spaces and mixed case are preserved', async () => {
+      const verbatimPassword = '  PaSs 123 ';
+      component.loginForm.setValue({ email: 'user@example.com', password: verbatimPassword });
+
+      await component.onLogin();
+
+      const calledPassword = mockAuthService.login.calls.mostRecent().args[1] as string;
+      expect(calledPassword).toBe(verbatimPassword);
+    });
+
+    // Parametrized: different casings of the same email all normalize to lowercase
+    [
+      'User@Test.Com',
+      'USER@TEST.COM',
+      'uSeR@tEsT.cOm',
+    ].forEach((rawEmail) => {
+      it(`TC-LP-EN04: "${rawEmail}" → authService.login receives "user@test.com"`, async () => {
+        component.loginForm.setValue({ email: rawEmail, password: 'pass' });
+
+        await component.onLogin();
+
+        const calledEmail = mockAuthService.login.calls.mostRecent().args[0] as string;
+        expect(calledEmail).toBe('user@test.com');
+      });
+    });
+  });
 });
