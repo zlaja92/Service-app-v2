@@ -43,10 +43,9 @@ import { TDocumentDefinitions } from 'pdfmake/interfaces';
 function createMockContext(overrides: Partial<InterventionReportContext> = {}): InterventionReportContext {
   return {
     company: {
-      companyName: 'Test Company d.o.o.',
+      company: 'Test Company d.o.o.',
       address: 'Testna 1, Beograd',
       phone: '+381601234567',
-      logoUrl: undefined,
     },
     user: {
       fullName: 'Petar Petrovic',
@@ -174,19 +173,17 @@ describe('ReportService', () => {
       );
     });
 
-    it('TC-RS07: toDataUrl is called for logoUrl and signatureUrl', async () => {
+    it('TC-RS07: toDataUrl is called exactly once — only for signatureUrl (logo no longer resolved)', async () => {
       const toDataUrlSpy = spyOn(service as any, 'toDataUrl').and.resolveTo('data:image/png;base64,FAKE');
 
       const ctx = createMockContext({
-        company: { logoUrl: 'https://example.com/logo.png' },
         signatureUrl: 'https://example.com/sig.png',
       });
 
       await service.generate(type, ctx);
 
-      // Called once for logoUrl and once for signatureUrl
-      expect(toDataUrlSpy).toHaveBeenCalledTimes(2);
-      expect(toDataUrlSpy).toHaveBeenCalledWith('https://example.com/logo.png');
+      // Logo is no longer resolved — only signatureUrl triggers toDataUrl
+      expect(toDataUrlSpy).toHaveBeenCalledTimes(1);
       expect(toDataUrlSpy).toHaveBeenCalledWith('https://example.com/sig.png');
     });
 

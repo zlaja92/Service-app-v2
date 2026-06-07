@@ -4,20 +4,15 @@ import { Timestamp } from '@capacitor-firebase/firestore';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSkeletonText,
-  ViewWillEnter, ToastController,
+  ViewWillEnter,
 } from '@ionic/angular/standalone';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule } from '@jsverse/transloco';
 import { InterventionService } from '../services/intervention.service';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
-import { LoggerService } from '../../../core/logger/logger.service';
-import { ServicerService } from '../../../core/servicer/servicer.service';
-import { StorageService } from '../../../core/firebase/storage.service';
-import { ReportService } from '../../reports/services/report.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
-import { InterventionReportContext, ReportConsent, ReportSection } from '../../reports/models/report.model';
-import { Device, DeviceType } from '../../../shared/models/device.model';
-import { getEnvInfoFields, getEnvInfoSections } from '../models/device-env-info.model';
+import { ConfigStore } from '../../../core/config/config.store';
 import { toDate } from '../../../core/firebase/timestamp.utils';
 import {
   INTERVENTION_DISPLAY_FIELDS,
@@ -70,13 +65,9 @@ export class InterventionDetailPage implements ViewWillEnter {
   private readonly interventionService = inject(InterventionService);
   private readonly lookupService = inject(DeviceLookupService);
   private readonly envInfoService = inject(DeviceEnvInfoService);
-  private readonly logger = inject(LoggerService);
-  private readonly servicerService = inject(ServicerService);
-  private readonly reportService = inject(ReportService);
-  private readonly storageService = inject(StorageService);
+  private readonly interventionReportService = inject(InterventionReportService);
   private readonly loadingAlert = inject(LoadingAlertService);
-  private readonly transloco = inject(TranslocoService);
-  private readonly toastCtrl = inject(ToastController);
+  private readonly configStore = inject(ConfigStore);
 
   protected sn = '';
   protected pageTitleKey = '';
@@ -87,7 +78,6 @@ export class InterventionDetailPage implements ViewWillEnter {
   protected canReport = false;
   private envInfoData: Record<string, string> | null = null;
   private interventionData: Record<string, unknown> | null = null;
-  private interventionDeviceType: string | null = null;
   private isRegistration = false;
 
   ionViewWillEnter(): void {
@@ -133,167 +123,25 @@ export class InterventionDetailPage implements ViewWillEnter {
       const envInfo = data['envInfo'] as Record<string, string> | undefined;
       this.envInfoData = envInfo && Object.keys(envInfo).length > 0 ? envInfo : null;
       this.hasEnvInfo = !!this.envInfoData;
-      this.interventionDeviceType = (data['deviceType'] as string) ?? null;
       this.interventionData = data;
-      this.canReport = true;
+      // Show the Report button only for interventions AND when the PDF report
+      // feature is enabled for the tenant.
+      this.canReport = this.configStore.isFeatureEnabled('pdfReports');
     }
 
     this.isLoading = false;
   }
 
+  /**
+   * Manual "Report" button: always opens the report regardless of the menu
+   * auto-open toggle. Delegates building + rendering to InterventionReportService.
+   */
   async onReport(): Promise<void> {
     const device = this.lookupService.device;
     const data = this.interventionData;
     if (!device || !data) return;
-
-    try {
-      await this.loadingAlert.wrap(async () => {
-        const [registration, company] = await Promise.all([
-          this.interventionService.getRegistration(this.sn),
-          this.servicerService.getCurrent(),
-        ]);
-        const reg = registration ?? {};
-
-        const parts = ['sparePart1', 'sparePart2', 'sparePart3', 'sparePart4']
-          .map(key => this.str(data[key]));
-
-        const callAccepted = await this.resolveCallAccepted(device, data);
-
-        const signaturePath = this.str(data['signaturePath']);
-        const signatureUrl = signaturePath
-          ? (await this.storageService.getFileUrl(signaturePath)) ?? undefined
-          : undefined;
-
-        const typeRaw = String(data['interventionType'] ?? '');
-        const typeLabelKey = this.interventionService.getInterventionLabel(device.type, typeRaw) ?? typeRaw;
-
-        const fullName = `${this.str(reg['firstName'])} ${this.str(reg['lastName'])}`.trim();
-        const address = `${this.str(reg['streetName'])} ${this.str(reg['homeNumber'])}`.trim();
-        const connectedSn = device.type === DeviceType.HEAT_PUMP ? this.str(reg['connectedDevice']) : '';
-
-        const ctx: InterventionReportContext = {
-          company: company ?? {},
-          user: {
-            fullName,
-            address,
-            city: this.str(reg['city']),
-            phone: this.str(reg['phoneNumber']),
-          },
-          device: {
-            name: device.name,
-            type: device.type,
-            subType: device.subType,
-            sn: this.sn,
-            connectedSn: connectedSn || undefined,
-          },
-          intervention: {
-            typeLabel: typeLabelKey ? this.transloco.translate(typeLabelKey) : typeRaw,
-            faultDescription: this.translateMaybe(data['interventionDescription']),
-            date: this.formatDate(data['addedDate']),
-            purchaseDate: this.formatDate(reg['dateOfPurchase']),
-            servicer: this.str(data['addedBy']),
-            note: this.str(data['note']),
-            parts,
-          },
-          parameterSections: this.buildParameterSections(device, this.envInfoData),
-          consent: this.buildConsent(device.type, callAccepted),
-          signatureUrl,
-        };
-
-        await this.reportService.generate('intervention-receipt', ctx);
-      });
-    } catch (error) {
-      this.logger.error('Report generation failed', { error: String(error) });
-      await this.showToast(this.transloco.translate('report_error'));
-    }
-  }
-
-  /** Builds translated device-parameter sections from env-info, reusing the env-info field defs. */
-  private buildParameterSections(device: Device, envInfo: Record<string, string> | null): ReportSection[] {
-    if (!envInfo) return [];
-
-    const fields = getEnvInfoFields(device.type, device.subType);
-    const sections = getEnvInfoSections(device.type, device.subType);
-    const result: ReportSection[] = [];
-
-    for (const section of sections) {
-      const rows = fields
-        .filter(f => f.section === section.key)
-        .map(f => {
-          const raw = envInfo[f.key];
-          if (raw == null || String(raw).trim() === '') return null;
-          // select values are stored as i18n keys; numbers carry an optional unit
-          const value = f.type === 'select'
-            ? this.transloco.translate(String(raw))
-            : `${raw}${f.unit ? ' ' + f.unit : ''}`;
-          return { label: this.transloco.translate(f.label), value };
-        })
-        .filter((r): r is { label: string; value: string } => r !== null);
-
-      if (rows.length > 0) {
-        result.push({ title: this.transloco.translate(section.label), rows });
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Resolves the customer's "contact me for next service" answer. Uses the viewed
-   * intervention's own value if present; otherwise the most recent intervention
-   * that recorded it (callAccepted is only captured on commissioning/annual).
-   */
-  private async resolveCallAccepted(device: Device, data: Record<string, unknown>): Promise<boolean | null> {
-    if (typeof data['callAccepted'] === 'boolean') {
-      return data['callAccepted'] as boolean;
-    }
-    if (device.type !== DeviceType.GAS_BOILER && device.type !== DeviceType.HEAT_PUMP) {
-      return null;
-    }
-    try {
-      const interventions = await this.interventionService.getInterventionsBySn(this.sn, device.type);
-      for (let i = interventions.length - 1; i >= 0; i--) {
-        const value = interventions[i].data['callAccepted'];
-        if (typeof value === 'boolean') return value;
-      }
-    } catch (error) {
-      this.logger.warn('Could not resolve callAccepted for report', { sn: this.sn, error: String(error) });
-    }
-    return null;
-  }
-
-  private buildConsent(deviceType: DeviceType, callAccepted: boolean | null): ReportConsent | undefined {
-    if (deviceType === DeviceType.BOILER) {
-      return { type: 'boiler-disclaimer', accepted: null };
-    }
-    if (deviceType === DeviceType.GAS_BOILER || deviceType === DeviceType.HEAT_PUMP) {
-      return { type: 'service-consent', accepted: callAccepted };
-    }
-    return undefined;
-  }
-
-  private str(value: unknown): string {
-    return value == null ? '' : String(value);
-  }
-
-  /** Translates intervention-description i18n keys; free-text descriptions pass through unchanged. */
-  private translateMaybe(value: unknown): string {
-    const raw = this.str(value);
-    if (!raw) return '';
-    return raw.startsWith('intervention_description_') ? this.transloco.translate(raw) : raw;
-  }
-
-  private formatDate(value: unknown): string {
-    const d = toDate(value as Timestamp | null | undefined);
-    if (!d) return '';
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}.${month}.${d.getFullYear()}`;
-  }
-
-  private async showToast(message: string): Promise<void> {
-    const toast = await this.toastCtrl.create({ message, duration: 3000, color: 'danger', position: 'bottom' });
-    await toast.present();
+    // The detail page has no loader of its own, so it owns one for the report.
+    await this.loadingAlert.wrap(() => this.interventionReportService.open(this.sn, device, data));
   }
 
   async onViewEnvInfo(): Promise<void> {

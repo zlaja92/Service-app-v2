@@ -17,6 +17,8 @@ import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { SignatureService } from '../../signature/services/signature.service';
 import { ConfigStore } from '../../../core/config/config.store';
+import { ReportPreferenceService } from '../../reports/services/report-preference.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
@@ -55,6 +57,8 @@ export class AnnualServicePage implements ViewWillEnter {
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly signatureService = inject(SignatureService);
   private readonly configStore = inject(ConfigStore);
+  private readonly reportPreference = inject(ReportPreferenceService);
+  private readonly interventionReportService = inject(InterventionReportService);
 
   protected sn = '';
   protected noDevice = false;
@@ -139,10 +143,24 @@ export class AnnualServicePage implements ViewWillEnter {
 
     await this.saveForConnectedDevice(device, data);
 
+    await this.maybeAutoOpenReport(device, data);
+
     void this.router.navigate(['/device-management', this.sn]).then(() => {
       void this.loadingAlert.hide();
       void this.showToast(this.transloco.translate('annual_service_save_success'));
     });
+  }
+
+  /**
+   * Opens the report automatically after a successful save, only when the report
+   * feature is enabled AND the side-menu "auto-open" toggle is on. Reuses the
+   * save loader (the report service does not create its own), so the spinner
+   * stays up through generation and is hidden after navigation.
+   */
+  private async maybeAutoOpenReport(device: Device, data: Record<string, unknown>): Promise<void> {
+    if (this.configStore.isFeatureEnabled('pdfReports') && this.reportPreference.autoOpen()) {
+      await this.interventionReportService.open(this.sn, device, data);
+    }
   }
 
   private async saveForConnectedDevice(device: Device, data: Record<string, unknown>): Promise<void> {

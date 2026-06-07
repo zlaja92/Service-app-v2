@@ -18,7 +18,7 @@ import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { PhotoRequirement } from '../../../core/config/config.model';
-import { DeviceType } from '../../../shared/models/device.model';
+import { Device, DeviceType } from '../../../shared/models/device.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
 import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
 import { DeviceRegistrationService } from '../services/device-registration.service';
@@ -26,6 +26,8 @@ import { CartService } from '../../cart/cart.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { SignatureService } from '../../signature/services/signature.service';
+import { ReportPreferenceService } from '../../reports/services/report-preference.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
   InterventionType,
@@ -61,6 +63,8 @@ export class InterventionPage implements ViewWillEnter {
   private readonly confirmService = inject(ConfirmService);
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly signatureService = inject(SignatureService);
+  private readonly reportPreference = inject(ReportPreferenceService);
+  private readonly interventionReportService = inject(InterventionReportService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   protected readonly configStore = inject(ConfigStore);
@@ -234,6 +238,7 @@ export class InterventionPage implements ViewWillEnter {
 
     if (docId) {
       this.photoService.clear();
+      await this.maybeAutoOpenReport(device, data);
       void this.router.navigate(['/device-management', this.sn]).then(() => {
         void this.loadingAlert.hide();
         void this.showToast(this.transloco.translate('intervention_save_success'));
@@ -243,6 +248,18 @@ export class InterventionPage implements ViewWillEnter {
       await this.showToast(
         this.transloco.translate('intervention_save_error'),
       );
+    }
+  }
+
+  /**
+   * Opens the report automatically after a successful save, but only when the
+   * report feature is enabled AND the side-menu "auto-open" toggle is on.
+   * Uses the just-saved in-memory data (carries envInfo); addedBy is absent here
+   * so the report falls back to the current servicer (the person saving) — correct.
+   */
+  private async maybeAutoOpenReport(device: Device, data: Record<string, unknown>): Promise<void> {
+    if (this.configStore.isFeatureEnabled('pdfReports') && this.reportPreference.autoOpen()) {
+      await this.interventionReportService.open(this.sn, device, data);
     }
   }
 

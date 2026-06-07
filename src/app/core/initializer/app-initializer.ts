@@ -6,6 +6,7 @@ import { AuthStore } from '../auth/auth.store';
 import { ConfigStore } from '../config/config.store';
 import { ThemeService } from '../theme/theme.service';
 import { TranslationService } from '../i18n/translation.service';
+import { ReportPreferenceService } from '../../features/reports/services/report-preference.service';
 import { SessionService } from '../session/session.service';
 import { LoggerService } from '../logger/logger.service';
 
@@ -16,6 +17,7 @@ export async function appInitializer() {
   const configStore = inject(ConfigStore);
   const themeService = inject(ThemeService);
   const translationService = inject(TranslationService);
+  const reportPreference = inject(ReportPreferenceService);
   const sessionService = inject(SessionService);
   const logger = inject(LoggerService);
   const router = inject(Router);
@@ -27,6 +29,9 @@ export async function appInitializer() {
 
   // Step 1.5: Apply dark mode preference early (before auth, so login page is themed)
   await themeService.initDarkMode();
+
+  // Step 1.55: Load the auto-open-report preference (read by the save flows)
+  await reportPreference.init();
 
   // Step 1.6: Load language preference (before auth, so login page is translated)
   await translationService.init();

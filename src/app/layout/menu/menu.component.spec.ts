@@ -31,6 +31,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { ConfigStore } from '../../core/config/config.store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { TranslationService } from '../../core/i18n/translation.service';
+import { ReportPreferenceService } from '../../features/reports/services/report-preference.service';
 import { LoggerService } from '../../core/logger/logger.service';
 import { getDefaultConfig, FeatureFlags } from '../../core/config/config.model';
 import {
@@ -38,6 +39,7 @@ import {
   createMockRouter,
   createMockAuthStore,
   createMockConfigStore,
+  createMockReportPreferenceService,
   MockAuthStore,
   MockConfigStore,
 } from '../../testing/mock-factories';
@@ -122,6 +124,7 @@ describe('MenuComponent', () => {
   let mockMenuCtrl: jasmine.SpyObj<MenuController>;
   let mockRouter: jasmine.SpyObj<Router>;
   let mockLogger: jasmine.SpyObj<LoggerService>;
+  let mockReportPreference: ReturnType<typeof createMockReportPreferenceService>;
 
   /**
    * Configures TestBed with all required providers and optional feature flag
@@ -156,6 +159,7 @@ describe('MenuComponent', () => {
         { provide: MenuController, useValue: mockMenuCtrl },
         { provide: Router, useValue: mockRouter },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: ReportPreferenceService, useValue: mockReportPreference },
       ],
     });
   }
@@ -178,6 +182,7 @@ describe('MenuComponent', () => {
     mockMenuCtrl.open.and.resolveTo(true);
     mockRouter = createMockRouter();
     mockLogger = createMockLoggerService();
+    mockReportPreference = createMockReportPreferenceService();
   });
 
   afterEach(() => {

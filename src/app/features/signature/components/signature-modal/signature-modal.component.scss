@@ -1,24 +1,53 @@
-ion-content {
-  --background: #ffffff;
-}
-
-.signature-wrap {
+/* The page background follows the app theme (dark in dark mode). Only the
+   signing box stays white, because the signature is captured/exported on a
+   white canvas with black ink for the printed report. */
+.signature-layout {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
-.signature-hint {
-  text-align: center;
-  color: var(--ion-color-medium);
-  padding: 8px 16px;
-  font-size: 14px;
+/* The signing field: always landscape (wider than tall), regardless of device
+   orientation. A dashed border marks the area where the customer should sign. */
+.signature-box {
+  width: 100%;
+  max-width: 900px;
+  aspect-ratio: 5 / 2;
+  max-height: 55vh;
+  border: 2px dashed var(--ion-color-medium);
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .signature-canvas {
-  flex: 1;
   width: 100%;
+  height: 100%;
+  display: block;
   background: #ffffff;
   /* Prevent the page from scrolling while the user draws. */
   touch-action: none;
+}
+
+.signature-prompt {
+  margin: 0;
+  text-align: center;
+  color: var(--ion-color-medium);
+  font-size: 15px;
+}
+
+.signature-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  width: 100%;
+}
+
+.signature-actions ion-button {
+  min-width: 130px;
 }

@@ -7,7 +7,7 @@ import {
   MenuController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline } from 'ionicons/icons';
+import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -17,6 +17,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { ConfigStore } from '../../core/config/config.store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { TranslationService } from '../../core/i18n/translation.service';
+import { ReportPreferenceService } from '../../features/reports/services/report-preference.service';
 import { LoggerService } from '../../core/logger/logger.service';
 
 @Component({
@@ -36,6 +37,7 @@ export class MenuComponent {
   protected configStore = inject(ConfigStore);
   protected themeService = inject(ThemeService);
   protected translationService = inject(TranslationService);
+  protected reportPreference = inject(ReportPreferenceService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private menuCtrl = inject(MenuController);
@@ -44,7 +46,7 @@ export class MenuComponent {
   protected appVersion = signal<string>('');
 
   constructor() {
-    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline });
+    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline });
     this.loadAppVersion();
   }
 
@@ -64,6 +66,10 @@ export class MenuComponent {
 
   onDarkModeToggle(event: CustomEvent): void {
     this.themeService.setDarkMode(event.detail.checked);
+  }
+
+  onAutoReportToggle(event: CustomEvent): void {
+    void this.reportPreference.setAutoOpen(event.detail.checked);
   }
 
   onLanguageChange(event: CustomEvent): void {

@@ -1,26 +1,31 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>{{ 'signature_title' | transloco }}</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="cancel()">{{ 'signature_cancel' | transloco }}</ion-button>
+    <ion-buttons slot="start">
+      <ion-button (click)="cancel()">
+        <ion-icon slot="start" name="arrow-back-outline" />
+        {{ 'signature_cancel' | transloco }}
+      </ion-button>
     </ion-buttons>
+    <ion-title>{{ 'signature_title' | transloco }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-  <div class="signature-wrap">
-    <div class="signature-hint">{{ 'signature_hint' | transloco }}</div>
-    <canvas #canvas class="signature-canvas"></canvas>
+  <div class="signature-layout">
+    <!-- Landscape box (wider than tall) marking where to sign. -->
+    <div class="signature-box">
+      <canvas #canvas class="signature-canvas"></canvas>
+    </div>
+
+    <p class="signature-prompt">{{ 'signature_prompt' | transloco }}</p>
+
+    <div class="signature-actions">
+      <ion-button fill="outline" color="medium" (click)="clear()">
+        {{ 'signature_clear' | transloco }}
+      </ion-button>
+      <ion-button [strong]="true" (click)="confirm()">
+        {{ 'signature_confirm' | transloco }}
+      </ion-button>
+    </div>
   </div>
 </ion-content>
-
-<ion-footer>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button (click)="clear()">{{ 'signature_clear' | transloco }}</ion-button>
-    </ion-buttons>
-    <ion-buttons slot="end">
-      <ion-button [strong]="true" (click)="confirm()">{{ 'signature_confirm' | transloco }}</ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-footer>

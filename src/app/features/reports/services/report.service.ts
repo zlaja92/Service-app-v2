@@ -30,7 +30,6 @@ export class ReportService {
     // pdfMake embeds images as base64 data URLs, not remote URLs.
     const renderCtx: InterventionReportContext = {
       ...ctx,
-      logoDataUrl: await this.toDataUrl(ctx.company.logoUrl),
       signatureDataUrl: await this.toDataUrl(ctx.signatureUrl),
     };
 

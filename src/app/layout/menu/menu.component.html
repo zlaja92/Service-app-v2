@@ -21,12 +21,6 @@
       </ion-menu-toggle>
 
       <ion-item>
-        <ion-icon name="moon-outline" slot="start" />
-        <ion-label>{{ 'menu_dark_mode' | transloco }}</ion-label>
-        <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
-      </ion-item>
-
-      <ion-item lines="none">
         <ion-icon name="globe-outline" slot="start" />
         <ion-select [value]="translationService.currentLanguage()"
                     (ionChange)="onLanguageChange($event)"
@@ -35,6 +29,18 @@
             <ion-select-option [value]="lang">{{ translationService.getLanguageLabel(lang) }}</ion-select-option>
           }
         </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-icon name="moon-outline" slot="start" />
+        <ion-label>{{ 'menu_dark_mode' | transloco }}</ion-label>
+        <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
+      </ion-item>
+
+      <ion-item *appFeatureFlag="'pdfReports'" lines="none">
+        <ion-icon name="receipt-outline" slot="start" />
+        <ion-label>{{ 'menu_auto_report' | transloco }}</ion-label>
+        <ion-toggle slot="end" [checked]="reportPreference.autoOpen()" (ionChange)="onAutoReportToggle($event)" />
       </ion-item>
     </ion-list>
 

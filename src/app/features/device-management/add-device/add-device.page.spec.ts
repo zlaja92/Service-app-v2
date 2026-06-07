@@ -15,6 +15,8 @@ import { PhotoService } from '../../photo-upload/services/photo.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { SignatureService } from '../../signature/services/signature.service';
+import { ReportPreferenceService } from '../../reports/services/report-preference.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { InterventionType } from '../models/intervention.model';
 import { getDefaultConfig, PhotoRequirement } from '../../../core/config/config.model';
@@ -26,6 +28,8 @@ import {
   createMockTranslocoService,
   createMockLoggerService,
   createMockConfigStore,
+  createMockReportPreferenceService,
+  createMockInterventionReportService,
   MockConfigStore,
 } from '../../../testing/mock-factories';
 
@@ -130,6 +134,8 @@ describe('AddDevicePage', () => {
   let mockConfirmService: jasmine.SpyObj<ConfirmService>;
   let mockLoadingAlert: jasmine.SpyObj<LoadingAlertService>;
   let mockSignatureService: jasmine.SpyObj<SignatureService>;
+  let mockReportPreference: ReturnType<typeof createMockReportPreferenceService>;
+  let mockInterventionReport: jasmine.SpyObj<InterventionReportService>;
 
   /**
    * Configures TestBed and instantiates AddDevicePage with the given options.
@@ -170,6 +176,8 @@ describe('AddDevicePage', () => {
         { provide: LoadingAlertService, useValue: mockLoadingAlert },
         { provide: PhotoService, useValue: mockPhoto },
         { provide: SignatureService, useValue: mockSignatureService },
+        { provide: ReportPreferenceService, useValue: mockReportPreference },
+        { provide: InterventionReportService, useValue: mockInterventionReport },
       ],
     });
 
@@ -188,6 +196,8 @@ describe('AddDevicePage', () => {
     mockConfirmService = createMockConfirmService();
     mockLoadingAlert = createMockLoadingAlertService();
     mockSignatureService = createMockSignatureService();
+    mockReportPreference = createMockReportPreferenceService();
+    mockInterventionReport = createMockInterventionReportService();
 
     // Default: interventionPhotos disabled
     mockConfigStore.setConfig(getDefaultConfig());

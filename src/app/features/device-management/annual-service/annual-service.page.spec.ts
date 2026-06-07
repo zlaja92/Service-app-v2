@@ -13,6 +13,8 @@ import { LoadingAlertService } from '../../../shared/services/loading-alert.serv
 import { SignatureService } from '../../signature/services/signature.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { ReportPreferenceService } from '../../reports/services/report-preference.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
   InterventionType,
@@ -20,7 +22,12 @@ import {
   ANNUAL_SERVICE_DESCRIPTION,
   DEFAULT_DISTANCE,
 } from '../models/intervention.model';
-import { createMockConfigStore } from '../../../testing/mock-factories';
+import { getDefaultConfig } from '../../../core/config/config.model';
+import {
+  createMockConfigStore,
+  createMockReportPreferenceService,
+  createMockInterventionReportService,
+} from '../../../testing/mock-factories';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -115,6 +122,8 @@ describe('AnnualServicePage', () => {
   let mockTransloco: jasmine.SpyObj<TranslocoService>;
   let mockSignatureService: jasmine.SpyObj<SignatureService>;
   let mockConfigStore: ReturnType<typeof createMockConfigStore>;
+  let mockReportPreference: ReturnType<typeof createMockReportPreferenceService>;
+  let mockInterventionReport: jasmine.SpyObj<InterventionReportService>;
   let router: Router;
 
   const TEST_SN = 'SN-TEST-001';
@@ -131,6 +140,8 @@ describe('AnnualServicePage', () => {
     mockSignatureService = createMockSignatureService();
     // ConfigStore is an NgRx SignalStore — must use plain object mock, not jasmine.createSpyObj
     mockConfigStore = createMockConfigStore();
+    mockReportPreference = createMockReportPreferenceService();
+    mockInterventionReport = createMockInterventionReportService();
     // Ensure signatureCapture feature flag is OFF by default so signature step is skipped
     // (getDefaultFeatures() returns signatureCapture: false, so no override needed)
 
@@ -148,6 +159,8 @@ describe('AnnualServicePage', () => {
         { provide: TranslocoService, useValue: mockTransloco },
         { provide: SignatureService, useValue: mockSignatureService },
         { provide: ConfigStore, useValue: mockConfigStore },
+        { provide: ReportPreferenceService, useValue: mockReportPreference },
+        { provide: InterventionReportService, useValue: mockInterventionReport },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -1090,6 +1103,69 @@ describe('AnnualServicePage', () => {
       (mockLookupService as unknown as { device: Device | null }).device = null;
       component.ionViewWillEnter();
       expect((component as any).noDevice).toBeTrue();
+    });
+  });
+
+  // =========================================================================
+  // onSave() — auto-open report (maybeAutoOpenReport)
+  // =========================================================================
+
+  describe('onSave() — auto-open report', () => {
+    // Shared setup: GAS_BOILER (no envInfo, uses confirm path), callAccepted=true
+    // pdfReports and autoOpen are toggled per test.
+
+    function setupSuccessfulSave(): void {
+      (mockLookupService as unknown as { device: Device | null }).device =
+        createMockDevice({ type: DeviceType.GAS_BOILER });
+      component.ionViewWillEnter();
+      (component as any).form.patchValue({ callAccepted: true });
+
+      mockEnvInfoService.getLastEnvInfo.and.resolveTo(null);
+      mockEnvInfoService.collectEnvInfo.and.resolveTo({ gasType: 'val' });
+      mockInterventionService.saveIntervention.and.resolveTo('doc-auto-open');
+      mockInterventionService.getRegistration.and.resolveTo(null);
+    }
+
+    it('AS-AUTO-01: pdfReports enabled + autoOpen true → interventionReportService.open called with (sn, device, data)', async () => {
+      const cfg = getDefaultConfig();
+      cfg.features.pdfReports = true;
+      mockConfigStore.setConfig(cfg);
+      (mockReportPreference.autoOpen as ReturnType<typeof import('@angular/core').signal<boolean>>).set(true);
+
+      setupSuccessfulSave();
+
+      await component.onSave();
+
+      expect(mockInterventionReport.open).toHaveBeenCalledWith(
+        TEST_SN,
+        jasmine.objectContaining({ type: DeviceType.GAS_BOILER }),
+        jasmine.objectContaining({ interventionType: InterventionType.ANNUAL_SERVICE }),
+      );
+    });
+
+    it('AS-AUTO-02: pdfReports enabled + autoOpen false → interventionReportService.open NOT called', async () => {
+      const cfg = getDefaultConfig();
+      cfg.features.pdfReports = true;
+      mockConfigStore.setConfig(cfg);
+      // autoOpen defaults to false — no .set() needed
+
+      setupSuccessfulSave();
+
+      await component.onSave();
+
+      expect(mockInterventionReport.open).not.toHaveBeenCalled();
+    });
+
+    it('AS-AUTO-03: pdfReports disabled → interventionReportService.open NOT called even when autoOpen true', async () => {
+      // pdfReports stays false (getDefaultConfig default)
+      mockConfigStore.setConfig(getDefaultConfig());
+      (mockReportPreference.autoOpen as ReturnType<typeof import('@angular/core').signal<boolean>>).set(true);
+
+      setupSuccessfulSave();
+
+      await component.onSave();
+
+      expect(mockInterventionReport.open).not.toHaveBeenCalled();
     });
   });
 });

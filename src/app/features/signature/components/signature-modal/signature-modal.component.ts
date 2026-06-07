@@ -1,10 +1,14 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
 import {
-  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonFooter,
+  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonIcon,
   ModalController, ToastController,
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { arrowBackOutline } from 'ionicons/icons';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import SignaturePad from 'signature_pad';
+import { LoggerService } from '../../../../core/logger/logger.service';
 
 /**
  * Fullscreen modal for capturing a customer signature on a canvas.
@@ -15,7 +19,7 @@ import SignaturePad from 'signature_pad';
   templateUrl: './signature-modal.component.html',
   styleUrls: ['./signature-modal.component.scss'],
   imports: [
-    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonFooter,
+    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonIcon,
     TranslocoModule,
   ],
 })
@@ -25,11 +29,20 @@ export class SignatureModalComponent implements AfterViewInit, OnDestroy {
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
+  private readonly logger = inject(LoggerService);
+
+  constructor() {
+    addIcons({ arrowBackOutline });
+  }
 
   private pad: SignaturePad | null = null;
   private readonly onResize = (): void => this.resizeCanvas();
 
   ngAfterViewInit(): void {
+    // Force landscape while signing, regardless of how the phone is held, so the
+    // signing field is always wide. Restored on close. (Best-effort; web may not
+    // support locking.)
+    void this.lockLandscape();
     this.pad = new SignaturePad(this.canvasRef.nativeElement, {
       penColor: '#000000',
       backgroundColor: '#ffffff',
@@ -41,7 +54,24 @@ export class SignatureModalComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('resize', this.onResize);
+    void this.unlockOrientation();
     this.pad?.off();
+  }
+
+  private async lockLandscape(): Promise<void> {
+    try {
+      await ScreenOrientation.lock({ orientation: 'landscape' });
+    } catch (error) {
+      this.logger.warn('Signature: failed to lock landscape orientation', { error: String(error) });
+    }
+  }
+
+  private async unlockOrientation(): Promise<void> {
+    try {
+      await ScreenOrientation.unlock();
+    } catch (error) {
+      this.logger.warn('Signature: failed to unlock orientation', { error: String(error) });
+    }
   }
 
   protected clear(): void {

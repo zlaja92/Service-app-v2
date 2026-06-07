@@ -12,6 +12,8 @@ import { AuthUser } from '../core/auth/auth.model';
 import { ServicerService } from '../core/servicer/servicer.service';
 import { StorageService } from '../core/firebase/storage.service';
 import { ReportService } from '../features/reports/services/report.service';
+import { InterventionReportService } from '../features/reports/services/intervention-report.service';
+import { ReportPreferenceService } from '../features/reports/services/report-preference.service';
 import { LoadingAlertService } from '../shared/services/loading-alert.service';
 
 // ─── FirestoreService ─────────────────────────────────────────────────────────
@@ -512,4 +514,34 @@ export function createMockLoadingAlertService(): jasmine.SpyObj<LoadingAlertServ
   mock.hide.and.resolveTo();
   mock.wrap.and.callFake(<T>(operation: () => Promise<T>) => operation());
   return mock;
+}
+
+// ─── InterventionReportService ────────────────────────────────────────────────
+
+/**
+ * Creates a jasmine.SpyObj for InterventionReportService.
+ * Default: open() resolves void (no real report rendering).
+ */
+export function createMockInterventionReportService(): jasmine.SpyObj<InterventionReportService> {
+  const mock = jasmine.createSpyObj<InterventionReportService>('InterventionReportService', ['open']);
+  mock.open.and.resolveTo();
+  return mock;
+}
+
+// ─── ReportPreferenceService ──────────────────────────────────────────────────
+
+/**
+ * Creates a mock ReportPreferenceService with a writable autoOpen signal.
+ * Default: autoOpen() is false; setAutoOpen updates the signal and resolves.
+ */
+export function createMockReportPreferenceService(): Pick<ReportPreferenceService, 'autoOpen' | 'setAutoOpen' | 'init'> {
+  const autoOpen = signal(false);
+  return {
+    autoOpen,
+    setAutoOpen: jasmine.createSpy('setAutoOpen').and.callFake((enabled: boolean) => {
+      autoOpen.set(enabled);
+      return Promise.resolve();
+    }),
+    init: jasmine.createSpy('init').and.resolveTo(),
+  } as unknown as Pick<ReportPreferenceService, 'autoOpen' | 'setAutoOpen' | 'init'>;
 }

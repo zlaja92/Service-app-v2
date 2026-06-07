@@ -59,8 +59,6 @@ export interface InterventionReportContext {
   consent?: ReportConsent;
   /** Storage URL of the customer signature (added later). */
   signatureUrl?: string;
-  /** base64 data URL of the logo, resolved by ReportService. */
-  logoDataUrl?: string;
   /** base64 data URL of the signature, resolved by ReportService. */
   signatureDataUrl?: string;
 }

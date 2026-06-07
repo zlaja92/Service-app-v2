@@ -18,6 +18,18 @@ export function interventionReceiptDefault(
 
   const content: Content[] = [];
 
+  // Usable text width (page width minus the 10pt left/right page margins).
+  const contentWidthPt = widthPt - 20;
+  // pdfMake has no auto-shrink-to-fit, so approximate a font size that keeps
+  // `text` on a single line within contentWidthPt. charWidthFactor is the average
+  // glyph advance as a fraction of the font size (~0.62 for bold uppercase, ~0.5
+  // for normal text). Clamped to [minFont, maxFont].
+  const fitFontSize = (text: string, maxFont: number, minFont: number, charWidthFactor: number): number => {
+    const len = text.length || 1;
+    const fit = Math.floor(contentWidthPt / (len * charWidthFactor));
+    return Math.max(minFont, Math.min(maxFont, fit));
+  };
+
   // Thermal-style separator: spaced '=' justified edge-to-edge (left margin to
   // right margin). Justify stretches the gaps so it always spans the full width,
   // regardless of the proportional font's glyph widths.
@@ -52,17 +64,34 @@ export function interventionReceiptDefault(
     margin: [0, 0, 0, 3],
   });
 
+  // Label on its own line with the value stacked beneath it (full width), for
+  // long free-text fields like the servicer note that don't fit beside the label.
+  const stacked = (label: string, value?: string): Content[] => {
+    const out: Content[] = [{ text: label, bold: true, margin: [0, 0, 0, 0] }];
+    if (value && value.trim()) out.push({ text: value, margin: [0, 0, 0, 2] });
+    return out;
+  };
+
   // ── Header (company) ──
-  if (ctx.logoDataUrl) {
-    content.push({ image: ctx.logoDataUrl, width: widthPt - 40, alignment: 'center', margin: [0, 0, 0, 4] });
+  // Small uppercase "service center" heading above the company name — smaller
+  // than the name, but a touch larger than the address/contact lines (8pt).
+  const serviceCenter = t('report_service_center').toUpperCase();
+  content.push({ text: serviceCenter, alignment: 'center', noWrap: true, fontSize: fitFontSize(serviceCenter, 10, 6, 0.55), margin: [0, 0, 0, 1] });
+  // Company name: uppercase, italic + bold, larger — but always on ONE line:
+  // the font shrinks (down to 7pt) when the name is too long to fit the width.
+  if (ctx.company.company) {
+    const name = ctx.company.company.toUpperCase();
+    content.push({ text: name, bold: true, italics: true, alignment: 'center', noWrap: true, fontSize: fitFontSize(name, 16, 7, 0.62), margin: [0, 0, 0, 2] });
   }
-  content.push({ text: t('report_service_center'), bold: true, alignment: 'center', fontSize: 8 });
-  if (ctx.company.companyName) {
-    content.push({ text: ctx.company.companyName, bold: true, alignment: 'center', fontSize: 13 });
-  }
-  if (ctx.company.address) content.push({ text: ctx.company.address, alignment: 'center', fontSize: 8 });
-  if (ctx.company.phone) content.push({ text: `${t('report_phone')}: ${ctx.company.phone}`, alignment: 'center', fontSize: 8 });
-  if (ctx.company.taxId) content.push({ text: `${t('report_tax_id')}: ${ctx.company.taxId}`, alignment: 'center', fontSize: 8 });
+  // Address + city on one line: "address, city" — also kept to a single line.
+  const addressLine = [ctx.company.address, ctx.company.city].filter(v => v && v.trim()).join(', ');
+  if (addressLine) content.push({ text: addressLine, alignment: 'center', noWrap: true, fontSize: fitFontSize(addressLine, 8, 6, 0.5) });
+  // Contact on one line: "tel: phone, email: mail" — also kept to a single line.
+  const contactLine = [
+    ctx.company.phone ? `${t('report_phone_short')}: ${ctx.company.phone}` : '',
+    ctx.company.email ? `${t('report_email_short')}: ${ctx.company.email}` : '',
+  ].filter(v => v).join(', ');
+  if (contactLine) content.push({ text: contactLine, alignment: 'center', noWrap: true, fontSize: fitFontSize(contactLine, 8, 5, 0.5) });
   content.push(divider());
 
   // ── Customer ──
@@ -83,7 +112,7 @@ export function interventionReceiptDefault(
   (ctx.intervention.parts ?? []).forEach((part, i) => {
     if (part && part.trim()) content.push(row(`${t('report_spare_part')} ${i + 1}`, part));
   });
-  content.push(row(t('report_note'), ctx.intervention.note));
+  content.push(...stacked(t('report_note'), ctx.intervention.note));
 
   // ── Device parameters (env-info) — only when present ──
   const sections = ctx.parameterSections ?? [];
@@ -136,11 +165,12 @@ export function interventionReceiptDefault(
 
   // ── Signatures (no separator before them): line first, label below, spaced ──
   const signLine = '_'.repeat(eqCount);
-  const signWidth = Math.round(eqCount * 4.5); // approximate underscore-line width (pt)
+  // Image fitted to ~80% of the underscore-line width (20% smaller than before).
+  const signWidth = Math.round(eqCount * 4.5 * 0.8);
 
   // Customer: the signature image (fitted to the line width) sits above the line.
   if (ctx.signatureDataUrl) {
-    content.push({ image: ctx.signatureDataUrl, fit: [signWidth, 45], alignment: 'center', margin: [0, 16, 0, 0] });
+    content.push({ image: ctx.signatureDataUrl, fit: [signWidth, 36], alignment: 'center', margin: [0, 16, 0, 0] });
     content.push({ text: signLine, alignment: 'center', margin: [0, -6, 0, 0] });
   } else {
     content.push({ text: signLine, alignment: 'center', margin: [0, 32, 0, 0] });
