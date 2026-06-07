@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { IonRouterOutlet } from '@ionic/angular/standalone';
 import { ShellComponent } from './shell.component';
 import { MenuComponent } from '../menu/menu.component';
+import { AppNoticeService } from '../../core/app-notice/app-notice.service';
 
 // ─── MenuComponent stub ───────────────────────────────────────────────────────
 // Replaces the real MenuComponent (which has heavy service dependencies) with a
@@ -25,6 +26,14 @@ describe('ShellComponent', () => {
       imports: [ShellComponent],
       providers: [
         provideRouter([]),
+        // Stub the notice service so ngAfterViewInit doesn't pull in Transloco/Capacitor.
+        {
+          provide: AppNoticeService,
+          useValue: jasmine.createSpyObj('AppNoticeService', {
+            enforceMinVersion: Promise.resolve(false),
+            showStartInfo: Promise.resolve(),
+          }),
+        },
       ],
     })
       .overrideComponent(ShellComponent, {

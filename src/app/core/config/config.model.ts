@@ -72,6 +72,12 @@ export interface BusinessConfig {
    *  warranty can be requested. Outside the window the action is hidden.
    *  0 or unset → never available. */
   warrantyExtensionWindowMonths?: number;
+  /** Minimum allowed app version (e.g. "2.1.0"). If the running app is below it,
+   *  a blocking notice is shown and the app cannot proceed. Empty/unset → no check. */
+  minAppVersion?: string;
+  /** When true, an info notice (translated `start_info_message`) with an OK
+   *  button is shown when entering the app. */
+  startInfo?: boolean;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -128,6 +134,8 @@ export function getDefaultConfig(): AppConfig {
       orderEmailRecipients: {},
       signature: { commissioning: false, annualService: false, intervention: false },
       warrantyExtensionWindowMonths: 0,
+      minAppVersion: '',
+      startInfo: false,
     },
     interventionFaultOptions: {},
     interventionErrorOptions: {},

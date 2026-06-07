@@ -322,6 +322,10 @@ export const sr: Translation = {
   add_user_validation_message: 'Popunite obavezna polja: {{fields}}',
   common_warning_understood: 'Razumem',
   common_warning_title: 'Upozorenje',
+  app_version_min_title: 'Aplikacija je zastarela',
+  app_version_min_message: 'Verzija aplikacije je ispod dozvoljene. Ažurirajte aplikaciju da biste je koristili.',
+  start_info_title: 'Obaveštenje',
+  start_info_message: 'Dobrodošli. Ovde ide tekst obaveštenja pri ulasku u aplikaciju.',
   device_detail_commissioning_required_message: 'Sačuvani su podaci o korisniku, ali uređaj i dalje nije pušten u rad. Potrebno je da odradite puštanje u rad.',
 
   cart_title: 'Korpa',

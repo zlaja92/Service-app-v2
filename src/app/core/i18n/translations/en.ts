@@ -322,6 +322,10 @@ export const en: Translation = {
   add_user_validation_message: 'Please fill in required fields: {{fields}}',
   common_warning_understood: 'Understood',
   common_warning_title: 'Warning',
+  app_version_min_title: 'App outdated',
+  app_version_min_message: 'The app version is below the allowed minimum. Please update the app to continue using it.',
+  start_info_title: 'Notice',
+  start_info_message: 'Welcome. This is the notice shown when entering the app.',
   device_detail_commissioning_required_message: 'User data has been saved, but the device has not been commissioned yet. Please complete the commissioning.',
 
   cart_title: 'Cart',
