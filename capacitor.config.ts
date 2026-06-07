@@ -4,6 +4,8 @@ const config: CapacitorConfig = {
   appId: 'io.ionic.Ariston',
   appName: 'Ariston Service',
   webDir: 'www',
+  // Silence the native bridge logs (already off in release; explicit for safety).
+  loggingBehavior: 'none',
   plugins: {
     SplashScreen: {
       launchAutoHide: true,        // auto-hide kao fallback ako app pukne ili zaboravi hide()
