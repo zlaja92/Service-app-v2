@@ -120,8 +120,10 @@ export class TranslationService {
           await this.cacheService.cacheTranslation(lang, translation);
           await this.cacheService.cacheVersion(lang, remoteVersion);
 
-          // Update Transloco's internal cache
-          this.translocoService.setTranslation(translation, lang);
+          // Update Transloco's internal cache, merged over the bundled base so
+          // app-shipped keys missing from the remote doc are still present.
+          const base = this.cacheService.getBundledTranslation(lang) ?? {};
+          this.translocoService.setTranslation({ ...base, ...translation }, lang);
         } else {
           this.logger.warn('[DEBUG] Translation document is null/empty', { lang });
         }

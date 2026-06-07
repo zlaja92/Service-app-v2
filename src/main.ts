@@ -34,8 +34,12 @@ bootstrapApplication(AppComponent, {
       config: {
         availableLangs: BUNDLED_LANGUAGES,
         defaultLang: DEFAULT_LANGUAGE,
+        fallbackLang: DEFAULT_LANGUAGE,
         reRenderOnLangChange: true,
         prodMode: !isDevMode(),
+        // Missing keys (e.g. an untranslated key in a newly added language)
+        // degrade to the fallback language instead of showing the raw key.
+        missingHandler: { useFallbackTranslation: true },
       },
       loader: FirestoreTranslocoLoader,
     }),

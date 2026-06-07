@@ -19,11 +19,15 @@ export class FirestoreTranslocoLoader implements TranslocoLoader {
   }
 
   private async loadTranslation(lang: string): Promise<Translation> {
+    // Bundled translations are the base: any key shipped with the app is always
+    // present, so new keys work without a DB upload. Cache/Firestore override it.
+    const base = this.cacheService.getBundledTranslation(lang) ?? {};
+
     // 1. Try local cache (Capacitor Preferences)
     const cached = await this.cacheService.getCachedTranslation(lang);
     if (cached) {
       this.logger.debug('Translation loaded from cache', { lang });
-      return cached;
+      return { ...base, ...cached };
     }
 
     // 2. Try Firestore (only if authenticated with a tenant)
@@ -35,7 +39,7 @@ export class FirestoreTranslocoLoader implements TranslocoLoader {
         );
         if (remote) {
           this.logger.debug('Translation loaded from Firestore', { lang });
-          return remote;
+          return { ...base, ...remote };
         }
       } catch (error) {
         this.logger.warn('Failed to load translation from Firestore', {
@@ -46,10 +50,9 @@ export class FirestoreTranslocoLoader implements TranslocoLoader {
     }
 
     // 3. Bundled fallback
-    const bundled = this.cacheService.getBundledTranslation(lang);
-    if (bundled) {
+    if (this.cacheService.getBundledTranslation(lang)) {
       this.logger.debug('Translation loaded from bundled fallback', { lang });
-      return bundled;
+      return base;
     }
 
     // 4. Last resort: return default language bundled translations

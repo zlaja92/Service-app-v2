@@ -42,6 +42,13 @@
       }
     </ion-list>
 
+    @if (canReport) {
+      <ion-button expand="block" fill="solid" color="primary" class="report-button"
+                  (click)="onReport()">
+        {{ 'report_button' | transloco }}
+      </ion-button>
+    }
+
     @if (hasEnvInfo) {
       <ion-button expand="block" fill="outline" color="primary" class="env-info-button"
                   (click)="onViewEnvInfo()">
