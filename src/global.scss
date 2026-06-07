@@ -124,3 +124,17 @@ ion-picker-legacy.date-picker {
     overflow: visible;
   }
 }
+
+/*
+ * Edge-to-edge safe area. On Android (targetSdk 35+ enforces edge-to-edge) and
+ * iOS (home indicator), the WebView draws behind the system navigation bar.
+ * Add the bottom inset to ion-content so in-content buttons stay above the nav
+ * bar and remain tappable. viewport-fit=cover is set in index.html.
+ */
+ion-content {
+  --padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-content.ion-padding {
+  --padding-bottom: calc(var(--ion-padding, 16px) + env(safe-area-inset-bottom));
+}
