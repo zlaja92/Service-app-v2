@@ -12,6 +12,7 @@ import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ServicerService } from '../../../core/servicer/servicer.service';
+import { StorageService } from '../../../core/firebase/storage.service';
 import { ReportService } from '../../reports/services/report.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { InterventionReportContext, ReportConsent, ReportSection } from '../../reports/models/report.model';
@@ -72,6 +73,7 @@ export class InterventionDetailPage implements ViewWillEnter {
   private readonly logger = inject(LoggerService);
   private readonly servicerService = inject(ServicerService);
   private readonly reportService = inject(ReportService);
+  private readonly storageService = inject(StorageService);
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly transloco = inject(TranslocoService);
   private readonly toastCtrl = inject(ToastController);
@@ -157,6 +159,11 @@ export class InterventionDetailPage implements ViewWillEnter {
 
         const callAccepted = await this.resolveCallAccepted(device, data);
 
+        const signaturePath = this.str(data['signaturePath']);
+        const signatureUrl = signaturePath
+          ? (await this.storageService.getFileUrl(signaturePath)) ?? undefined
+          : undefined;
+
         const typeRaw = String(data['interventionType'] ?? '');
         const typeLabelKey = this.interventionService.getInterventionLabel(device.type, typeRaw) ?? typeRaw;
 
@@ -190,6 +197,7 @@ export class InterventionDetailPage implements ViewWillEnter {
           },
           parameterSections: this.buildParameterSections(device, this.envInfoData),
           consent: this.buildConsent(device.type, callAccepted),
+          signatureUrl,
         };
 
         await this.reportService.generate('intervention-receipt', ctx);

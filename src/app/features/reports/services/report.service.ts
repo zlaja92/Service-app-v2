@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { CapacitorHttp } from '@capacitor/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { LoggerService } from '../../../core/logger/logger.service';
@@ -46,21 +47,23 @@ export class ReportService {
     if (!url) return undefined;
     if (url.startsWith('data:')) return url;
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return await this.blobToDataUrl(blob);
+      // CapacitorHttp runs the request natively, bypassing CORS — a WebView fetch()
+      // of a Firebase Storage URL fails ("Load failed") because Storage sends no
+      // CORS headers. On native, responseType 'blob' returns base64 in `data`.
+      const response = await CapacitorHttp.get({ url, responseType: 'blob' });
+      const base64 = typeof response.data === 'string' ? response.data : '';
+      if (!base64) return undefined;
+      const contentType = this.contentTypeOf(response.headers) ?? 'image/png';
+      return `data:${contentType};base64,${base64}`;
     } catch (error) {
       this.logger.warn('Report: failed to load image, skipping', { error: String(error) });
       return undefined;
     }
   }
 
-  private blobToDataUrl(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
+  private contentTypeOf(headers: Record<string, string> | undefined): string | undefined {
+    if (!headers) return undefined;
+    const key = Object.keys(headers).find(k => k.toLowerCase() === 'content-type');
+    return key ? headers[key].split(';')[0].trim() : undefined;
   }
 }

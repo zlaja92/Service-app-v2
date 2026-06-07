@@ -15,6 +15,8 @@ import { InterventionService } from '../services/intervention.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { SignatureService } from '../../signature/services/signature.service';
+import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
@@ -51,6 +53,8 @@ export class AnnualServicePage implements ViewWillEnter {
   private readonly logger = inject(LoggerService);
   private readonly confirmService = inject(ConfirmService);
   private readonly loadingAlert = inject(LoadingAlertService);
+  private readonly signatureService = inject(SignatureService);
+  private readonly configStore = inject(ConfigStore);
 
   protected sn = '';
   protected noDevice = false;
@@ -115,6 +119,13 @@ export class AnnualServicePage implements ViewWillEnter {
     } else {
       const confirmed = await this.showConfirmAlert();
       if (!confirmed) return;
+    }
+
+    if (this.configStore.isFeatureEnabled('signatureCapture')
+      && (this.configStore.business()?.signature?.annualService ?? false)) {
+      const signaturePath = await this.signatureService.captureAndUpload({ sn: this.sn, deviceType: device.type });
+      if (!signaturePath) return;
+      data['signaturePath'] = signaturePath;
     }
 
     await this.loadingAlert.show();

@@ -25,6 +25,7 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
 import { CartService } from '../../cart/cart.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { SignatureService } from '../../signature/services/signature.service';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
   InterventionType,
@@ -59,6 +60,7 @@ export class InterventionPage implements ViewWillEnter {
   private readonly modalCtrl = inject(ModalController);
   private readonly confirmService = inject(ConfirmService);
   private readonly loadingAlert = inject(LoadingAlertService);
+  private readonly signatureService = inject(SignatureService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   protected readonly configStore = inject(ConfigStore);
@@ -213,6 +215,13 @@ export class InterventionPage implements ViewWillEnter {
     } else {
       const confirmed = await this.showConfirmAlert();
       if (!confirmed) return;
+    }
+
+    if (this.configStore.isFeatureEnabled('signatureCapture')
+      && (this.configStore.business()?.signature?.intervention ?? false)) {
+      const signaturePath = await this.signatureService.captureAndUpload({ sn: this.sn, deviceType: device.type });
+      if (!signaturePath) return;
+      data['signaturePath'] = signaturePath;
     }
 
     await this.loadingAlert.show();

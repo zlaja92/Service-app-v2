@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { FirebaseStorage } from '@capacitor-firebase/storage';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 import { getStorage, ref, getDownloadURL, listAll } from 'firebase/storage';
 import { LoggerService } from '../logger/logger.service';
 
@@ -57,11 +58,11 @@ export class StorageService {
     }
   }
 
-  async uploadFile(storagePath: string, fileUri: string): Promise<void> {
+  async uploadFile(storagePath: string, fileUri: string, contentType = 'image/jpeg'): Promise<void> {
     if (this.isNative) {
       return new Promise<void>((resolve, reject) => {
         FirebaseStorage.uploadFile(
-          { path: storagePath, uri: fileUri, metadata: { contentType: 'image/jpeg' } },
+          { path: storagePath, uri: fileUri, metadata: { contentType } },
           (event, error) => {
             if (error) {
               this.logger.error('Storage upload error', { storagePath, error: String(error) });
@@ -81,7 +82,7 @@ export class StorageService {
     const blob = await response.blob();
     return new Promise<void>((resolve, reject) => {
       FirebaseStorage.uploadFile(
-        { path: storagePath, blob, metadata: { contentType: 'image/jpeg' } },
+        { path: storagePath, blob, metadata: { contentType } },
         (event, error) => {
           if (error) {
             this.logger.error('Storage upload error', { storagePath, error: String(error) });
@@ -94,6 +95,27 @@ export class StorageService {
         },
       );
     });
+  }
+
+  /**
+   * Uploads an image given as a data URL (e.g. a signature canvas export).
+   * Native: FirebaseStorage needs a file URI, so the base64 is written to a temp
+   * file and removed after upload. Web: the data URL is uploaded directly.
+   */
+  async uploadDataUrl(storagePath: string, dataUrl: string, contentType: string): Promise<void> {
+    if (!this.isNative) {
+      await this.uploadFile(storagePath, dataUrl, contentType);
+      return;
+    }
+
+    const base64 = dataUrl.substring(dataUrl.indexOf(',') + 1);
+    const tempName = `upload_${Date.now()}.tmp`;
+    const written = await Filesystem.writeFile({ path: tempName, data: base64, directory: Directory.Cache });
+    try {
+      await this.uploadFile(storagePath, written.uri, contentType);
+    } finally {
+      await Filesystem.deleteFile({ path: tempName, directory: Directory.Cache }).catch(() => undefined);
+    }
   }
 
   async resolveFileUrl(folder: string, fileName: string, extensions: string[]): Promise<string> {

@@ -20,6 +20,14 @@ export interface FeatureFlags {
   cartNote: boolean;
   deviceManagement: boolean;
   interventionPhotos: boolean;
+  signatureCapture: boolean;
+}
+
+/** Per-flow toggle for customer signature capture (under the signatureCapture feature flag). */
+export interface SignatureFlows {
+  commissioning: boolean;
+  annualService: boolean;
+  intervention: boolean;
 }
 
 export interface PhotoRequirement {
@@ -59,6 +67,7 @@ export interface BusinessConfig {
   photoQuality: number;
   photoMaxWidth: number;
   orderEmailRecipients: Record<string, string | string[]>;
+  signature: SignatureFlows;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -73,6 +82,7 @@ export function getDefaultFeatures(): FeatureFlags {
     cartNote: false,
     deviceManagement: true,
     interventionPhotos: false,
+    signatureCapture: false,
   };
 }
 
@@ -112,6 +122,7 @@ export function getDefaultConfig(): AppConfig {
       photoQuality: 70,
       photoMaxWidth: 1280,
       orderEmailRecipients: {},
+      signature: { commissioning: false, annualService: false, intervention: false },
     },
     interventionFaultOptions: {},
     interventionErrorOptions: {},

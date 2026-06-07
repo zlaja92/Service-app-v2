@@ -20,6 +20,7 @@ import { requiresEnvInfo } from '../models/device-env-info.model';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
+import { SignatureService } from '../../signature/services/signature.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { PhotoRequirement } from '../../../core/config/config.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
@@ -47,6 +48,7 @@ export class AddDevicePage implements ViewWillEnter {
   private readonly toastCtrl = inject(ToastController);
   private readonly confirmService = inject(ConfirmService);
   private readonly loadingAlert = inject(LoadingAlertService);
+  private readonly signatureService = inject(SignatureService);
   private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly modalCtrl = inject(ModalController);
@@ -141,6 +143,13 @@ export class AddDevicePage implements ViewWillEnter {
     } else {
       const confirmed = await this.showConfirmAlert();
       if (!confirmed) return;
+    }
+
+    if (this.configStore.isFeatureEnabled('signatureCapture')
+      && (this.configStore.business()?.signature?.commissioning ?? false)) {
+      const signaturePath = await this.signatureService.captureAndUpload({ sn: this.sn, deviceType: device.type });
+      if (!signaturePath) return;
+      data['signaturePath'] = signaturePath;
     }
 
     await this.loadingAlert.show();

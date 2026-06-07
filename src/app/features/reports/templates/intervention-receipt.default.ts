@@ -136,12 +136,17 @@ export function interventionReceiptDefault(
 
   // ── Signatures (no separator before them): line first, label below, spaced ──
   const signLine = '_'.repeat(eqCount);
+  const signWidth = Math.round(eqCount * 4.5); // approximate underscore-line width (pt)
+
+  // Customer: the signature image (fitted to the line width) sits above the line.
   if (ctx.signatureDataUrl) {
-    content.push({ image: ctx.signatureDataUrl, width: widthPt - 60, alignment: 'center', margin: [0, 16, 0, 0] });
+    content.push({ image: ctx.signatureDataUrl, fit: [signWidth, 45], alignment: 'center', margin: [0, 16, 0, 0] });
+    content.push({ text: signLine, alignment: 'center', margin: [0, -6, 0, 0] });
   } else {
     content.push({ text: signLine, alignment: 'center', margin: [0, 32, 0, 0] });
   }
   content.push({ text: t('report_sign_customer'), alignment: 'center', margin: [0, 1, 0, 0] });
+
   content.push({ text: signLine, alignment: 'center', margin: [0, 32, 0, 0] });
   content.push({ text: t('report_sign_servicer'), alignment: 'center', margin: [0, 1, 0, 0] });
 
