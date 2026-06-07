@@ -68,6 +68,10 @@ export interface BusinessConfig {
   photoMaxWidth: number;
   orderEmailRecipients: Record<string, string | string[]>;
   signature: SignatureFlows;
+  /** Window (in months from the device purchase date) during which an extended
+   *  warranty can be requested. Outside the window the action is hidden.
+   *  0 or unset → never available. */
+  warrantyExtensionWindowMonths?: number;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -123,6 +127,7 @@ export function getDefaultConfig(): AppConfig {
       photoMaxWidth: 1280,
       orderEmailRecipients: {},
       signature: { commissioning: false, annualService: false, intervention: false },
+      warrantyExtensionWindowMonths: 0,
     },
     interventionFaultOptions: {},
     interventionErrorOptions: {},

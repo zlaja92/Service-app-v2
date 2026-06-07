@@ -15,6 +15,8 @@ export interface Device {
   commissioning?: boolean;
   annualService?: boolean;
   connectedDevice?: boolean;
+  /** When true, the "Extended warranty" action is available for this device. */
+  canExtendWarranty?: boolean;
   firstServiceYear?: number;
   serviceWindowStart?: number;
   serviceWindowEnd?: number;

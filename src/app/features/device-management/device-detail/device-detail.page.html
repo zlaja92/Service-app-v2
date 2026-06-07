@@ -131,6 +131,15 @@
         {{ 'device_info_intervention' | transloco }}
       </ion-button>
 
+      @if (canExtendWarrantyNow) {
+        <ion-button expand="block" fill="outline" (click)="onWarrantyExtension()"
+                    [disabled]="!isOperational || warrantyRequestExists"
+                    *appFeatureFlag="'deviceManagement'">
+          <ion-icon name="shield-checkmark-outline" slot="start" />
+          {{ 'device_info_warranty_extension' | transloco }}
+        </ion-button>
+      }
+
       <ion-button expand="block" fill="solid" color="primary" (click)="onHistory()"
                   [disabled]="!isOperational">
         <ion-icon name="time-outline" slot="start" />

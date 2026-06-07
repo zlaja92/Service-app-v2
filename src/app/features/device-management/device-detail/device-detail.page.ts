@@ -11,7 +11,7 @@ import {
 import { addIcons } from 'ionicons';
 import {
   personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline,
-  searchOutline, barcodeOutline,
+  searchOutline, barcodeOutline, shieldCheckmarkOutline,
 } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -26,6 +26,8 @@ import { InterventionType } from '../models/intervention.model';
 import { AnnualServiceEligibilityService } from '../services/annual-service-eligibility.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { ConfirmService } from '../../../shared/services/confirm.service';
+import { WarrantyExtensionService } from '../services/warranty-extension.service';
+import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { Device } from '../../../shared/models/device.model';
 import { stripWhitespace, hasWhitespace } from '../../../shared/utils/trim';
 
@@ -53,6 +55,8 @@ export class DeviceDetailPage implements ViewWillEnter {
   private router = inject(Router);
   private toastCtrl = inject(ToastController);
   private confirmService = inject(ConfirmService);
+  private warrantyService = inject(WarrantyExtensionService);
+  private loadingAlert = inject(LoadingAlertService);
   private transloco = inject(TranslocoService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -63,9 +67,11 @@ export class DeviceDetailPage implements ViewWillEnter {
   protected connectedSnInput = '';
   protected connectedSn = '';
   protected isSearchingConnected = false;
+  /** True when a warranty-extension request already exists for this device → button disabled. */
+  protected warrantyRequestExists = false;
 
   constructor() {
-    addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline, searchOutline, barcodeOutline });
+    addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline, searchOutline, barcodeOutline, shieldCheckmarkOutline });
   }
 
   ionViewWillEnter(): void {
@@ -108,6 +114,11 @@ export class DeviceDetailPage implements ViewWillEnter {
       await this.eligibilityService.checkEligibility(this.sn, device);
     }
 
+    // Only when the action would otherwise show: is there already a request?
+    this.warrantyRequestExists = this.canExtendWarrantyNow
+      ? await this.warrantyService.exists(this.sn)
+      : false;
+
     this.isInitializing = false;
     this.cdr.markForCheck();
 
@@ -143,6 +154,15 @@ export class DeviceDetailPage implements ViewWillEnter {
 
   get isAnnualServiceEnabled(): boolean {
     return this.eligibilityService.isEligible && !this.eligibilityService.isChecking;
+  }
+
+  /**
+   * Whether the "Extended warranty" action is available: the device allows it
+   * (canExtendWarranty) AND today is still within the configured window of
+   * `warrantyExtensionWindowMonths` months from the device's purchase date.
+   */
+  get canExtendWarrantyNow(): boolean {
+    return this.warrantyService.canRequest(this.lookupService.device, this.registrationService.userData);
   }
 
   get needsConnectedDevice(): boolean {
@@ -276,5 +296,28 @@ export class DeviceDetailPage implements ViewWillEnter {
 
   onHistory(): void {
     this.router.navigate(['/device-management', this.sn, 'history']);
+  }
+
+  /**
+   * Records a customer warranty extension after a (translatable) confirmation.
+   * Creates a document in the tenant `warrantyExtensions` collection.
+   */
+  async onWarrantyExtension(): Promise<void> {
+    const confirmed = await this.confirmService.confirm(
+      'warranty_extension_confirm_title',
+      'warranty_extension_confirm_message',
+      'warranty_extension_confirm_ok',
+      'warranty_extension_confirm_cancel',
+    );
+    if (!confirmed) return;
+
+    const ok = await this.loadingAlert.wrap(() => this.warrantyService.extend(this.sn));
+    if (ok) {
+      // Disable the button once a request has been sent for this device.
+      this.warrantyRequestExists = true;
+    }
+    await this.showToast(
+      this.transloco.translate(ok ? 'warranty_extension_success' : 'warranty_extension_error'),
+    );
   }
 }

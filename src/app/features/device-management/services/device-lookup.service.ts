@@ -14,6 +14,7 @@ interface DeviceDoc {
   commissioning?: boolean;
   annualService?: boolean;
   connectedDevice?: boolean;
+  canExtendWarranty?: boolean;
   intervention?: boolean;
   firstServiceYear?: number;
   serviceWindowStart?: number;
@@ -133,6 +134,7 @@ export class DeviceLookupService implements Clearable {
       commissioning: data.commissioning ?? false,
       annualService: data.annualService ?? false,
       connectedDevice: data.connectedDevice ?? false,
+      canExtendWarranty: data.canExtendWarranty ?? false,
       firstServiceYear: data.firstServiceYear,
       serviceWindowStart: data.serviceWindowStart,
       serviceWindowEnd: data.serviceWindowEnd,
