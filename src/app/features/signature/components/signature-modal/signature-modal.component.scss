@@ -1,3 +1,8 @@
+/* Slimmer header bar (~20% shorter than the default toolbar height). */
+ion-header ion-toolbar {
+  --min-height: 36px;
+}
+
 /* The page background follows the app theme (dark in dark mode). Only the
    signing box stays white, because the signature is captured/exported on a
    white canvas with black ink for the printed report. */
@@ -15,10 +20,10 @@
 /* The signing field: always landscape (wider than tall), regardless of device
    orientation. A dashed border marks the area where the customer should sign. */
 .signature-box {
-  width: 100%;
-  max-width: 900px;
+  width: 80%;
+  max-width: 720px;
   aspect-ratio: 5 / 2;
-  max-height: 55vh;
+  max-height: 44vh;
   border: 2px dashed var(--ion-color-medium);
   border-radius: 10px;
   background: #ffffff;

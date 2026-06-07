@@ -51,13 +51,22 @@ ion-item {
   gap: 8px;
   margin-top: 16px;
   padding: 12px 16px;
-  background: var(--ion-color-danger-tint);
-  color: var(--ion-color-danger-shade);
+  // #B71C1C text, no border. Neutral chip, slightly DARKER than the (light) page
+  // background so the bubble is visible. Dark theme overrides it below.
+  background: rgba(0, 0, 0, 0.06);
+  color: #b71c1c;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
 
   ion-icon {
     font-size: 1.2rem;
     flex-shrink: 0;
+    color: #b71c1c;
   }
+}
+
+// Dark theme: neutral chip slightly LIGHTER than the dark page background.
+:host-context(.ion-palette-dark) .error-message {
+  background: rgba(255, 255, 255, 0.10);
 }
