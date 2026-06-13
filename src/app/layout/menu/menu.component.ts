@@ -7,7 +7,7 @@ import {
   MenuController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline } from 'ionicons/icons';
+import { homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline, clipboardOutline } from 'ionicons/icons';
 import { TranslocoModule } from '@jsverse/transloco';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -46,7 +46,7 @@ export class MenuComponent {
   protected appVersion = signal<string>('');
 
   constructor() {
-    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline });
+    addIcons({ homeOutline, logOutOutline, bugOutline, timeOutline, moonOutline, globeOutline, receiptOutline, clipboardOutline });
     this.loadAppVersion();
   }
 

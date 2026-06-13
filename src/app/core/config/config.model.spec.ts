@@ -1,19 +1,19 @@
 import { getDefaultConfig, getDefaultFeatures, getDefaultTheme, FeatureFlags } from './config.model';
 
 describe('getDefaultFeatures()', () => {
-  it('should return an object with exactly 11 keys', () => {
+  it('should return an object with exactly 12 keys', () => {
     const result = getDefaultFeatures();
-    expect(Object.keys(result).length).toBe(11);
+    expect(Object.keys(result).length).toBe(12);
   });
 
-  it('should return correct default values for all 11 feature flags', () => {
+  it('should return correct default values for all 12 feature flags', () => {
     const result = getDefaultFeatures();
 
     // TRUE by default (2)
     expect(result.deviceManagement).toBe(true);
     expect(result.deviceCatalog).toBe(true);
 
-    // FALSE by default (9)
+    // FALSE by default (10)
     expect(result.cart).toBe(false);
     expect(result.documentation).toBe(false);
     expect(result.bugReport).toBe(false);
@@ -23,6 +23,7 @@ describe('getDefaultFeatures()', () => {
     expect(result.cartNote).toBe(false);
     expect(result.interventionPhotos).toBe(false);
     expect(result.signatureCapture).toBe(false);
+    expect(result.servicerReport).toBe(false);
   });
 
   it('should return a new object on every call (referential independence)', () => {

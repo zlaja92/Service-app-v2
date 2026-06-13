@@ -21,6 +21,7 @@ export interface FeatureFlags {
   deviceManagement: boolean;
   interventionPhotos: boolean;
   signatureCapture: boolean;
+  servicerReport: boolean;
 }
 
 /** Per-flow toggle for customer signature capture (under the signatureCapture feature flag). */
@@ -93,6 +94,7 @@ export function getDefaultFeatures(): FeatureFlags {
     deviceManagement: true,
     interventionPhotos: false,
     signatureCapture: false,
+    servicerReport: false,
   };
 }
 

@@ -55,6 +55,12 @@
       <ion-icon name="person-outline" slot="start" />
       {{ 'home_search_by_user' | transloco }}
     </ion-button>
+
+    <ion-button expand="block" fill="outline" color="primary"
+                (click)="navigateTo('/servicer-report')" *appFeatureFlag="'servicerReport'">
+      <ion-icon name="stats-chart-outline" slot="start" />
+      {{ 'home_servicer_report' | transloco }}
+    </ion-button>
   </div>
 
 

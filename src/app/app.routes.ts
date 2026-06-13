@@ -50,6 +50,12 @@ export const routes: Routes = [
         canMatch: [featureGuard('cart')],
       },
       {
+        path: 'servicer-report',
+        loadComponent: () =>
+          import('./features/servicer-report/servicer-report.page').then((m) => m.ServicerReportPage),
+        canMatch: [featureGuard('servicerReport')],
+      },
+      {
         path: 'search-by-user',
         loadComponent: () =>
           import('./features/device-management/search-by-user/search-by-user.page').then((m) => m.SearchByUserPage),

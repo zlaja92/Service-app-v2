@@ -6,6 +6,13 @@
   </ion-header>
   <ion-content>
     <ion-list lines="full">
+      <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerReport'">
+        <ion-item button (click)="navigateTo('/servicer-report')">
+          <ion-icon name="clipboard-outline" slot="start" />
+          <ion-label>{{ 'menu_servicer_report' | transloco }}</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+
       <ion-menu-toggle auto-hide="false" *appFeatureFlag="'bugReport'">
         <ion-item button (click)="navigateTo('/bugs')">
           <ion-icon name="bug-outline" slot="start" />

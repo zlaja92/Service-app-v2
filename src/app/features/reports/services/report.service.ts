@@ -3,8 +3,8 @@ import { CapacitorHttp } from '@capacitor/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { LoggerService } from '../../../core/logger/logger.service';
-import { InterventionReportContext, ReportTranslate, ReportType } from '../models/report.model';
-import { resolveTemplate } from '../templates/template-registry';
+import { InterventionReportContext, ReportTranslate, ReportType, ServicerReportContext } from '../models/report.model';
+import { resolveTemplate, resolveServicerReportTemplate } from '../templates/template-registry';
 import { PdfOutputService } from './pdf-output.service';
 
 /**
@@ -39,6 +39,23 @@ export class ReportService {
     const fileName = 'Intervention-report.pdf';
     await this.pdfOutput.openPdf(doc, fileName);
     this.logger.info('Report generated', { type, tenantId });
+  }
+
+  /**
+   * Generates and opens a servicer (period) report PDF.
+   * Unlike intervention receipts, this report has no images to resolve
+   * (no signature, no logo), so the context is used directly.
+   */
+  async generateServicerReport(ctx: ServicerReportContext): Promise<void> {
+    const tenantId = this.tenantService.getCurrentTenantId();
+    const template = resolveServicerReportTemplate(tenantId);
+
+    const t: ReportTranslate = (key, params) => this.transloco.translate(key, params);
+
+    const doc = template(ctx, t);
+    const fileName = 'Servicer-report.pdf';
+    await this.pdfOutput.openPdf(doc, fileName);
+    this.logger.info('Report generated', { type: 'servicer-report', tenantId });
   }
 
   /** Fetches an image URL and returns it as a base64 data URL. Best-effort: returns undefined on failure. */

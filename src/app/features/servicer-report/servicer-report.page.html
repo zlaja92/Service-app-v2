@@ -1,0 +1,115 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" />
+    </ion-buttons>
+    <ion-title>{{ 'servicer_report_title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="filter-section">
+    <ion-item>
+      <ion-label position="stacked">{{ 'servicer_report_date_from' | transloco }}</ion-label>
+      <ion-input type="date" [(ngModel)]="dateFrom" />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">{{ 'servicer_report_date_to' | transloco }}</ion-label>
+      <ion-input type="date" [(ngModel)]="dateTo" />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">{{ 'servicer_report_type_filter' | transloco }}</ion-label>
+      <ion-select [multiple]="true"
+                  [(ngModel)]="selectedTypes"
+                  (ionChange)="onTypeFilterChange($any($event))"
+                  interface="alert">
+        @for (option of interventionTypeOptions; track option.value) {
+          <ion-select-option [value]="option.value">
+            {{ option.labelKey | transloco }}
+          </ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+
+    <ion-button expand="block" fill="solid" color="primary" class="search-button"
+                (click)="onSearch()"
+                [disabled]="store.isLoading()">
+      @if (store.isLoading()) {
+        <ion-spinner name="crescent" slot="start" class="button-spinner" />
+      } @else {
+        <ion-icon name="search-outline" slot="start" />
+      }
+      {{ 'servicer_report_search' | transloco }}
+    </ion-button>
+  </div>
+
+  @if (store.isLoading()) {
+    <div class="loading-state">
+      <ion-spinner name="crescent" />
+    </div>
+  } @else if (store.error(); as errorKey) {
+    <div class="empty-state">
+      <p>{{ errorKey | transloco }}</p>
+    </div>
+  } @else if (store.hasSearched() && !store.hasItems()) {
+    <div class="empty-state">
+      <p>{{ 'servicer_report_no_results' | transloco }}</p>
+    </div>
+  } @else if (store.hasItems()) {
+    <ion-item class="select-all-header" lines="full">
+      <ion-checkbox slot="start"
+                    [checked]="store.allSelected()"
+                    (ionChange)="store.toggleAll($any($event).detail.checked)" />
+      <ion-label>
+        {{ store.selectedCount() }} / {{ store.totalCount() }}
+      </ion-label>
+    </ion-item>
+
+    <ion-list>
+      @for (item of store.filteredItems(); track item.docId) {
+        <ion-item lines="full">
+          <ion-checkbox slot="start"
+                        [checked]="item.selected"
+                        (ionChange)="store.toggleItem(item.docId)" />
+          <ion-label class="ion-text-wrap">
+            <h2>{{ item.sn }}</h2>
+            <p>{{ item.date }} &mdash; {{ item.interventionTypeLabelKey | transloco }}</p>
+            <p>{{ item.address }}{{ item.city ? ', ' + item.city : '' }}</p>
+            @if (item.spareParts) {
+              <p class="spare-parts">{{ item.spareParts }}</p>
+            }
+            <p class="distance">{{ item.distance }} km</p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+
+    <div class="summary-footer">
+      <ion-note>
+        {{ 'servicer_report_total_distance' | transloco }}: {{ store.totalSelectedDistance() }} km
+      </ion-note>
+    </div>
+  }
+</ion-content>
+
+@if (store.hasItems()) {
+  <ion-footer>
+    <ion-toolbar>
+      <ion-button expand="block" color="primary"
+                  [disabled]="!store.canExport()"
+                  (click)="onExport()">
+        @if (store.isExporting()) {
+          <ion-spinner name="crescent" slot="start" class="button-spinner" />
+        } @else {
+          <ion-icon name="download-outline" slot="start" />
+        }
+        {{ 'servicer_report_export' | transloco }}
+      </ion-button>
+    </ion-toolbar>
+  </ion-footer>
+}

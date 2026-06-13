@@ -8,7 +8,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
-  searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline,
+  searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline, statsChartOutline,
 } from 'ionicons/icons';
 import { AuthStore } from '../../core/auth/auth.store';
 import { TenantStore } from '../../core/tenant/tenant.store';
@@ -49,7 +49,7 @@ export class HomePage {
   private splashHidden = false;
 
   constructor() {
-    addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline });
+    addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline, statsChartOutline });
   }
 
   /** Pozove se kad img.onload fire-uje — logo je vidljiv, splash može da nestane. */

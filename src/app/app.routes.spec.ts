@@ -280,11 +280,11 @@ describe('app.routes configuration', () => {
   // ──────────────────────────────────────────────────────────────────────────
   // TC-AR12: Shell children sadrze ocekivani broj ruta
   // ──────────────────────────────────────────────────────────────────────────
-  it('TC-AR12: shell route children should have exactly 15 child routes', () => {
+  it('TC-AR12: shell route children should have exactly 16 child routes', () => {
     const shellRoute = getShellRoute();
     expect(shellRoute).toBeDefined();
     expect(shellRoute!.children).toBeDefined();
-    expect(shellRoute!.children!.length).toBe(15);
+    expect(shellRoute!.children!.length).toBe(16);
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ describe('app.routes configuration', () => {
 
     store.setConfig({
       version: 0,
-      features: { cart: false, documentation: false, deviceCatalog: true, bugReport: false, pdfReports: false, emailOrders: false, partPhoto: false, cartNote: false, deviceManagement: false, interventionPhotos: false, signatureCapture: false },
+      features: { cart: false, documentation: false, deviceCatalog: true, bugReport: false, pdfReports: false, emailOrders: false, partPhoto: false, cartNote: false, deviceManagement: false, interventionPhotos: false, signatureCapture: false, servicerReport: false },
       theme: { primaryColor: '', secondaryColor: '', accentColor: '', logoUrl: '', appTitle: '', menuHeaderBackground: '' },
       localization: { defaultLanguage: 'sr', supportedLanguages: ['sr'] },
       business: { maxPartsPerIntervention: 4, currency: 'EUR', partNote: '', partPhotoFolder: '', snModelStart: 0, snModelLength: 7, snMfgDateStart: 9, snMfgDateLength: 5, snMinLength: 21, snMaxLength: 21, interventionCollections: {}, photoQuality: 70, photoMaxWidth: 1280, orderEmailRecipients: {}, exchangeRate: 1, signature: { commissioning: false, annualService: false, intervention: false } },
