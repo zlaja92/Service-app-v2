@@ -30,6 +30,9 @@ export interface ServicerReportItem {
   dateTimestamp: number;
   /** Distance in km for this intervention (round-trip to customer). */
   distance: number;
+  /** Raw warranty status from the intervention document
+   *  ('in-warranty' | 'out-of-warranty' | '' when not set). */
+  warrantyStatus: string;
   /** Whether the user has selected this item in the UI list (checkbox state). */
   selected: boolean;
 }

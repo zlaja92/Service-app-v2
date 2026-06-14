@@ -6,13 +6,6 @@
   </ion-header>
   <ion-content>
     <ion-list lines="full">
-      <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerReport'">
-        <ion-item button (click)="navigateTo('/servicer-report')">
-          <ion-icon name="clipboard-outline" slot="start" />
-          <ion-label>{{ 'menu_servicer_report' | transloco }}</ion-label>
-        </ion-item>
-      </ion-menu-toggle>
-
       <ion-menu-toggle auto-hide="false" *appFeatureFlag="'bugReport'">
         <ion-item button (click)="navigateTo('/bugs')">
           <ion-icon name="bug-outline" slot="start" />
@@ -31,7 +24,9 @@
         <ion-icon name="globe-outline" slot="start" />
         <ion-select [value]="translationService.currentLanguage()"
                     (ionChange)="onLanguageChange($event)"
-                    interface="popover">
+                    interface="popover"
+                    label-placement="stacked"
+                    [interfaceOptions]="{ cssClass: 'lang-popover' }">
           @for (lang of translationService.availableLanguages(); track lang) {
             <ion-select-option [value]="lang">{{ translationService.getLanguageLabel(lang) }}</ion-select-option>
           }
@@ -44,11 +39,18 @@
         <ion-toggle slot="end" [checked]="themeService.isDarkMode()" (ionChange)="onDarkModeToggle($event)" />
       </ion-item>
 
-      <ion-item *appFeatureFlag="'pdfReports'" lines="none">
+      <ion-item *appFeatureFlag="'pdfReports'">
         <ion-icon name="receipt-outline" slot="start" />
         <ion-label>{{ 'menu_auto_report' | transloco }}</ion-label>
         <ion-toggle slot="end" [checked]="reportPreference.autoOpen()" (ionChange)="onAutoReportToggle($event)" />
       </ion-item>
+
+      <ion-menu-toggle auto-hide="false" *appFeatureFlag="'servicerReport'">
+        <ion-item button (click)="navigateTo('/servicer-report')" lines="none">
+          <ion-icon name="clipboard-outline" slot="start" />
+          <ion-label>{{ 'menu_servicer_report' | transloco }}</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
     </ion-list>
 
     @if (appVersion(); as version) {

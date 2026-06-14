@@ -67,13 +67,9 @@
         </ion-item>
 
         @if (showDateOfPurchase) {
-          <ion-item button="true" detail="true" class="date-pick-item"
-                    (click)="openDatePicker()">
+          <ion-item class="date-pick-item">
             <ion-label position="stacked">{{ 'add_user_date_of_purchase' | transloco }}</ion-label>
-            <div class="date-pick-value"
-                 [class.placeholder]="!form.get('dateOfPurchase')?.value">
-              {{ form.get('dateOfPurchase')?.value || ('add_user_select_date' | transloco) }}
-            </div>
+            <ion-input type="date" formControlName="dateOfPurchase" />
           </ion-item>
         }
       </form>

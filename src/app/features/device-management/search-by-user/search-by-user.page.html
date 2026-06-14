@@ -12,14 +12,14 @@
 
 <ion-content>
   <div class="search-section">
-    <ion-item>
+    <ion-item lines="full">
       <ion-label position="stacked">{{ 'user_search_first_name' | transloco }}</ion-label>
       <ion-input [(ngModel)]="firstName"
                  [placeholder]="'user_search_first_name_placeholder' | transloco"
                  />
     </ion-item>
 
-    <ion-item>
+    <ion-item lines="full">
       <ion-label position="stacked">{{ 'user_search_last_name' | transloco }}</ion-label>
       <ion-input [(ngModel)]="lastName"
                  [placeholder]="'user_search_last_name_placeholder' | transloco"
@@ -41,7 +41,7 @@
   @if (searchService.results.length > 0) {
     <ion-list>
       @for (user of searchService.results; track user.sn) {
-        <ion-item button (click)="onResultClick(user.sn)" detail>
+        <ion-item button (click)="onResultClick(user.sn)" detail lines="full">
           <ion-label>
             <h2>{{ user.firstName }} {{ user.lastName }}</h2>
             <p>{{ user.streetName }} {{ user.homeNumber }}, {{ user.city }}</p>

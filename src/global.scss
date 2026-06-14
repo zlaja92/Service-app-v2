@@ -51,6 +51,58 @@ ion-modal.card-dialog {
   --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
+/*
+ * App-wide: items and the list behind them blend with the page background
+ * instead of showing a lighter default fill. !important is required because
+ * the components set these on their shadow :host, which out-specifies a plain
+ * element selector from the light DOM.
+ */
+ion-item {
+  --background: transparent !important;
+  /* Full-width divider line (edge to edge) instead of the default inset line.
+   * Items with lines="none" still win (higher specificity). */
+  --inner-border-width: 0;
+  --border-width: 0 0 0.55px 0;
+}
+
+ion-list {
+  background: transparent !important;
+}
+
+/* Cards used to wrap fields (e.g. intervention form/detail) should also blend
+ * with the page instead of showing a grey elevated surface. */
+ion-card {
+  --background: transparent !important;
+}
+
+/* App-wide: pure-black page background in dark mode. */
+.ion-palette-dark {
+  --ion-background-color: #000000;
+  --ion-background-color-rgb: 0, 0, 0;
+}
+
+/* App-wide: rounded buttons on Android (iOS is already rounded by default). */
+ion-button.md {
+  --border-radius: 12px;
+}
+
+/*
+ * Language select popover: make it stand out from the side menu behind it
+ * (an elevated grey surface in dark mode, plus a subtle border in both modes).
+ */
+.lang-popover::part(content) {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.ion-palette-dark .lang-popover {
+  --background: #2a2a2a;
+}
+
+.ion-palette-dark .lang-popover::part(content) {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+
 ion-modal.fullscreen-modal {
   --width: 100%;
   --height: 100%;
@@ -137,4 +189,154 @@ ion-content {
 
 ion-content.ion-padding {
   --padding-bottom: calc(var(--ion-padding, 16px) + env(safe-area-inset-bottom));
+}
+
+/*
+ * Servicer-report intervention-type multi-select alert.
+ * Bumps the option/label font so checkbox labels are easier to read.
+ */
+/*
+ * Modern, theme-aligned multi-select alert (intervention types).
+ * Works on both iOS and Android by overriding the shared Ionic alert classes
+ * and using the app's dynamic theme variables (--ion-color-primary set at runtime).
+ */
+.servicer-type-alert {
+  /* Unified window width for both platforms (no platform-specific override). */
+  --width: 70%;
+  --max-width: 560px;
+
+  .alert-wrapper {
+    border-radius: 16px;
+    padding-bottom: 4px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    outline: none;
+  }
+
+  /* Kill the blue WebKit focus ring on iOS. */
+  .alert-wrapper:focus,
+  .alert-button:focus,
+  .alert-tappable:focus {
+    outline: none;
+  }
+
+  /* Header */
+  .alert-head {
+    padding: 20px 20px 14px;
+    text-align: center;
+  }
+
+  .alert-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  /* Options list — no inner scroll, the window grows to fit all items */
+  .alert-checkbox-group {
+    max-height: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .alert-tappable.alert-checkbox {
+    height: auto;
+    min-height: 52px;
+  }
+
+  .alert-checkbox-label {
+    font-size: 1.1rem;
+    white-space: normal;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  /* Gently rounded checkbox box (not fully square) */
+  .alert-checkbox-icon {
+    border-radius: 4px;
+  }
+
+  /* Action buttons: Cancel = soft outline, Confirm = filled primary.
+   * Force a single row (iOS defaults the group to a vertical column). */
+  .alert-button-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: stretch;
+    box-sizing: border-box;
+    width: 100%;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .alert-button {
+    flex: 1 1 0;
+    margin: 0;
+    min-height: 22px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    line-height: 1.2;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: none;
+  }
+
+  .alert-button-inner {
+    justify-content: center;
+  }
+
+  .alert-button:first-child {
+    border: 1.5px solid rgba(0, 0, 0, 0.15);
+    color: var(--ion-color-medium);
+    background: transparent;
+  }
+
+  .alert-button:last-child {
+    border: none;
+    color: var(--ion-color-primary-contrast);
+    background: var(--ion-color-primary);
+  }
+
+  /* Android: enlarge the checkbox box by 30% and bump the option font. */
+  &.md {
+    .alert-checkbox-icon {
+      transform: scale(1.3);
+    }
+
+    /* +15% button height on Android (22px → ~25px). */
+    .alert-button {
+      min-height: 25px;
+    }
+  }
+
+  /* iOS: shorter header (width is unified above). */
+  &.ios {
+    .alert-head {
+      padding: 10px 16px 6px;
+    }
+  }
+}
+
+/*
+ * Dark mode: the dividers and the Cancel button outline use dark (black)
+ * tints that vanish on a dark background — switch them to light tints.
+ */
+.ion-palette-dark .servicer-type-alert {
+  /* Elevated, opaque surface: lighter than the page so the window stands out. */
+  --background: #2a2a2a;
+
+  .alert-wrapper {
+    background: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .alert-checkbox-group {
+    border-top-color: rgba(255, 255, 255, 0.2);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .alert-button:first-child {
+    border-color: rgba(255, 255, 255, 0.35);
+  }
 }

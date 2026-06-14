@@ -4,7 +4,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonButton, IonIcon, IonItem, IonLabel, IonList, IonCheckbox,
   IonMenuButton, IonSpinner, IonSelect, IonSelectOption, IonNote,
-  IonFooter, IonInput,
+  IonFooter, IonInput, IonSkeletonText,
   ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -25,7 +25,7 @@ import { InterventionType } from '../device-management/models/intervention.model
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonButton, IonIcon, IonItem, IonLabel, IonList, IonCheckbox,
     IonMenuButton, IonSpinner, IonSelect, IonSelectOption, IonNote,
-    IonFooter, IonInput,
+    IonFooter, IonInput, IonSkeletonText,
     TranslocoModule,
   ],
 })
@@ -51,6 +51,9 @@ export class ServicerReportPage {
     { value: InterventionType.INTERVENTION_NOISE, labelKey: 'servicer_report_type_noise' },
     { value: InterventionType.INTERVENTION_REPLACE, labelKey: 'servicer_report_type_replace' },
   ];
+
+  /** Placeholder rows for the loading skeleton. */
+  protected readonly skeletonRows = [0, 1, 2, 3, 4, 5];
 
   constructor() {
     addIcons({ searchOutline, downloadOutline });
@@ -111,7 +114,6 @@ export class ServicerReportPage {
     const toast = await this.toastCtrl.create({
       message: this.transloco.translate(translationKey),
       duration: 3000,
-      color: 'warning',
       position: 'bottom',
     });
     await toast.present();

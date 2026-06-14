@@ -13,6 +13,12 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Native date picker accent: selected day + dialog buttons -->
+        <item name="colorAccent">@color/datePickerAccent</item>
+        <item name="colorControlActivated">@color/datePickerAccent</item>
+        <item name="android:colorControlActivated">@color/datePickerAccent</item>
+        <!-- Rounded corners for native dialogs (date picker), Android 9+ -->
+        <item name="android:dialogCornerRadius">20dp</item>
     </style>
 
 

@@ -1,10 +1,39 @@
+/* No horizontal padding so the field divider lines reach the screen edges
+ * (like the list). Content stays inset via each ion-item's own padding. */
 .filter-section {
-  padding: 16px;
+  padding: 8px 0 0;
 }
 
 .search-button {
-  margin-top: 16px;
+  margin: 16px 16px 0;
   height: 40px;
+}
+
+/* Type filter: cap the (possibly long) selected value so it doesn't run
+ * into the dropdown arrow. */
+.filter-section ion-select::part(text) {
+  max-width: 50%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Android: the native date value has a small left indent — remove it so the
+ * date lines up with the stacked label. */
+:host-context(.md) .filter-section ion-input {
+  --padding-start: 0;
+}
+
+/* Tighten the gap between each field value (date / selected type) and its
+ * divider line, on both platforms. */
+.filter-section ion-item {
+  --inner-padding-bottom: 0;
+}
+
+/* iOS: move the date value down — more gap above (from the label), less below
+ * (closer to the divider line). */
+:host-context(.ios) .filter-section ion-input {
+  --padding-top: 8px;
 }
 
 .button-spinner {
@@ -29,8 +58,17 @@
 }
 
 .select-all-header {
-  --background: var(--ion-color-light);
   font-weight: 600;
+}
+
+/* Android: the count note is smaller than on iOS — match it. */
+:host-context(.md) .select-all-header ion-note {
+  font-size: 1rem;
+}
+
+/* Rounded checkboxes in the interventions list (and select-all header). */
+ion-checkbox {
+  --border-radius: 6px;
 }
 
 ion-item h2 {
@@ -43,6 +81,10 @@ ion-item p {
 
 .spare-parts {
   font-style: italic;
+}
+
+.warranty {
+  font-weight: 600;
 }
 
 .distance {

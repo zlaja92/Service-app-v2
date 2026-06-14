@@ -183,7 +183,7 @@ export class InterventionReportService {
     if (!d) return '';
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}.${month}.${d.getFullYear()}`;
+    return `${day}.${month}.${d.getFullYear()}.`;
   }
 
   private async showError(): Promise<void> {

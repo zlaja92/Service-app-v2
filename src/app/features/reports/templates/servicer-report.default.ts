@@ -8,13 +8,22 @@ export function servicerReportDefault(
 ): TDocumentDefinitions {
   const content: Content[] = [];
 
-  // ── Header (company) ──
+  // ── Title ──
+  content.push({
+    text: t('servicer_report_pdf_title'),
+    bold: true,
+    fontSize: 14,
+    alignment: 'center',
+    margin: [0, 0, 0, 10],
+  });
+
+  // ── Company (left, left-aligned) + period (right) ──
+  const companyStack: Content[] = [];
+
   if (ctx.company.company?.trim()) {
-    content.push({
-      text: ctx.company.company,
+    companyStack.push({
+      text: `${t('servicer_report_pdf_company')}: ${ctx.company.company.trim()}`,
       bold: true,
-      fontSize: 14,
-      alignment: 'center',
       margin: [0, 0, 0, 2],
     });
   }
@@ -24,44 +33,32 @@ export function servicerReportDefault(
     .join(', ');
 
   if (addressLine) {
-    content.push({
-      text: addressLine,
-      alignment: 'center',
-      margin: [0, 0, 0, 2],
-    });
+    companyStack.push({ text: addressLine, margin: [0, 0, 0, 2] });
   }
-
-  const contactParts: string[] = [];
   if (ctx.company.pib?.trim()) {
-    contactParts.push(`${t('report_tax_id')}: ${ctx.company.pib.trim()}`);
+    companyStack.push({ text: `${t('report_tax_id')}: ${ctx.company.pib.trim()}`, margin: [0, 0, 0, 2] });
   }
   if (ctx.company.phone?.trim()) {
-    contactParts.push(`${t('report_phone_short')}: ${ctx.company.phone.trim()}`);
+    companyStack.push({ text: `${t('report_phone_short')}: ${ctx.company.phone.trim()}`, margin: [0, 0, 0, 2] });
   }
   if (ctx.company.email?.trim()) {
-    contactParts.push(`${t('report_email_short')}: ${ctx.company.email.trim()}`);
+    companyStack.push({ text: `${t('report_email_short')}: ${ctx.company.email.trim()}` });
   }
 
-  if (contactParts.length > 0) {
-    content.push({
-      text: contactParts.join(' | '),
-      alignment: 'center',
-      margin: [0, 0, 0, 10],
-    });
+  // pdfMake needs at least one item in the stack.
+  if (companyStack.length === 0) {
+    companyStack.push({ text: '' });
   }
 
-  // ── Title + period ──
   content.push({
-    text: t('servicer_report_pdf_title'),
-    bold: true,
-    fontSize: 12,
-    alignment: 'center',
-    margin: [0, 0, 0, 4],
-  });
-
-  content.push({
-    text: `${t('servicer_report_pdf_period')}: ${ctx.dateFrom} – ${ctx.dateTo}`,
-    alignment: 'center',
+    columns: [
+      { width: '*', stack: companyStack, alignment: 'left' },
+      {
+        width: 'auto',
+        text: `${t('servicer_report_pdf_period')}: ${ctx.dateFrom} – ${ctx.dateTo}`,
+        alignment: 'right',
+      },
+    ],
     margin: [0, 0, 0, 10],
   });
 
@@ -69,38 +66,28 @@ export function servicerReportDefault(
   content.push({
     table: {
       headerRows: 1,
-      widths: [20, 105, 55, '*', 60, 80, '*', 30],
+      // Keep each row intact: never split a single row across two pages.
+      dontBreakRows: true,
+      widths: [62, '*', 100, 80, 58, 32, '*'],
       body: [
         [
-          { text: '#', bold: true, alignment: 'center' },
-          { text: t('servicer_report_pdf_col_sn'), bold: true },
           { text: t('servicer_report_pdf_col_date'), bold: true },
           { text: t('servicer_report_pdf_col_address'), bold: true },
-          { text: t('servicer_report_pdf_col_city'), bold: true },
+          { text: t('servicer_report_pdf_col_sn'), bold: true },
           { text: t('servicer_report_pdf_col_type'), bold: true },
-          { text: t('servicer_report_pdf_col_parts'), bold: true },
+          { text: t('servicer_report_pdf_col_warranty'), bold: true },
           { text: t('servicer_report_pdf_col_distance'), bold: true, alignment: 'right' },
+          { text: t('servicer_report_pdf_col_parts'), bold: true },
         ],
-        ...ctx.items.map((item, index) => [
-          { text: String(index + 1), alignment: 'center' as const },
-          { text: item.sn || '' },
+        ...ctx.items.map((item) => [
           { text: item.date || '' },
-          { text: item.address || '' },
-          { text: item.city || '' },
+          { text: [item.address, item.city].filter((p) => !!p && p.trim()).join(', ') },
+          { text: item.sn || '' },
           { text: item.interventionTypeLabel || '' },
-          { text: item.spareParts || '' },
+          { text: item.warrantyLabel || '' },
           { text: item.distance != null ? String(item.distance) : '', alignment: 'right' as const },
+          { text: item.spareParts || '' },
         ]),
-        [
-          { text: t('servicer_report_pdf_total'), bold: true, colSpan: 6, alignment: 'right' as const },
-          { text: '' },
-          { text: '' },
-          { text: '' },
-          { text: '' },
-          { text: '' },
-          { text: String(ctx.totalInterventions), bold: true, alignment: 'center' as const },
-          { text: String(ctx.totalDistance), bold: true, alignment: 'right' as const },
-        ],
       ],
     },
     layout: {

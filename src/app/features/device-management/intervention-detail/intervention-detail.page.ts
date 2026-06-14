@@ -11,6 +11,7 @@ import { InterventionService } from '../services/intervention.service';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { DeviceEnvInfoService } from '../services/device-env-info.service';
 import { InterventionReportService } from '../../reports/services/intervention-report.service';
+import { ServicerService } from '../../../core/servicer/servicer.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { toDate } from '../../../core/firebase/timestamp.utils';
@@ -42,6 +43,7 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   sparePart4: 'intervention_spare_part_label',
   note: 'intervention_note_label',
   addedBy: 'history_detail_servicer_email',
+  serviceCenter: 'history_detail_service_center',
   addedDate: 'intervention_date_label',
   warrantyStatus: 'add_device_warranty',
   warrantyDate: 'add_device_warranty_date',
@@ -66,6 +68,7 @@ export class InterventionDetailPage implements ViewWillEnter {
   private readonly lookupService = inject(DeviceLookupService);
   private readonly envInfoService = inject(DeviceEnvInfoService);
   private readonly interventionReportService = inject(InterventionReportService);
+  private readonly servicerService = inject(ServicerService);
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly configStore = inject(ConfigStore);
 
@@ -115,6 +118,18 @@ export class InterventionDetailPage implements ViewWillEnter {
       this.notFound = true;
       this.isLoading = false;
       return;
+    }
+
+    if (!this.isRegistration) {
+      // Resolve the company of the servicer who performed the intervention
+      // (servicers/{addedBy}, NOT the logged-in account) so it can be shown as
+      // a regular field. Written into `data` before building the field list so
+      // it is ordered automatically (right after the servicer email).
+      const email = data['addedBy'] ? String(data['addedBy']) : '';
+      if (email) {
+        const servicer = await this.servicerService.getByEmail(email);
+        data['serviceCenter'] = servicer?.company?.trim() || '-';
+      }
     }
 
     this.fields = this.buildDisplayFields(data, this.isRegistration);
@@ -216,7 +231,7 @@ export class InterventionDetailPage implements ViewWillEnter {
       if (!d) return '-';
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
-      return `${day}.${month}.${d.getFullYear()}`;
+      return `${day}.${month}.${d.getFullYear()}.`;
     }
 
     return String(value);

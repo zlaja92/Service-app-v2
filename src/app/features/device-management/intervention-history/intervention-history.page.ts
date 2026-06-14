@@ -92,7 +92,7 @@ export class InterventionHistoryPage implements ViewWillEnter {
       const hasDate = !!purchaseDate;
       const day = purchaseDate ? String(purchaseDate.getDate()).padStart(2, '0') : '';
       const month = purchaseDate ? String(purchaseDate.getMonth() + 1).padStart(2, '0') : '';
-      const formatted = purchaseDate ? `${day}.${month}.${purchaseDate.getFullYear()}` : '';
+      const formatted = purchaseDate ? `${day}.${month}.${purchaseDate.getFullYear()}.` : '';
 
       items.push({
         id: 'header',
@@ -146,7 +146,7 @@ export class InterventionHistoryPage implements ViewWillEnter {
     if (!d) return '';
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}.${month}.${d.getFullYear()}`;
+    return `${day}.${month}.${d.getFullYear()}.`;
   }
 
   private async showToast(message: string): Promise<void> {

@@ -1,3 +1,11 @@
+/* Language select fills the row (same pattern as every other dropdown in the
+ * app). The arrow sits at the far right because the select uses
+ * label-placement="stacked", which makes Ionic's inner wrapper full-width. */
+ion-select {
+  width: 100%;
+  max-width: 100%;
+}
+
 .menu-footer {
   position: absolute;
   bottom: 16px;

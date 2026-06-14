@@ -3,5 +3,6 @@
     <color name="colorPrimary">#3880ff</color>
     <color name="colorPrimaryDark">#3171e0</color>
     <color name="colorAccent">#3880ff</color>
+    <color name="datePickerAccent">#B71C1C</color>
     <color name="splashScreenBackground">#FFFFFF</color>
 </resources>

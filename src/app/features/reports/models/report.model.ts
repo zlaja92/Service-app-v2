@@ -86,6 +86,9 @@ export interface ServicerReportPdfItem {
   date: string;
   /** Distance in km for this intervention. */
   distance: number;
+  /** Translated warranty-status label (e.g. "U garanciji" / "Van garancije").
+   *  Empty string when the source intervention has no warranty status. */
+  warrantyLabel: string;
 }
 
 /** Context passed to the servicer-report PDF template. */

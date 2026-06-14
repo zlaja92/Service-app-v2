@@ -158,6 +158,7 @@ export class ServicerReportService {
 
       const spareParts = this.extractSpareParts(raw.data);
       const distance = Number(raw.data['distance']) || 0;
+      const warrantyStatus = this.str(raw.data['warrantyStatus']);
 
       const addedDate = toDate(raw.data['addedDate'] as Timestamp | null | undefined);
       let dateStr = '';
@@ -167,7 +168,7 @@ export class ServicerReportService {
         const dd = String(addedDate.getDate()).padStart(2, '0');
         const mm = String(addedDate.getMonth() + 1).padStart(2, '0');
         const yyyy = addedDate.getFullYear();
-        dateStr = `${dd}.${mm}.${yyyy}`;
+        dateStr = `${dd}.${mm}.${yyyy}.`;
         dateTimestamp = addedDate.getTime();
       }
 
@@ -183,6 +184,7 @@ export class ServicerReportService {
         date: dateStr,
         dateTimestamp,
         distance,
+        warrantyStatus,
         selected: true,
       });
     }

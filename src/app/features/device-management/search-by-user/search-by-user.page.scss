@@ -1,9 +1,11 @@
+/* No horizontal padding so the field divider lines reach the screen edges
+ * (content stays inset via each ion-item's own padding). */
 .search-section {
-  padding: 16px;
+  padding: 8px 0 0;
 }
 
 .search-button {
-  margin-top: 16px;
+  margin: 16px 16px 0;
   height: 40px;
 }
 

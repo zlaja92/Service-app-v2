@@ -15,7 +15,7 @@ export const INTERVENTION_DISPLAY_FIELDS = [
   'installerName', 'installerPhoneNumber',
   'callAccepted',
   'sparePart1', 'sparePart2', 'sparePart3', 'sparePart4',
-  'addedBy', 'addedDate', 'error', 'note',
+  'serviceCenter', 'addedBy', 'addedDate', 'error', 'note',
 ];
 
 /** Ordered list of fields to display on registration detail page. */

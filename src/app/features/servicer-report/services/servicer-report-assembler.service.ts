@@ -83,15 +83,24 @@ export class ServicerReportAssemblerService {
       spareParts: item.spareParts,
       date: item.date,
       distance: item.distance,
+      warrantyLabel: this.warrantyLabel(item.warrantyStatus),
     };
   }
 
-  /** Formats a JS Date as dd.mm.yyyy (e.g. 05.01.2026). */
+  /** Translates a raw warranty status into a short, human-readable label.
+   *  Returns an empty string for unknown/empty statuses. */
+  private warrantyLabel(status: string): string {
+    if (status === 'in-warranty') return this.transloco.translate('servicer_report_warranty_in');
+    if (status === 'out-of-warranty') return this.transloco.translate('servicer_report_warranty_out');
+    return '';
+  }
+
+  /** Formats a JS Date as dd.mm.yyyy. (e.g. 05.01.2026.). */
   private formatDate(date: Date): string {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
+    return `${day}.${month}.${year}.`;
   }
 
   /** Shows a danger toast when report generation fails. */

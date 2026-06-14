@@ -7,7 +7,7 @@ import {
   IonButton, IonItem, IonInput, IonSelect, IonSelectOption,
   IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
   IonSpinner,
-  ViewWillEnter, ToastController, PickerController, PickerColumn,
+  ViewWillEnter, ToastController,
 } from '@ionic/angular/standalone';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
@@ -53,100 +53,11 @@ export class AddUserPage implements ViewWillEnter {
     dateOfPurchase: new FormControl('', { nonNullable: true }),
   });
 
-  private readonly pickerCtrl = inject(PickerController);
-
-  private readonly MONTH_KEYS = [
-    'add_user_month_jan', 'add_user_month_feb', 'add_user_month_mar',
-    'add_user_month_apr', 'add_user_month_may', 'add_user_month_jun',
-    'add_user_month_jul', 'add_user_month_aug', 'add_user_month_sep',
-    'add_user_month_oct', 'add_user_month_nov', 'add_user_month_dec',
-  ];
-
   get showDateOfPurchase(): boolean {
     const device = this.lookupService.device;
     if (!device) return false;
     return !device.commissioning
       && this.form.get('warrantyStatus')?.value === 'in-warranty';
-  }
-
-  async openDatePicker(): Promise<void> {
-    const today = new Date();
-    const currentValue = this.form.get('dateOfPurchase')?.value as string;
-
-    let selectedDay = today.getDate();
-    let selectedMonth = today.getMonth() + 1;
-    let selectedYear = today.getFullYear();
-
-    if (currentValue) {
-      const [d, m, y] = currentValue.split('.').map(Number);
-      selectedDay = d;
-      selectedMonth = m;
-      selectedYear = y;
-    }
-
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-
-    const picker = await this.pickerCtrl.create({
-      cssClass: 'date-picker',
-      columns: [
-        this.buildDayColumn(daysInMonth, selectedDay),
-        this.buildMonthColumn(selectedMonth),
-        this.buildYearColumn(selectedYear),
-      ],
-      buttons: [
-        {
-          text: this.transloco.translate('add_user_date_cancel'),
-          role: 'cancel',
-          cssClass: 'picker-cancel-btn',
-        },
-        {
-          text: this.transloco.translate('add_user_date_done'),
-          cssClass: 'picker-confirm-btn',
-          handler: (value: Record<string, { value: number }>) => {
-            const day = String(value['day'].value).padStart(2, '0');
-            const month = String(value['month'].value).padStart(2, '0');
-            const year = value['year'].value;
-            this.form.get('dateOfPurchase')?.setValue(`${day}.${month}.${year}`);
-          },
-        },
-      ],
-    });
-    await picker.present();
-  }
-
-  private buildDayColumn(daysInMonth: number, selectedDay: number): PickerColumn {
-    return {
-      name: 'day',
-      selectedIndex: Math.min(selectedDay, daysInMonth) - 1,
-      options: Array.from({ length: daysInMonth }, (_, i) => ({
-        text: String(i + 1),
-        value: i + 1,
-      })),
-    };
-  }
-
-  private buildMonthColumn(selectedMonth: number): PickerColumn {
-    return {
-      name: 'month',
-      selectedIndex: selectedMonth - 1,
-      options: this.MONTH_KEYS.map((key, i) => ({
-        text: this.transloco.translate(key),
-        value: i + 1,
-      })),
-    };
-  }
-
-  private buildYearColumn(selectedYear: number): PickerColumn {
-    const startYear = 2000;
-    const endYear = new Date().getFullYear();
-    return {
-      name: 'year',
-      selectedIndex: Math.min(selectedYear, endYear) - startYear,
-      options: Array.from({ length: endYear - startYear + 1 }, (_, i) => ({
-        text: String(startYear + i),
-        value: startYear + i,
-      })),
-    };
   }
 
   ionViewWillEnter(): void {
@@ -177,7 +88,8 @@ export class AddUserPage implements ViewWillEnter {
     } else if (device.commissioning) {
       data['dateOfPurchase'] = FieldValue.serverTimestamp();
     } else if (formValue.dateOfPurchase) {
-      const [day, month, year] = formValue.dateOfPurchase.split('.').map(Number);
+      // <ion-input type="date"> stores ISO yyyy-MM-dd.
+      const [year, month, day] = formValue.dateOfPurchase.split('-').map(Number);
       data['dateOfPurchase'] = Timestamp.fromDate(new Date(year, month - 1, day));
     }
 

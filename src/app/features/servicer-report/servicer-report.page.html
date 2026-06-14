@@ -12,22 +12,25 @@
 
 <ion-content>
   <div class="filter-section">
-    <ion-item>
+    <ion-item lines="full">
       <ion-label position="stacked">{{ 'servicer_report_date_from' | transloco }}</ion-label>
       <ion-input type="date" [(ngModel)]="dateFrom" />
     </ion-item>
 
-    <ion-item>
+    <ion-item lines="full">
       <ion-label position="stacked">{{ 'servicer_report_date_to' | transloco }}</ion-label>
       <ion-input type="date" [(ngModel)]="dateTo" />
     </ion-item>
 
-    <ion-item>
+    <ion-item lines="full">
       <ion-label position="stacked">{{ 'servicer_report_type_filter' | transloco }}</ion-label>
       <ion-select [multiple]="true"
                   [(ngModel)]="selectedTypes"
                   (ionChange)="onTypeFilterChange($any($event))"
-                  interface="alert">
+                  interface="alert"
+                  [okText]="'servicer_report_select_ok' | transloco"
+                  [cancelText]="'servicer_report_select_cancel' | transloco"
+                  [interfaceOptions]="{ cssClass: 'servicer-type-alert', header: ('servicer_report_select_header' | transloco) }">
         @for (option of interventionTypeOptions; track option.value) {
           <ion-select-option [value]="option.value">
             {{ option.labelKey | transloco }}
@@ -39,19 +42,23 @@
     <ion-button expand="block" fill="solid" color="primary" class="search-button"
                 (click)="onSearch()"
                 [disabled]="store.isLoading()">
-      @if (store.isLoading()) {
-        <ion-spinner name="crescent" slot="start" class="button-spinner" />
-      } @else {
-        <ion-icon name="search-outline" slot="start" />
-      }
+      <ion-icon name="search-outline" slot="start" />
       {{ 'servicer_report_search' | transloco }}
     </ion-button>
   </div>
 
   @if (store.isLoading()) {
-    <div class="loading-state">
-      <ion-spinner name="crescent" />
-    </div>
+    <ion-list>
+      @for (row of skeletonRows; track row) {
+        <ion-item lines="full">
+          <ion-label class="ion-text-wrap">
+            <h2><ion-skeleton-text [animated]="true" style="width: 55%" /></h2>
+            <p><ion-skeleton-text [animated]="true" style="width: 35%" /></p>
+            <p><ion-skeleton-text [animated]="true" style="width: 70%" /></p>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
   } @else if (store.error(); as errorKey) {
     <div class="empty-state">
       <p>{{ errorKey | transloco }}</p>
@@ -65,9 +72,8 @@
       <ion-checkbox slot="start"
                     [checked]="store.allSelected()"
                     (ionChange)="store.toggleAll($any($event).detail.checked)" />
-      <ion-label>
-        {{ store.selectedCount() }} / {{ store.totalCount() }}
-      </ion-label>
+      <ion-label>{{ 'servicer_report_select_all' | transloco }}</ion-label>
+      <ion-note slot="end">{{ store.selectedCount() }}/{{ store.totalCount() }}</ion-note>
     </ion-item>
 
     <ion-list>
@@ -77,23 +83,16 @@
                         [checked]="item.selected"
                         (ionChange)="store.toggleItem(item.docId)" />
           <ion-label class="ion-text-wrap">
-            <h2>{{ item.sn }}</h2>
-            <p>{{ item.date }} &mdash; {{ item.interventionTypeLabelKey | transloco }}</p>
+            <h2>{{ item.date }} &mdash; {{ item.interventionTypeLabelKey | transloco }}</h2>
+            <p>{{ item.sn }}</p>
             <p>{{ item.address }}{{ item.city ? ', ' + item.city : '' }}</p>
             @if (item.spareParts) {
               <p class="spare-parts">{{ item.spareParts }}</p>
             }
-            <p class="distance">{{ item.distance }} km</p>
           </ion-label>
         </ion-item>
       }
     </ion-list>
-
-    <div class="summary-footer">
-      <ion-note>
-        {{ 'servicer_report_total_distance' | transloco }}: {{ store.totalSelectedDistance() }} km
-      </ion-note>
-    </div>
   }
 </ion-content>
 

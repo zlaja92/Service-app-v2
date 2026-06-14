@@ -53,6 +53,7 @@ export class WarrantyExtensionService {
         sn,
         addedBy: this.authStore.userEmail(),
         addedDate: FieldValue.serverTimestamp(),
+        exported: false,
       });
       this.logger.info('Warranty extension recorded', { sn });
       return true;
