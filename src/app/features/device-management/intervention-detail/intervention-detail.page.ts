@@ -32,6 +32,9 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   date: 'intervention_date_label',
   interventionType: 'intervention_type_label',
   interventionDescription: 'intervention_description_label',
+  interventionLocation: 'intervention_location_label',
+  visits: 'intervention_visits_label',
+  workDescription: 'intervention_work_note_label',
   error: 'intervention_error_label',
   distance: 'intervention_distance_label',
   installerName: 'commissioning_installer_name',
@@ -173,9 +176,13 @@ export class InterventionDetailPage implements ViewWillEnter {
       ? REGISTRATION_DISPLAY_FIELDS
       : INTERVENTION_DISPLAY_FIELDS;
 
+    // The error field is hidden in mode2 (matching the intervention form).
+    const isMode2 = this.configStore.business()?.appMode === 'mode2';
+
     const result: DisplayField[] = [];
 
     for (const key of orderedKeys) {
+      if (isMode2 && key === 'error') continue;
       if (key in data) {
         result.push(this.toDisplayField(key, data[key]));
       }
@@ -238,6 +245,6 @@ export class InterventionDetailPage implements ViewWillEnter {
   }
 
   private isTranslatable(key: string): boolean {
-    return ['interventionType', 'interventionDescription', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
+    return ['interventionType', 'interventionDescription', 'interventionLocation', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
   }
 }

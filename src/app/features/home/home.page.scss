@@ -25,6 +25,47 @@ ion-title {
   }
 }
 
+/* Split SN entry: a primary-tinted card holding two side-by-side fields
+ * (Code + Ser.No.) above the search button. Colors follow the tenant theme. */
+.sn-split {
+  margin: 0 0 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(var(--ion-color-primary-rgb), 0.14);
+
+  .sn-split-fields {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .sn-split-card {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--ion-card-background, #ffffff);
+  }
+
+  .sn-split-label {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  ion-input {
+    --padding-start: 0;
+    --padding-top: 2px;
+    --padding-bottom: 0;
+    font-size: 1rem;
+  }
+}
+
+:host-context(.ion-palette-dark) .sn-split .sn-split-card {
+  background: #1f1f1f;
+}
+
 .actions-section {
   padding: 16px 8px;
 

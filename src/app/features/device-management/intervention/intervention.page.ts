@@ -82,16 +82,25 @@ export class InterventionPage implements ViewWillEnter {
 
   protected interventionTypes: InterventionTypeOption[] = [];
   protected faultDescriptions: { key: string; label: string }[] = [];
+  protected interventionLocations: { key: string; label: string }[] = [];
   protected errorCodes: { key: string; label: string }[] = [];
   protected photoRequirement: PhotoRequirement | null = null;
+
+  /** mode2 tailors the form (see BusinessConfig.appMode). */
+  protected get isMode2(): boolean {
+    return this.configStore.business()?.appMode === 'mode2';
+  }
 
   protected form = new FormGroup({
     warrantyStatus: new FormControl('', { nonNullable: true }),
     interventionType: new FormControl('', { nonNullable: true }),
     description: new FormControl('', { nonNullable: true }),
+    interventionLocation: new FormControl('', { nonNullable: true }),
+    visits: new FormControl('', { nonNullable: true }),
     error: new FormControl('', { nonNullable: true }),
     distance: new FormControl(DEFAULT_DISTANCE, { nonNullable: true }),
     note: new FormControl('', { nonNullable: true }),
+    workDescription: new FormControl('', { nonNullable: true }),
   });
 
   protected spareParts = new FormArray<FormControl<string>>([
@@ -120,6 +129,8 @@ export class InterventionPage implements ViewWillEnter {
     const config = this.configStore.config();
     this.faultDescriptions = (config?.interventionFaultOptions?.[device.type] ?? [])
       .map(key => ({ key, label: this.transloco.translate(key) }));
+    this.interventionLocations = (config?.interventionLocationOptions?.[device.type] ?? [])
+      .map(key => ({ key, label: this.transloco.translate(key) }));
     this.errorCodes = (config?.interventionErrorOptions?.[device.type] ?? [])
       .map(key => ({ key, label: this.transloco.translate(key) }));
     this.photoRequirement = null;
@@ -129,6 +140,13 @@ export class InterventionPage implements ViewWillEnter {
 
   updateInterventionTypes(): void {
     if (!this.deviceType) return;
+
+    // mode2: the type select is hidden and the value is forced to repair.
+    if (this.isMode2) {
+      this.form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
+      this.updatePhotoRequirement();
+      return;
+    }
 
     const warranty = this.form.controls.warrantyStatus.value;
     let types = INTERVENTION_OPTIONS[this.deviceType] ?? [];
@@ -202,10 +220,19 @@ export class InterventionPage implements ViewWillEnter {
       warrantyStatus: formValue.warrantyStatus,
       interventionType: formValue.interventionType,
       interventionDescription: formValue.description,
-      error: formValue.error,
       distance: formValue.distance,
       note: formValue.note,
     };
+
+    if (this.isMode2) {
+      // mode2-only fields: intervention location, field visits, work description.
+      data['interventionLocation'] = formValue.interventionLocation;
+      data['visits'] = formValue.visits;
+      data['workDescription'] = formValue.workDescription;
+    } else {
+      // The error field is hidden in mode2, so it is not stored there.
+      data['error'] = formValue.error;
+    }
 
     parts.forEach((part, i) => { data[`sparePart${i + 1}`] = part; });
 
@@ -314,6 +341,22 @@ export class InterventionPage implements ViewWillEnter {
       return false;
     }
 
+    // mode2: intervention location is required.
+    if (this.isMode2 && !value.interventionLocation) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_location'),
+      );
+      return false;
+    }
+
+    // mode2: number of field visits is required.
+    if (this.isMode2 && !value.visits) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_visits'),
+      );
+      return false;
+    }
+
 
     if (this.photoRequirement) {
       const sparePartCount = this.photoRequirement.requireSparePartPhotos
@@ -355,11 +398,15 @@ export class InterventionPage implements ViewWillEnter {
   private resetForm(): void {
     this.form.reset({
       warrantyStatus: '',
-      interventionType: '',
+      // mode2 hides the type select and stores it as a repair.
+      interventionType: this.isMode2 ? InterventionType.INTERVENTION_REPAIR : '',
       description: '',
+      interventionLocation: '',
+      visits: '',
       error: this.errorCodes[0]?.key ?? '',
       distance: DEFAULT_DISTANCE,
       note: '',
+      workDescription: '',
     });
     this.spareParts.clear();
     this.spareParts.push(new FormControl('', { nonNullable: true }));

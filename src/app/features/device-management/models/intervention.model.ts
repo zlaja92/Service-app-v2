@@ -11,11 +11,11 @@ export interface InterventionHistoryItem {
 
 /** Ordered list of fields to display on intervention detail page. */
 export const INTERVENTION_DISPLAY_FIELDS = [
-  'interventionType', 'interventionDescription', 'warrantyStatus',
+  'interventionType', 'interventionDescription', 'interventionLocation', 'visits', 'warrantyStatus',
   'installerName', 'installerPhoneNumber',
   'callAccepted',
   'sparePart1', 'sparePart2', 'sparePart3', 'sparePart4',
-  'serviceCenter', 'addedBy', 'addedDate', 'error', 'note',
+  'serviceCenter', 'addedBy', 'addedDate', 'error', 'note', 'workDescription',
 ];
 
 /** Ordered list of fields to display on registration detail page. */

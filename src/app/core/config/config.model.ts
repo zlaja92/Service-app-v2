@@ -7,6 +7,9 @@ export interface AppConfig {
   interventionFaultOptions: Record<string, string[]>;
   interventionErrorOptions: Record<string, string[]>;
   interventionPhotoConfig: Record<string, Record<string, PhotoRequirement>>;
+  /** Per-device-type i18n key lists for the mode2 "intervention location"
+   *  select (same shape as interventionFaultOptions). Optional. */
+  interventionLocationOptions?: Record<string, string[]>;
 }
 
 export interface FeatureFlags {
@@ -79,6 +82,16 @@ export interface BusinessConfig {
   /** When true, an info notice (translated `start_info_message`) with an OK
    *  button is shown when entering the app. */
   startInfo?: boolean;
+  /** Application mode. 'mode2' tailors the intervention form/history:
+   *  hides the intervention-type select (forced to repair), adds an
+   *  "intervention location" select and a technician work-note field.
+   *  Unset/other → the default behaviour. */
+  appMode?: string;
+  /** Serial-number entry mode on the home screen.
+   *  'split' → two separate Code + Ser.No. inputs: the Code's '/' is stripped
+   *  and concatenated with Ser.No. to form the DB serial number.
+   *  Unset/other → the default single SN input. */
+  snType?: string;
 }
 
 export function getDefaultFeatures(): FeatureFlags {
@@ -142,5 +155,6 @@ export function getDefaultConfig(): AppConfig {
     interventionFaultOptions: {},
     interventionErrorOptions: {},
     interventionPhotoConfig: {},
+    interventionLocationOptions: {},
   };
 }

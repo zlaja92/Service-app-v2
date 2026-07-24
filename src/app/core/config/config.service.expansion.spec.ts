@@ -87,6 +87,7 @@ const BASE_REMOTE_CONFIG: Omit<AppConfig, 'version'> = {
   interventionFaultOptions: {},
   interventionErrorOptions: {},
   interventionPhotoConfig: {},
+  interventionLocationOptions: {},
 };
 
 function setupFirestore(

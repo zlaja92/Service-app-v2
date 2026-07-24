@@ -1,3 +1,13 @@
+/* Cards here should stand out slightly from the page background (overrides the
+ * app-wide transparent card). Light: a touch darker; dark: a touch lighter. */
+ion-card {
+  --background: rgba(0, 0, 0, 0.05) !important;
+}
+
+:host-context(.ion-palette-dark) ion-card {
+  --background: rgba(255, 255, 255, 0.08) !important;
+}
+
 .device-card {
   ion-card-header {
     text-align: center;

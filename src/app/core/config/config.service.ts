@@ -116,6 +116,7 @@ export class ConfigService {
       interventionFaultOptions: { ...defaults.interventionFaultOptions, ...config.interventionFaultOptions },
       interventionErrorOptions: { ...defaults.interventionErrorOptions, ...config.interventionErrorOptions },
       interventionPhotoConfig: { ...defaults.interventionPhotoConfig, ...config.interventionPhotoConfig },
+      interventionLocationOptions: { ...defaults.interventionLocationOptions, ...config.interventionLocationOptions },
     };
   }
 
