@@ -25,7 +25,6 @@ import {
 function createMockFirebaseInitService(): jasmine.SpyObj<FirebaseInitService> {
   const mock = jasmine.createSpyObj<FirebaseInitService>('FirebaseInitService', [
     'initialize',
-    'getApp',
   ]);
   mock.initialize.and.stub();
   return mock;

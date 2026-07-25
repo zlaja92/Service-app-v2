@@ -7,15 +7,38 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Učitaj aktivni brend (zapisuje ga scripts/set-brand.js). NEMA fallback-a
+// namerno: ako brend nije postavljen, build PUCA umesto da tiho izabere pogrešan
+// brend (npr. Ariston umesto Tiki).
+// NAPOMENA: `namespace` NIJE brand-scoped — mora ostati fiksan jer određuje
+// lokaciju generisanih R/BuildConfig klasa i mora se poklapati sa source paketom.
+// Brend menja samo `applicationId` (Store identitet), ime i URL scheme.
+def brandPropsFile = file("brand.properties")
+if (!brandPropsFile.exists()) {
+    throw new GradleException(
+        "android/app/brand.properties ne postoji. Pokreni `node scripts/set-brand.js <brand>` pre Android build-a.")
+}
+def brandProps = new Properties()
+brandProps.load(new FileInputStream(brandPropsFile))
+def brandApplicationId = brandProps.getProperty('brand.applicationId')
+def brandAppName = brandProps.getProperty('brand.appName')
+def brandUrlScheme = brandProps.getProperty('brand.customUrlScheme')
+if (!brandApplicationId || !brandAppName || !brandUrlScheme) {
+    throw new GradleException("brand.properties je nepotpun — ponovo pokreni set-brand.js.")
+}
+
 android {
     namespace = "io.ionic.Ariston"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.ionic.Ariston"
+        applicationId brandApplicationId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 20006
         versionName "2.0.6"
+        resValue "string", "app_name", brandAppName
+        resValue "string", "title_activity_main", brandAppName
+        resValue "string", "custom_url_scheme", brandUrlScheme
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

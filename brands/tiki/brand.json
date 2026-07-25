@@ -1,0 +1,11 @@
+{
+  "id": "tiki",
+  "displayName": "Tiki Servis",
+  "appId": "rs.Tiki",
+  "androidPackage": "rs.Tiki",
+  "iosBundleId": "rs.Tiki",
+  "customUrlScheme": "rs.Tiki",
+  "keystoreFile": "brands/tiki/release.keystore",
+  "splashBackgroundLight": "#FFFFFF",
+  "splashBackgroundDark": "#FFFFFF"
+}

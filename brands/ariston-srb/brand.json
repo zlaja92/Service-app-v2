@@ -1,0 +1,11 @@
+{
+  "id": "ariston-srb",
+  "displayName": "Ariston Service",
+  "appId": "io.ionic.Ariston",
+  "androidPackage": "io.ionic.Ariston",
+  "iosBundleId": "io.ionic.Ariston",
+  "customUrlScheme": "io.ionic.Ariston",
+  "keystoreFile": "brands/ariston-srb/release.keystore",
+  "splashBackgroundLight": "#FFFFFF",
+  "splashBackgroundDark": "#000000"
+}

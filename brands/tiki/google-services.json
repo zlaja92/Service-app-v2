@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "330876649823",
+    "project_id": "tiki-srbija",
+    "storage_bucket": "tiki-srbija.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:330876649823:android:5a615a3d73abd2d15f76ea",
+        "android_client_info": {
+          "package_name": "rs.Tiki"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-vlWTqLvyQXkSCNbTQ_Y9BKX95chhcq0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

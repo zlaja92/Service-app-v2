@@ -1,6 +1,37 @@
 # Specifies intentionally untracked files to ignore when using Git
 # http://git-scm.com/docs/gitignore
 
+# ─── White-label (brands) ────────────────────────────────────────────────────
+# Kanonski izvori žive u brands/<brand>/ i JESU u gitu. Fajlovi ispod su
+# GENERISANE kopije koje scripts/set-brand.js upisuje na native mesta pri
+# svakom biranju brenda — ne smeju u git (inače bi zadnji buildovani brend
+# zaprljao repo i doveo do mešanja).
+/.active-brand
+/capacitor.brand.json
+/android/app/brand.properties
+/android/app/google-services.json
+/ios/App/App/GoogleService-Info.plist
+/src/environments/environment.prod.ts
+
+# Keystore-ovi (Android potpis) — NIKAD u git. Čuvaju se van repoa / u secret store.
+/brands/*/release.keystore
+*.keystore
+*.jks
+
+# Generisane native slike (ikone + splash) — potpuno izvedene iz brands/<brand>/assets/
+# preko `capacitor-assets generate` i scripts/set-brand.js. Ne commituju se: menjaju
+# se pri svakom biranju brenda i prljali bi git. Kanonski izvor je brands/<brand>/assets/.
+# Ko klonira repo: pokrene `npm run set-brand -- <brand>` da ih regeneriše.
+/android/app/src/main/res/drawable*/splash.png
+/android/app/src/main/res/drawable*/splash_icon.png
+/android/app/src/main/res/mipmap-*/ic_launcher*.png
+/ios/App/App/Assets.xcassets/AppIcon.appiconset/*.png
+/ios/App/App/Assets.xcassets/Splash.imageset/*.png
+# resources/ je radna kopija brand assets-a (set-brand.js je prepisuje); PWA ikone
+# generiše capacitor-assets. Oboje izvedeno iz brands/<brand>/assets/.
+/resources/*.png
+/src/assets/icons/icon-*.webp
+
 *~
 *.sw[mnpcod]
 .tmp

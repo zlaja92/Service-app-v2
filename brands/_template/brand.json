@@ -1,0 +1,11 @@
+{
+  "id": "REPLACE-brand-id",
+  "displayName": "REPLACE Display Name",
+  "appId": "com.example.replace",
+  "androidPackage": "com.example.replace",
+  "iosBundleId": "com.example.replace",
+  "customUrlScheme": "com.example.replace",
+  "keystoreFile": "brands/REPLACE-brand-id/release.keystore",
+  "splashBackgroundLight": "#FFFFFF",
+  "splashBackgroundDark": "#000000"
+}
