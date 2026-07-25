@@ -1,34 +1,44 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   IonContent, IonItem, IonInput, IonButton, IonSpinner, IonIcon,
+  IonSelect, IonSelectOption,
   MenuController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { alertCircleOutline } from 'ionicons/icons';
+import {
+  alertCircleOutline, mailOutline, lockClosedOutline,
+  arrowForwardOutline, personCircleOutline,
+} from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { ConfigStore } from '../../../core/config/config.store';
 import { SessionService } from '../../../core/session/session.service';
+import { TranslationService } from '../../../core/i18n/translation.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { BUNDLED_LANGUAGES } from '../../../core/i18n/i18n.model';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     TranslocoModule,
     IonContent, IonItem, IonInput, IonButton, IonSpinner, IonIcon,
+    IonSelect, IonSelectOption,
   ],
 })
 export class LoginPage implements OnInit, OnDestroy {
   protected authStore = inject(AuthStore);
   protected configStore = inject(ConfigStore);
   private translocoService = inject(TranslocoService);
+  private translationService = inject(TranslationService);
   private authService = inject(AuthService);
   private sessionService = inject(SessionService);
   private logger = inject(LoggerService);
@@ -38,13 +48,21 @@ export class LoginPage implements OnInit, OnDestroy {
 
   private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+  /** Jezici ponuđeni na login-u (bundled, iz environment-a — pre logina). */
+  protected readonly languages = signal<string[]>(BUNDLED_LANGUAGES);
+  /** Trenutno izabrani jezik (za error poruke). */
+  protected readonly currentLang = signal<string>(this.translationService.currentLanguage());
+
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.pattern(LoginPage.EMAIL_PATTERN)]],
     password: ['', [Validators.required]],
   });
 
   constructor() {
-    addIcons({ alertCircleOutline });
+    addIcons({
+      alertCircleOutline, mailOutline, lockClosedOutline,
+      arrowForwardOutline, personCircleOutline,
+    });
   }
 
   ngOnInit(): void {
@@ -54,6 +72,21 @@ export class LoginPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.menuCtrl.enable(true);
+  }
+
+  /** Pun naziv jezika (npr. "Srpski", "English") za padajući meni. */
+  getLanguageLabel(lang: string): string {
+    return this.translationService.getLanguageLabel(lang);
+  }
+
+  /** Promeni jezik login-a (i budućih error poruka) na izabrani. */
+  async selectLanguage(lang: string): Promise<void> {
+    await this.translationService.setLanguage(lang);
+    this.currentLang.set(lang);
+    // Ako je greška već prikazana, prevedi je na novi jezik.
+    if (this.authStore.error()) {
+      this.authStore.clearError();
+    }
   }
 
   async onLogin(): Promise<void> {

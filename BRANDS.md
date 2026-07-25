@@ -5,6 +5,25 @@ klijent ima svoj folder `brands/<id>/` sa svim što je specifično za njega
 (Firebase, bundle ID, ime app, ikonice). Build bira ceo folder odjednom, pa je
 **nemoguće slučajno pomešati** fajlove dva klijenta.
 
+## ⚠️ Posle git clone / checkout / merge — OBAVEZNO regeneriši slike
+
+Generisane native slike (ikone, splash, splash_icon) NISU u gitu (namerno —
+prave se iz `brands/<id>/assets/`). Zato posle svakog `git clone`, `git checkout`
+na drugu granu, ili `merge`, one **fizički ne postoje na disku**, i Android build
+puca sa:
+
+```
+error: resource drawable/splash_icon not found
+```
+
+Rešenje — regeneriši slike aktiviranjem brenda:
+
+```
+npm run set-brand -- <brand>
+```
+
+(`build-brand.js` orkestrator to radi sam; direktan Android Studio / Xcode Run ne — pa ne zaboravi.)
+
 ## Trenutni brendovi
 
 | id | displayName | bundle ID (Android + iOS) |

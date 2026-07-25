@@ -5,16 +5,61 @@
 .login-container {
   max-width: 400px;
   margin: 0 auto;
-  padding: 40px 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  justify-content: center;
+  // Poravnato pri vrhu (ne centrirano) — kad tastatura iskoči, ceo blok
+  // (jezik → ikona → polja → dugme) ostaje statičan, ne skače/podiže se.
+  // Gornji razmak gura ikonu ispod switchera i statusne trake.
+  padding-top: calc(env(safe-area-inset-top, 0px) + 64px);
+}
+
+// Izbor jezika — padajući meni u gornjem desnom uglu.
+// safe-area-inset-top gura ga ispod statusne trake (sat/baterija).
+.lang-switcher {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
+  right: 20px;
+  z-index: 10;
+
+  ion-select {
+    --padding-start: 10px;
+    --padding-end: 6px;
+    // Ugasi Ionic-ovu donju highlight liniju na fokus/odabir (imamo svoj border).
+    --highlight-height: 0;
+    --highlight-color-focused: transparent;
+    --highlight-color-valid: transparent;
+    --highlight-color-invalid: transparent;
+    --border-width: 0;
+    --border-color: transparent;
+    min-height: 36px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ion-color-medium);
+    border: 1px solid var(--ion-color-medium);
+    border-radius: 8px;
+
+    // Ionic renderuje select kroz shadow parts — ugasi svaku ivicu na njima
+    // (izvor donje linije na fokus/odabir).
+    &::part(container),
+    &::part(text),
+    &::part(icon) {
+      border: none;
+      box-shadow: none;
+    }
+
+    // Strelica je po difoltu poluprovidna (opacity 0.33) pa se jedva vidi na
+    // sivom borderu — učini je vidljivom i u boji teksta.
+    &::part(icon) {
+      opacity: 1;
+      color: var(--ion-color-medium);
+    }
+  }
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 
   h1 {
     font-size: 1.8rem;
@@ -22,27 +67,39 @@
     color: var(--ion-color-primary);
     margin-bottom: 8px;
   }
+}
 
-  p {
-    color: var(--ion-color-medium);
-    font-size: 0.95rem;
-  }
+// Univerzalna ikona naloga — brand-neutralna, boje dugmeta (primary).
+.login-account-icon {
+  font-size: 7rem;
+  color: var(--ion-color-primary);
 }
 
 ion-item {
   --background: transparent;
   margin-bottom: 8px;
+  // Ugasi Ionic-ovu donju highlight liniju (i onu crvenu na fokus/nevalidno).
+  --highlight-height: 0;
+  --highlight-color-focused: transparent;
+  --highlight-color-valid: transparent;
+  --highlight-color-invalid: transparent;
+
+  ion-icon[slot="start"] {
+    color: var(--ion-color-medium);
+    margin-inline-end: 12px;
+  }
 }
 
-.error-text {
-  color: var(--ion-color-danger);
-  font-size: 0.75rem;
-  padding: 0 16px;
-  margin-bottom: 8px;
+// Nevalidno polje (unet neispravan email) — samo crvena ikona, bez donje
+// highlight linije (--highlight-* se ne dira da se ne pojavljuje na fokus).
+ion-item.field-invalid {
+  ion-icon[slot="start"] {
+    color: var(--ion-color-danger);
+  }
 }
 
 .login-button {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .error-message {

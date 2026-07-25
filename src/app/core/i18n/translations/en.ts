@@ -12,13 +12,10 @@ export const en: Translation = {
   menu_version: 'Version',
   menu_servicer_report: 'My interventions',
 
-  login_subtitle: 'Sign in to your account',
-  login_email_required: 'Email is required',
-  login_email_invalid: 'Enter a valid email',
+  // Login je vizuelan/minimalan. Prevode se samo labele polja i auth greške —
+  // prikazuju se na jeziku izabranom na login switcheru.
+  login_email_label: 'Email',
   login_password_label: 'Password',
-  login_password_placeholder: 'Enter your password',
-  login_password_required: 'Password is required',
-  login_submit: 'Sign In',
   login_error_wrong_credentials: 'Incorrect email or password',
   login_error_too_many_attempts: 'Too many attempts. Please try again later.',
   login_error_no_internet: 'No internet connection',

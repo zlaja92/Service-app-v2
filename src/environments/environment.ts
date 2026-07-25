@@ -23,4 +23,9 @@ export const environment = {
   cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
   nativeStorageBucket: 'ariston-srb.firebasestorage.app',
   logLevel: 'INFO',
+  // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
+  languages: ['sr', 'en'],
+  defaultLanguage: 'sr',
+  // Podrazumevana primarna boja (pre učitavanja config-a iz Firestore-a).
+  primaryColor: '#B71C1C',
 };

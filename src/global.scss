@@ -340,3 +340,9 @@ ion-content.ion-padding {
     border-color: rgba(255, 255, 255, 0.35);
   }
 }
+
+// Login language picker popover — uzak, tek toliko da dva slova (SR/EN) i
+// dodir budu udobni. Popover se renderuje u body pa mora globalno.
+.lang-popover {
+  --width: 110px;
+}

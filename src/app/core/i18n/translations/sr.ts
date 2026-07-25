@@ -12,13 +12,10 @@ export const sr: Translation = {
   menu_version: 'Verzija',
   menu_servicer_report: 'Moje intervencije',
 
-  login_subtitle: 'Prijavite se na vaš nalog',
-  login_email_required: 'Email je obavezan',
-  login_email_invalid: 'Unesite validan email',
+  // Login je vizuelan/minimalan. Prevode se samo labele polja i auth greške —
+  // prikazuju se na jeziku izabranom na login switcheru.
+  login_email_label: 'Email',
   login_password_label: 'Lozinka',
-  login_password_placeholder: 'Unesite lozinku',
-  login_password_required: 'Lozinka je obavezna',
-  login_submit: 'Prijavi se',
   login_error_wrong_credentials: 'Pogrešan email ili lozinka',
   login_error_too_many_attempts: 'Previše pokušaja. Pokušajte ponovo kasnije.',
   login_error_no_internet: 'Nema internet konekcije',

@@ -1,3 +1,5 @@
+import { environment } from '../../../environments/environment';
+
 export interface AppConfig {
   version: number;
   features: FeatureFlags;
@@ -112,13 +114,16 @@ export function getDefaultFeatures(): FeatureFlags {
 }
 
 export function getDefaultTheme(): ThemeConfig {
+  // Podrazumevana primarna boja dolazi iz environment-a (po brendu) — vidi se na
+  // login-u i pre učitavanja config-a iz Firestore-a. Fallback na Ariston crvenu.
+  const primary = environment.primaryColor ?? '#B71C1C';
   return {
-    primaryColor: '#B71C1C',
+    primaryColor: primary,
     secondaryColor: '#1565C0',
     accentColor: '#FFC107',
     logoUrl: '',
     appTitle: 'Ariston Service',
-    menuHeaderBackground: '#B71C1C',
+    menuHeaderBackground: primary,
   };
 }
 
