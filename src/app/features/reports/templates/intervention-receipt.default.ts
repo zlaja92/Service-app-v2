@@ -180,8 +180,15 @@ export function interventionReceiptDefault(
   content.push({ text: signLine, alignment: 'center', margin: [0, 32, 0, 0] });
   content.push({ text: t('report_sign_servicer'), alignment: 'center', margin: [0, 1, 0, 0] });
 
+  // FIKSNA visina strane (ne 'auto'). 'auto' pravi JEDNU dugu stranu tačno visine
+  // sadržaja; dugi izveštaj (npr. gasni kotao sa svim parametrima) tako postane
+  // vrlo visok, a ESC/POS print servis renderuje PDF stranu u bitmap i ne uspeva
+  // da rasterizuje previsoku stranu na 80mm (bafer/veličina bitmapa) — print ne
+  // izađe. Fiksna visina tera pdfMake da PRELOMI sadržaj na više kraćih strana,
+  // pa je svaki bitmap mali i pouzdano se štampa (kao u staroj verziji app-a).
+  const pageHeightPt = Math.round(140 * MM_TO_PT); // ~397pt, blizu visine koja radi
   return {
-    pageSize: { width: widthPt, height: 'auto' },
+    pageSize: { width: widthPt, height: pageHeightPt },
     pageMargins: [10, 10, 10, 10],
     defaultStyle: { fontSize: 9 },
     content,
