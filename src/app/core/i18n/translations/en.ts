@@ -30,6 +30,7 @@ export const en: Translation = {
   home_serial_placeholder: '10 characters',
   home_search: 'Search',
   home_scan_barcode: 'Scan barcode',
+  home_scan_error: 'Barcode scan error',
   home_device_not_found: 'Device not found in database',
   home_sn_no_spaces: 'Serial number must not contain spaces',
   home_documentation: 'Documentation',

@@ -122,7 +122,7 @@ export function getDefaultTheme(): ThemeConfig {
     secondaryColor: '#1565C0',
     accentColor: '#FFC107',
     logoUrl: '',
-    appTitle: 'Ariston Service',
+    appTitle: '',
     menuHeaderBackground: primary,
   };
 }

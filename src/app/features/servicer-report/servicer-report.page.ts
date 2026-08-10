@@ -13,6 +13,7 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ServicerReportStore } from './servicer-report.store';
 import { ServicerReportFilter } from './models/servicer-report.model';
 import { InterventionType } from '../device-management/models/intervention.model';
+import { ConfigStore } from '../../core/config/config.store';
 
 @Component({
   selector: 'app-servicer-report',
@@ -33,6 +34,12 @@ export class ServicerReportPage {
   protected readonly store = inject(ServicerReportStore);
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
+  private readonly configStore = inject(ConfigStore);
+
+  /** mode2 (BusinessConfig.appMode) hides the type filter — all types always shown. */
+  protected get isMode2(): boolean {
+    return this.configStore.business()?.appMode === 'mode2';
+  }
 
   /** ISO date string yyyy-MM-dd bound to the date input. Default: first day of current month. */
   protected dateFrom = '';

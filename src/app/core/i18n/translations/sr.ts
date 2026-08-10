@@ -30,6 +30,7 @@ export const sr: Translation = {
   home_serial_placeholder: '10 karaktera',
   home_search: 'Pretraži',
   home_scan_barcode: 'Skeniraj barkod',
+  home_scan_error: 'Greška pri skeniranju barkoda',
   home_device_not_found: 'Uređaj nije pronađen u bazi',
   home_sn_no_spaces: 'Serijski broj ne sme da sadrži razmake',
   home_documentation: 'Dokumentacija',
