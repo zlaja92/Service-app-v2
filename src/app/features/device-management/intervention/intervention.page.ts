@@ -94,12 +94,14 @@ export class InterventionPage implements ViewWillEnter {
   protected form = new FormGroup({
     warrantyStatus: new FormControl('', { nonNullable: true }),
     interventionType: new FormControl('', { nonNullable: true }),
-    description: new FormControl('', { nonNullable: true }),
+    interventionFault: new FormControl('', { nonNullable: true }),
     interventionLocation: new FormControl('', { nonNullable: true }),
     visits: new FormControl('', { nonNullable: true }),
     error: new FormControl('', { nonNullable: true }),
     distance: new FormControl(DEFAULT_DISTANCE, { nonNullable: true }),
     note: new FormControl('', { nonNullable: true }),
+    // mode2-only: fault description textarea (stored under `faultDescription`).
+    faultDescription: new FormControl('', { nonNullable: true }),
     workDescription: new FormControl('', { nonNullable: true }),
   });
 
@@ -219,17 +221,25 @@ export class InterventionPage implements ViewWillEnter {
     const data: Record<string, unknown> = {
       warrantyStatus: formValue.warrantyStatus,
       interventionType: formValue.interventionType,
-      interventionDescription: formValue.description,
       distance: formValue.distance,
-      note: formValue.note,
     };
 
     if (this.isMode2) {
-      // mode2-only fields: intervention location, field visits, work description.
+      // mode2: the fault select is stored under `interventionFault` (not interventionDescription),
+      // plus mode2-only fields: fault description, intervention location, field visits, work description.
+      // mode2 has a `faultDescription` textarea instead of the `note` field.
+      data['interventionFault'] = formValue.interventionFault;
       data['interventionLocation'] = formValue.interventionLocation;
       data['visits'] = formValue.visits;
+      data['faultDescription'] = formValue.faultDescription;
       data['workDescription'] = formValue.workDescription;
     } else {
+      // Non-mode2 stores the fault under `interventionDescription`. Ideally this
+      // key would also be `interventionFault`, but it is kept for backward
+      // compatibility with the existing legacy data already stored in the DB.
+      data['interventionDescription'] = formValue.interventionFault;
+      // Non-mode2 has the `note` field (mode2 uses faultDescription instead).
+      data['note'] = formValue.note;
       // The error field is hidden in mode2, so it is not stored there.
       data['error'] = formValue.error;
     }
@@ -334,9 +344,12 @@ export class InterventionPage implements ViewWillEnter {
       return false;
     }
 
-    if (!value.description) {
+    if (!value.interventionFault) {
+      // mode2 uses the shorter "fault" wording; non-mode2 the "fault description" one.
       void this.showToast(
-        this.transloco.translate('intervention_validation_description'),
+        this.transloco.translate(
+          this.isMode2 ? 'intervention_validation_fault' : 'intervention_validation_fault_description',
+        ),
       );
       return false;
     }
@@ -357,6 +370,21 @@ export class InterventionPage implements ViewWillEnter {
       return false;
     }
 
+    // mode2: fault description (textarea) is required.
+    if (this.isMode2 && !value.faultDescription.trim()) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_fault_description_textarea'),
+      );
+      return false;
+    }
+
+    // mode2: technician work description (textarea) is required.
+    if (this.isMode2 && !value.workDescription.trim()) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_work_description'),
+      );
+      return false;
+    }
 
     if (this.photoRequirement) {
       const sparePartCount = this.photoRequirement.requireSparePartPhotos
@@ -400,7 +428,7 @@ export class InterventionPage implements ViewWillEnter {
       warrantyStatus: '',
       // mode2 hides the type select and stores it as a repair.
       interventionType: this.isMode2 ? InterventionType.INTERVENTION_REPAIR : '',
-      description: '',
+      interventionFault: '',
       interventionLocation: '',
       visits: '',
       error: this.errorCodes[0]?.key ?? '',

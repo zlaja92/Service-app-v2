@@ -41,10 +41,13 @@
         </ion-item>
       }
 
-      <!-- Opis kvara -->
+      <!-- Fault select. mode2 shows fault_label; non-mode2 the description label.
+           Options and the stored form control are the same in both modes. -->
       <ion-item>
-        <ion-label position="stacked">{{ 'intervention_description_label' | transloco }}</ion-label>
-        <ion-select formControlName="description" interface="action-sheet">
+        <ion-label position="stacked">
+          {{ (isMode2 ? 'fault_label' : 'intervention_description_label') | transloco }}
+        </ion-label>
+        <ion-select formControlName="interventionFault" interface="action-sheet">
           @for (desc of faultDescriptions; track desc.key) {
             <ion-select-option [value]="desc.key">{{ desc.label }}</ion-select-option>
           }
@@ -140,22 +143,33 @@
         }
       </ion-grid>
 
-      <!-- Napomena -->
-      <ion-card>
-        <ion-item>
-          <ion-label position="stacked">{{ 'intervention_note_label' | transloco }}</ion-label>
-          <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
-                        [placeholder]="'intervention_note_placeholder' | transloco" />
-        </ion-item>
-      </ion-card>
+      @if (isMode2) {
+        <!-- mode2: fault description (stored under `faultDescription`); no note field. -->
+        <ion-card>
+          <ion-item>
+            <ion-label position="stacked">{{ 'fault_description_label' | transloco }}</ion-label>
+            <ion-textarea formControlName="faultDescription" maxlength="1000" [rows]="7"
+                          [placeholder]="'fault_description_placeholder' | transloco" />
+          </ion-item>
+        </ion-card>
+      } @else {
+        <!-- Napomena -->
+        <ion-card>
+          <ion-item>
+            <ion-label position="stacked">{{ 'intervention_note_label' | transloco }}</ion-label>
+            <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
+                          [placeholder]="'intervention_note_placeholder' | transloco" />
+          </ion-item>
+        </ion-card>
+      }
 
       <!-- Opis posla tehničara (samo mode2) -->
       @if (isMode2) {
         <ion-card>
           <ion-item>
-            <ion-label position="stacked">{{ 'intervention_work_note_label' | transloco }}</ion-label>
+            <ion-label position="stacked">{{ 'intervention_work_description_label' | transloco }}</ion-label>
             <ion-textarea formControlName="workDescription" maxlength="1000" [rows]="7"
-                          [placeholder]="'intervention_work_note_placeholder' | transloco" />
+                          [placeholder]="'intervention_work_description_placeholder' | transloco" />
           </ion-item>
         </ion-card>
       }

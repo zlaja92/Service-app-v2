@@ -29,10 +29,10 @@
   } @else {
     <ion-list>
       @for (field of fields; track field.key) {
-        <ion-item [class.field-uppercase]="field.key === 'interventionType' || field.key === 'interventionDescription'">
+        <ion-item [class.field-uppercase]="field.key === 'interventionType' || field.key === 'interventionDescription' || field.key === 'interventionFault'">
           <ion-label class="ion-text-wrap">
             <h3>{{ field.labelKey | transloco }}{{ field.labelSuffix ? ' ' + field.labelSuffix : '' }}</h3>
-            @if (field.key === 'note' || field.key === 'workDescription') {
+            @if (field.key === 'note' || field.key === 'workDescription' || field.key === 'faultDescription') {
               <ion-textarea readonly [value]="field.translatable ? ('' + field.rawValue | transloco) : '' + field.rawValue" [rows]="5" [autoGrow]="true" />
             } @else {
               <p>{{ field.translatable ? ('' + field.rawValue | transloco) : field.rawValue }}</p>

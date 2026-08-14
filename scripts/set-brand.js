@@ -263,6 +263,19 @@ function main() {
     'colors-night.xml (dark splash bg)',
   );
 
+  // Native Android date picker accent color. The native picker (opened by
+  // <ion-input type="date">) is themed by Android resources, not CSS, so its
+  // color must be written into colors.xml from the brand primary color.
+  const primaryColor = brand.primaryColor;
+  if (!primaryColor) {
+    fail(`brand.json za "${brandId}" nema "primaryColor".`);
+  }
+  replaceInFile(
+    path.join(ROOT, 'android/app/src/main/res/values/colors.xml'),
+    [[/(<color name="datePickerAccent">)[^<]*(<\/color>)/, `$1${primaryColor}$2`]],
+    'colors.xml (date picker accent)',
+  );
+
   // 9) Zapamti aktivni brend.
   fs.writeFileSync(ACTIVE_BRAND_FILE, brandId + '\n');
   log(`Gotovo. Aktivan brend: ${brandId}`);

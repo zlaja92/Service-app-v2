@@ -7,5 +7,6 @@
   "customUrlScheme": "rs.Tiki",
   "keystoreFile": "brands/tiki/release.keystore",
   "splashBackgroundLight": "#FFFFFF",
-  "splashBackgroundDark": "#FFFFFF"
+  "splashBackgroundDark": "#FFFFFF",
+  "primaryColor": "#1578BB"
 }

@@ -7,5 +7,6 @@
   "customUrlScheme": "io.ionic.Ariston",
   "keystoreFile": "brands/ariston-srb/release.keystore",
   "splashBackgroundLight": "#FFFFFF",
-  "splashBackgroundDark": "#000000"
+  "splashBackgroundDark": "#000000",
+  "primaryColor": "#B71C1C"
 }
