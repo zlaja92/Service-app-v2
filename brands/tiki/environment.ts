@@ -13,7 +13,7 @@ export const environment = {
   logLevel: 'WARN',
   // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
   // Posle logina tenant može dodati još jezika iz Firestore-a.
-  languages: ['sr', 'en'],
+  languages: ['sr', 'en', 'hr', 'sl'],
   defaultLanguage: 'sr',
   // Podrazumevana primarna boja — vidi se na login-u i pre učitavanja config-a.
   // TODO(tiki): zameni Tiki brend bojom (npr. plava sa logoa).

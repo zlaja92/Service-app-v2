@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Android 12+ (API 31+) data extraction rules.
+
+  Everything is excluded on purpose. The app stores only caches and local
+  settings in Capacitor Preferences (language, dark mode, tenant config cache,
+  logo cache). Restoring those onto a new install makes a "fresh" install start
+  with a stale tenant config and the previously chosen language instead of the
+  brand default. Real data is not affected: auth goes through Firebase and all
+  records live in Firestore.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>
