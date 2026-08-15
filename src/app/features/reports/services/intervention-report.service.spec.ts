@@ -744,7 +744,8 @@ describe('InterventionReportService', () => {
       };
       const device = createMockDevice();
       await service.open('SN1', device, baseData({ addedDate: mockTimestamp }));
-      expect(capturedCtx!.intervention.date).toBe('07.06.2026');
+      // Serbian date format ends with a trailing dot: 07.06.2026.
+      expect(capturedCtx!.intervention.date).toBe('07.06.2026.');
     });
 
     it('date is empty string when addedDate is absent', async () => {

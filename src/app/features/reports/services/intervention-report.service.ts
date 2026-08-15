@@ -7,6 +7,7 @@ import { getEnvInfoFields, getEnvInfoSections } from '../../device-management/mo
 import { ServicerService } from '../../../core/servicer/servicer.service';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { ConfigStore } from '../../../core/config/config.store';
 import { toDate } from '../../../core/firebase/timestamp.utils';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { InterventionReportContext, ReportConsent, ReportSection } from '../models/report.model';
@@ -33,6 +34,7 @@ export class InterventionReportService {
   private transloco = inject(TranslocoService);
   private toastCtrl = inject(ToastController);
   private logger = inject(LoggerService);
+  private configStore = inject(ConfigStore);
 
   /**
    * Builds the context and renders the report. Does NOT manage a loading spinner
@@ -62,8 +64,14 @@ export class InterventionReportService {
         ? (await this.storageService.getFileUrl(signaturePath)) ?? undefined
         : undefined;
 
+      const isMode2 = this.configStore.business()?.appMode === 'mode2';
+
       const typeRaw = String(data['interventionType'] ?? '');
       const typeLabelKey = this.interventionService.getInterventionLabel(device.type, typeRaw) ?? typeRaw;
+
+      // mode2: fault + location values are stored as i18n keys → translate them.
+      const faultKey = this.str(data['interventionFault']);
+      const locationKey = this.str(data['interventionLocation']);
 
       const fullName = `${this.str(reg['firstName'])} ${this.str(reg['lastName'])}`.trim();
       const address = `${this.str(reg['streetName'])} ${this.str(reg['homeNumber'])}`.trim();
@@ -88,15 +96,24 @@ export class InterventionReportService {
           connectedSn: connectedSn || undefined,
         },
         intervention: {
-          typeLabel: typeLabelKey ? this.transloco.translate(typeLabelKey) : typeRaw,
-          faultDescription: data['interventionDescription']
-            ? this.transloco.translate(this.str(data['interventionDescription']))
-            : '',
+          isMode2,
+          // Non-mode2: interventionType + interventionDescription (as fault) + note.
+          typeLabel: isMode2 ? undefined : (typeLabelKey ? this.transloco.translate(typeLabelKey) : typeRaw),
+          faultDescription: isMode2
+            ? this.str(data['faultDescription'])
+            : (data['interventionDescription']
+              ? this.transloco.translate(this.str(data['interventionDescription']))
+              : ''),
           date: this.formatDate(data['addedDate']),
           purchaseDate: this.formatDate(reg['dateOfPurchase']),
           servicer: servicerEmail,
-          note: this.str(data['note']),
+          note: isMode2 ? undefined : this.str(data['note']),
           parts,
+          // mode2-only fields.
+          fault: isMode2 && faultKey ? this.transloco.translate(faultKey) : undefined,
+          interventionLocation: isMode2 && locationKey ? this.transloco.translate(locationKey) : undefined,
+          visits: isMode2 ? this.str(data['visits']) : undefined,
+          workDescription: isMode2 ? this.str(data['workDescription']) : undefined,
         },
         parameterSections: this.buildParameterSections(device, envInfo),
         consent: this.buildConsent(device.type, callAccepted),

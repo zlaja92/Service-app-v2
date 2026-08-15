@@ -104,12 +104,16 @@ describe('interventionReceiptDefault', () => {
       expect(typeof result).toBe('object');
     });
 
-    it('pageSize has width and height="auto"', () => {
+    it('pageSize has a numeric width and a FIXED numeric height (not "auto")', () => {
+      // Height is intentionally fixed (not 'auto') so long reports paginate into
+      // several short pages — a single very tall page fails to print on the
+      // ESC/POS service (bitmap/buffer limit at 80mm).
       const result = interventionReceiptDefault(buildCtx(), t);
       expect(result.pageSize).toBeDefined();
-      const ps = result.pageSize as { width: number; height: string };
+      const ps = result.pageSize as { width: number; height: number };
       expect(typeof ps.width).toBe('number');
-      expect(ps.height).toBe('auto');
+      expect(typeof ps.height).toBe('number');
+      expect(ps.height).toBeGreaterThan(0);
     });
 
     it('pageMargins is [10, 10, 10, 10]', () => {
