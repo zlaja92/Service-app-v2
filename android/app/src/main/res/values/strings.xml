@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Ariston Service</string>
-    <string name="title_activity_main">Ariston Service</string>
-    <string name="package_name">io.ionic.Ariston</string>
-    <string name="custom_url_scheme">io.ionic.Ariston</string>
+    <!-- Svi stringovi (app_name, title_activity_main, custom_url_scheme) se
+         generišu iz android/app/build.gradle (resValue) na osnovu aktivnog
+         brenda (brand.properties). Nema hardkodovanih po-brend vrednosti ovde.
+         (package_name je uklonjen — nigde se nije koristio.) -->
 </resources>

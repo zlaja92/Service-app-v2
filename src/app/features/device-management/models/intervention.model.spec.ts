@@ -337,8 +337,9 @@ describe('ANNUAL_SERVICE_TYPES', () => {
 describe('INTERVENTION_DISPLAY_FIELDS', () => {
   it('should include core intervention fields in correct order', () => {
     expect(INTERVENTION_DISPLAY_FIELDS[0]).toBe('interventionType');
-    expect(INTERVENTION_DISPLAY_FIELDS[1]).toBe('interventionDescription');
-    expect(INTERVENTION_DISPLAY_FIELDS[2]).toBe('warrantyStatus');
+    expect(INTERVENTION_DISPLAY_FIELDS[1]).toBe('interventionFault');
+    expect(INTERVENTION_DISPLAY_FIELDS[2]).toBe('interventionDescription');
+    expect(INTERVENTION_DISPLAY_FIELDS[3]).toBe('interventionLocation');
   });
 
   it('should include installer info fields', () => {
@@ -364,14 +365,17 @@ describe('INTERVENTION_DISPLAY_FIELDS', () => {
     expect(INTERVENTION_DISPLAY_FIELDS).toContain('note');
   });
 
-  it('should have exactly 14 fields', () => {
-    expect(INTERVENTION_DISPLAY_FIELDS.length).toBe(14);
+  it('should have exactly 20 fields', () => {
+    expect(INTERVENTION_DISPLAY_FIELDS.length).toBe(20);
   });
 
   // ─── Parameterizovani testovi: svako polje u INTERVENTION_DISPLAY_FIELDS ───
   const expectedInterventionDisplayFields = [
     'interventionType',
+    'interventionFault',
     'interventionDescription',
+    'interventionLocation',
+    'visits',
     'warrantyStatus',
     'installerName',
     'installerPhoneNumber',
@@ -380,10 +384,13 @@ describe('INTERVENTION_DISPLAY_FIELDS', () => {
     'sparePart2',
     'sparePart3',
     'sparePart4',
+    'serviceCenter',
     'addedBy',
     'addedDate',
     'error',
     'note',
+    'faultDescription',
+    'workDescription',
   ];
 
   expectedInterventionDisplayFields.forEach((field, idx) => {

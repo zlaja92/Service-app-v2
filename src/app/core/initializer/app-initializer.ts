@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { FirebaseInitService } from '../firebase/firebase-init.service';
 import { AuthService } from '../auth/auth.service';
 import { AuthStore } from '../auth/auth.store';
@@ -22,7 +23,16 @@ export async function appInitializer() {
   const logger = inject(LoggerService);
   const router = inject(Router);
 
-  logger.info('App initializer started');
+  logger.info('App initializer started', { brand: environment.brand });
+
+  // Fail loud: produkcijski build sme da krene samo ako je brend postavljen
+  // (scripts/set-brand.js prepisuje environment.prod.ts). "unset" znači da je
+  // neko pokrenuo `ng build --configuration production` bez set-brand koraka.
+  if (environment.production && (environment.brand === 'unset' || !environment.brand)) {
+    throw new Error(
+      'Brend nije postavljen za produkcijski build. Pokreni `node scripts/set-brand.js <brand>` pre `ng build`.',
+    );
+  }
 
   // Step 1: Initialize Firebase
   firebaseInit.initialize();

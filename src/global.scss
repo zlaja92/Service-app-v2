@@ -340,3 +340,20 @@ ion-content.ion-padding {
     border-color: rgba(255, 255, 255, 0.35);
   }
 }
+
+// Login language picker popover — uzak, tek toliko da dva slova (SR/EN) i
+// dodir budu udobni. Popover se renderuje u body pa mora globalno.
+.lang-popover {
+  --width: 110px;
+}
+
+// Native date picker (<ion-input type="date">) — the selected-date/accent color
+// in the calendar follows the brand primary color (--ion-color-primary, set at
+// runtime per brand). ion-input renders the real <input> inside its SHADOW DOM,
+// so an outer 'ion-input input' selector does NOT cross the shadow boundary —
+// it must go through ::part(native-input). We also target the bare
+// input[type=date] for any non-shadow usage.
+ion-input::part(native-input),
+input[type="date"] {
+  accent-color: var(--ion-color-primary);
+}

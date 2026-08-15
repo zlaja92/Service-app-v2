@@ -24,6 +24,9 @@ export interface ReportDevice {
 }
 
 export interface ReportIntervention {
+  /** When true, the receipt renders the mode2 fields (fault, location, visits,
+   *  faultDescription, workDescription) and hides typeLabel + note. */
+  isMode2?: boolean;
   typeLabel?: string;
   /** Pre-formatted intervention date (dd.mm.yyyy). */
   date?: string;
@@ -33,6 +36,15 @@ export interface ReportIntervention {
   servicer?: string;
   note?: string;
   parts?: string[];
+  // ── mode2-only fields ──
+  /** Translated fault (from interventionFault). */
+  fault?: string;
+  /** Translated fault location (from interventionLocation). */
+  interventionLocation?: string;
+  /** Number of field visits. */
+  visits?: string;
+  /** Technician work description (free text). */
+  workDescription?: string;
 }
 
 /** A pre-resolved, translated group of label/value rows (e.g. an env-info section). */

@@ -22,22 +22,26 @@
       <ion-input type="date" [(ngModel)]="dateTo" />
     </ion-item>
 
-    <ion-item lines="full">
-      <ion-label position="stacked">{{ 'servicer_report_type_filter' | transloco }}</ion-label>
-      <ion-select [multiple]="true"
-                  [(ngModel)]="selectedTypes"
-                  (ionChange)="onTypeFilterChange($any($event))"
-                  interface="alert"
-                  [okText]="'servicer_report_select_ok' | transloco"
-                  [cancelText]="'servicer_report_select_cancel' | transloco"
-                  [interfaceOptions]="{ cssClass: 'servicer-type-alert', header: ('servicer_report_select_header' | transloco) }">
-        @for (option of interventionTypeOptions; track option.value) {
-          <ion-select-option [value]="option.value">
-            {{ option.labelKey | transloco }}
-          </ion-select-option>
-        }
-      </ion-select>
-    </ion-item>
+    <!-- mode2: type filter je sakriven — uvek se prikazuju sve intervencije.
+         Ne-mode2: korisnik bira tipove kao i do sada. -->
+    @if (!isMode2) {
+      <ion-item lines="full">
+        <ion-label position="stacked">{{ 'servicer_report_type_filter' | transloco }}</ion-label>
+        <ion-select [multiple]="true"
+                    [(ngModel)]="selectedTypes"
+                    (ionChange)="onTypeFilterChange($any($event))"
+                    interface="alert"
+                    [okText]="'servicer_report_select_ok' | transloco"
+                    [cancelText]="'servicer_report_select_cancel' | transloco"
+                    [interfaceOptions]="{ cssClass: 'servicer-type-alert', header: ('servicer_report_select_header' | transloco) }">
+          @for (option of interventionTypeOptions; track option.value) {
+            <ion-select-option [value]="option.value">
+              {{ option.labelKey | transloco }}
+            </ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+    }
 
     <ion-button expand="block" fill="solid" color="primary" class="search-button"
                 (click)="onSearch()"

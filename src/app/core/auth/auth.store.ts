@@ -40,5 +40,9 @@ export const AuthStore = signalStore(
     setError(error: string): void {
       patchState(store, { error, isLoading: false });
     },
+
+    clearError(): void {
+      patchState(store, { error: null });
+    },
   })),
 );

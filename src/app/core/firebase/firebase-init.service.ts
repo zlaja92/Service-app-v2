@@ -1,32 +1,25 @@
 import { Injectable } from '@angular/core';
-import { initializeApp, FirebaseApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { environment } from '../../../environments/environment';
+import { Capacitor } from '@capacitor/core';
 import { LoggerService } from '../logger/logger.service';
 
+/**
+ * Firebase se u ovoj aplikaciji koristi ISKLJUČIVO kroz native plugine
+ * (@capacitor-firebase/authentication, /firestore, /functions, /storage), koji
+ * čitaju google-services.json / GoogleService-Info.plist iz native projekta.
+ *
+ * Web JS SDK (firebase/app, firebase/auth, ...) se NE inicijalizuje — nema web
+ * Firebase konfiguracije ni u dev ni u prod environmentu. Ova klasa je zadržana
+ * kao tačka poziva u app initializer-u i za eventualni budući web put.
+ */
 @Injectable({ providedIn: 'root' })
 export class FirebaseInitService {
-  private app: FirebaseApp | null = null;
-
   constructor(private logger: LoggerService) {}
 
   initialize(): void {
-    if (getApps().length > 0) {
-      this.app = getApps()[0];
-      this.logger.debug('Firebase already initialized');
-      return;
+    if (Capacitor.isNativePlatform()) {
+      this.logger.debug('Native platform — Firebase runs through native plugins');
+    } else {
+      this.logger.debug('Web platform — web Firebase JS SDK is not used (native-only app)');
     }
-
-    this.app = initializeApp(environment.firebase);
-    // Initialize Auth to ensure persistence is set up
-    getAuth(this.app);
-    this.logger.info('Firebase initialized', { projectId: environment.firebase.projectId });
-  }
-
-  getApp(): FirebaseApp {
-    if (!this.app) {
-      throw new Error('Firebase not initialized. Call initialize() first.');
-    }
-    return this.app;
   }
 }

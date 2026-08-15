@@ -19,9 +19,18 @@ function exportOneDocDeep(collectionPath, docId) {
 
   attachSubcollections_(collectionPath + "/" + docId, doc, 0, 10);
 
-  Logger.log("Exportovan " + docId + " — ukupno " + countDeep_([doc]) + " dok.");
+  var json = JSON.stringify(doc);
+
+  // Logger.log seče izlaz preko ~8KB ("Logging output too large"). Zato JSON
+  // ispisujemo u komadima ispod tog limita — kopiraj sve delove redom i spoji
+  // (ukloni [n/total] prefikse). Delovi su čist nastavak JSON stringa.
+  var CHUNK = 7000;
+  var total = Math.ceil(json.length / CHUNK);
+  Logger.log("Exportovan " + docId + " — " + countDeep_([doc]) + " dok., " + json.length + " karaktera, " + total + " delova.");
   Logger.log("===== EXPORT START =====");
-  Logger.log(JSON.stringify(doc));
+  for (var p = 0, n = 1; p < json.length; p += CHUNK, n++) {
+    Logger.log("[" + n + "/" + total + "] " + json.substring(p, p + CHUNK));
+  }
   Logger.log("===== EXPORT END =====");
 }
 

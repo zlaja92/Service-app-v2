@@ -28,37 +28,66 @@
         </ion-select>
       </ion-item>
 
-      <!-- Tip intervencije -->
-      <ion-item>
-        <ion-label position="stacked">{{ 'intervention_type_label' | transloco }}</ion-label>
-        <ion-select formControlName="interventionType" interface="action-sheet"
-                    (ionChange)="updatePhotoRequirement()">
-          @for (type of interventionTypes; track type.key) {
-            <ion-select-option [value]="type.key">{{ type.label | transloco }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
+      <!-- Tip intervencije (sakriveno u mode2) -->
+      @if (!isMode2) {
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_type_label' | transloco }}</ion-label>
+          <ion-select formControlName="interventionType" interface="action-sheet"
+                      (ionChange)="updatePhotoRequirement()">
+            @for (type of interventionTypes; track type.key) {
+              <ion-select-option [value]="type.key">{{ type.label | transloco }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+      }
 
-      <!-- Opis kvara -->
+      <!-- Fault select. mode2 shows fault_label; non-mode2 the description label.
+           Options and the stored form control are the same in both modes. -->
       <ion-item>
-        <ion-label position="stacked">{{ 'intervention_description_label' | transloco }}</ion-label>
-        <ion-select formControlName="description" interface="action-sheet">
+        <ion-label position="stacked">
+          {{ (isMode2 ? 'fault_label' : 'intervention_description_label') | transloco }}
+        </ion-label>
+        <ion-select formControlName="interventionFault" interface="action-sheet">
           @for (desc of faultDescriptions; track desc.key) {
             <ion-select-option [value]="desc.key">{{ desc.label }}</ion-select-option>
           }
         </ion-select>
       </ion-item>
 
-      <!-- Greška -->
-      <ion-item>
-        <ion-label position="stacked">{{ 'intervention_error_label' | transloco }}</ion-label>
-        <ion-select formControlName="error" interface="action-sheet" class="no-uppercase"
-                    [interfaceOptions]="{ cssClass: 'no-uppercase-sheet' }">
-          @for (error of errorCodes; track error.key) {
-            <ion-select-option [value]="error.key">{{ error.label }}</ion-select-option>
-          }
-        </ion-select>
-      </ion-item>
+      <!-- Lokacija intervencije (samo mode2) -->
+      @if (isMode2) {
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_location_label' | transloco }}</ion-label>
+          <ion-select formControlName="interventionLocation" interface="action-sheet">
+            @for (loc of interventionLocations; track loc.key) {
+              <ion-select-option [value]="loc.key">{{ loc.label }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+
+        <!-- Broj izlazaka na teren -->
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_visits_label' | transloco }}</ion-label>
+          <ion-select formControlName="visits" interface="action-sheet">
+            <ion-select-option value="1">1</ion-select-option>
+            <ion-select-option value="2">2</ion-select-option>
+            <ion-select-option value="3">3</ion-select-option>
+          </ion-select>
+        </ion-item>
+      }
+
+      <!-- Greška (sakriveno u mode2) -->
+      @if (!isMode2) {
+        <ion-item>
+          <ion-label position="stacked">{{ 'intervention_error_label' | transloco }}</ion-label>
+          <ion-select formControlName="error" interface="action-sheet" class="no-uppercase"
+                      [interfaceOptions]="{ cssClass: 'no-uppercase-sheet' }">
+            @for (error of errorCodes; track error.key) {
+              <ion-select-option [value]="error.key">{{ error.label }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+      }
 
       <!-- Kilometraža + Datum -->
       <ion-grid>
@@ -114,14 +143,36 @@
         }
       </ion-grid>
 
-      <!-- Napomena -->
-      <ion-card>
-        <ion-item>
-          <ion-label position="stacked">{{ 'intervention_note_label' | transloco }}</ion-label>
-          <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
-                        [placeholder]="'intervention_note_placeholder' | transloco" />
-        </ion-item>
-      </ion-card>
+      @if (isMode2) {
+        <!-- mode2: fault description (stored under `faultDescription`); no note field. -->
+        <ion-card>
+          <ion-item>
+            <ion-label position="stacked">{{ 'fault_description_label' | transloco }}</ion-label>
+            <ion-textarea formControlName="faultDescription" maxlength="1000" [rows]="7"
+                          [placeholder]="'fault_description_placeholder' | transloco" />
+          </ion-item>
+        </ion-card>
+      } @else {
+        <!-- Napomena -->
+        <ion-card>
+          <ion-item>
+            <ion-label position="stacked">{{ 'intervention_note_label' | transloco }}</ion-label>
+            <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
+                          [placeholder]="'intervention_note_placeholder' | transloco" />
+          </ion-item>
+        </ion-card>
+      }
+
+      <!-- Opis posla tehničara (samo mode2) -->
+      @if (isMode2) {
+        <ion-card>
+          <ion-item>
+            <ion-label position="stacked">{{ 'intervention_work_description_label' | transloco }}</ion-label>
+            <ion-textarea formControlName="workDescription" maxlength="1000" [rows]="7"
+                          [placeholder]="'intervention_work_description_placeholder' | transloco" />
+          </ion-item>
+        </ion-card>
+      }
 
     </form>
 

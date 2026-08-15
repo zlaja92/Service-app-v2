@@ -9,13 +9,20 @@ export interface InterventionHistoryItem {
   clickable: boolean;
 }
 
-/** Ordered list of fields to display on intervention detail page. */
+/** Ordered list of fields to display on intervention detail page.
+ *  `interventionFault` + `faultDescription` are mode2-only; `interventionType`,
+ *  `interventionDescription`, `error`, `note` are non-mode2. Only keys present in
+ *  the stored document are rendered, and detail.page.ts additionally hides the
+ *  non-mode2 keys in mode2 (and vice versa) to match the intervention form. */
 export const INTERVENTION_DISPLAY_FIELDS = [
-  'interventionType', 'interventionDescription', 'warrantyStatus',
+  'interventionType', 'interventionFault', 'interventionDescription',
+  'interventionLocation', 'visits', 'warrantyStatus',
   'installerName', 'installerPhoneNumber',
   'callAccepted',
   'sparePart1', 'sparePart2', 'sparePart3', 'sparePart4',
   'serviceCenter', 'addedBy', 'addedDate', 'error', 'note',
+  // faultDescription sits directly above workDescription (both at the end).
+  'faultDescription', 'workDescription',
 ];
 
 /** Ordered list of fields to display on registration detail page. */

@@ -32,6 +32,12 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   date: 'intervention_date_label',
   interventionType: 'intervention_type_label',
   interventionDescription: 'intervention_description_label',
+  // mode2-only fault select; always uses the fault label (shown only in mode2).
+  interventionFault: 'fault_label',
+  faultDescription: 'fault_description_label',
+  interventionLocation: 'intervention_location_label',
+  visits: 'intervention_visits_label',
+  workDescription: 'intervention_work_description_label',
   error: 'intervention_error_label',
   distance: 'intervention_distance_label',
   installerName: 'commissioning_installer_name',
@@ -173,9 +179,18 @@ export class InterventionDetailPage implements ViewWillEnter {
       ? REGISTRATION_DISPLAY_FIELDS
       : INTERVENTION_DISPLAY_FIELDS;
 
+    // Match the intervention form: some fields are mode2-only, others non-mode2.
+    const isMode2 = this.configStore.business()?.appMode === 'mode2';
+    // Fields shown ONLY in mode2.
+    const mode2OnlyKeys = ['interventionFault', 'faultDescription', 'interventionLocation', 'visits', 'workDescription'];
+    // Fields shown ONLY in non-mode2 (hidden in mode2).
+    const nonMode2OnlyKeys = ['interventionType', 'interventionDescription', 'error', 'note'];
+
     const result: DisplayField[] = [];
 
     for (const key of orderedKeys) {
+      if (isMode2 && nonMode2OnlyKeys.includes(key)) continue;
+      if (!isMode2 && mode2OnlyKeys.includes(key)) continue;
       if (key in data) {
         result.push(this.toDisplayField(key, data[key]));
       }
@@ -238,6 +253,8 @@ export class InterventionDetailPage implements ViewWillEnter {
   }
 
   private isTranslatable(key: string): boolean {
-    return ['interventionType', 'interventionDescription', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
+    // interventionFault holds an i18n key (like interventionDescription); faultDescription
+    // is free text (typed by the technician), so it is NOT translatable.
+    return ['interventionType', 'interventionDescription', 'interventionFault', 'interventionLocation', 'error', 'callAccepted', 'warrantyStatus'].includes(key);
   }
 }

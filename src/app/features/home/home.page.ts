@@ -46,7 +46,24 @@ export class HomePage {
   private translocoService = inject(TranslocoService);
 
   snInput = '';
+  /** Split SN mode: device code (e.g. "123456/78", 9 chars) + serial number (10 chars). */
+  codeInput = '';
+  serialInput = '';
+  /** Fixed lengths for the split SN inputs. */
+  protected readonly CODE_LENGTH = 9;
+  protected readonly SERIAL_LENGTH = 10;
   private splashHidden = false;
+
+  /** When true, the home screen shows the split Code + Ser.No. inputs. */
+  protected get isSplitSn(): boolean {
+    return this.configStore.business()?.snType === 'split';
+  }
+
+  /** Split search is enabled once the code (9) and serial (10) are fully entered. */
+  protected get canSearchSplit(): boolean {
+    return this.codeInput.length === this.CODE_LENGTH
+      && this.serialInput.length === this.SERIAL_LENGTH;
+  }
 
   constructor() {
     addIcons({ searchOutline, barcodeOutline, personOutline, hardwareChipOutline, documentTextOutline, cartOutline });
@@ -69,9 +86,15 @@ export class HomePage {
   }
 
   async searchBySn(): Promise<void> {
+    // In split mode the DB serial is the code (with its '/' removed) joined to
+    // the serial number; otherwise it is the single SN input as typed.
+    const sn = this.isSplitSn
+      ? this.codeInput.replace(/\//g, '') + this.serialInput
+      : this.snInput;
+
     // A serial number must never contain whitespace. Manually typed input is
     // validated (not silently stripped) so the user is told to fix it.
-    if (hasWhitespace(this.snInput)) {
+    if (hasWhitespace(sn)) {
       const toast = await this.toastCtrl.create({
         message: this.translocoService.translate('home_sn_no_spaces'),
         duration: 3000,
@@ -82,7 +105,6 @@ export class HomePage {
       return;
     }
 
-    const sn = this.snInput;
     if (!sn) return;
 
     const device = await this.lookupService.lookup(sn);

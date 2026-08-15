@@ -18,25 +18,50 @@
   </div>
 
   <div class="actions-section">
-    <ion-item *appFeatureFlag="'deviceManagement'">
-      <ion-input [placeholder]="'home_sn_placeholder' | transloco"
-                 [(ngModel)]="snInput"
-                 [maxlength]="configStore.business()?.snMaxLength!"
-                 [clearInput]="true" />
-    </ion-item>
+    @if (isSplitSn) {
+      <div class="sn-split" *appFeatureFlag="'deviceManagement'">
+        <div class="sn-split-fields">
+          <div class="sn-split-card">
+            <span class="sn-split-label">{{ 'home_code_label' | transloco }}</span>
+            <ion-input [placeholder]="'home_code_placeholder' | transloco"
+                       [(ngModel)]="codeInput" [maxlength]="CODE_LENGTH" [clearInput]="true" />
+          </div>
+          <div class="sn-split-card">
+            <span class="sn-split-label">{{ 'home_serial_label' | transloco }}</span>
+            <ion-input [placeholder]="'home_serial_placeholder' | transloco"
+                       [(ngModel)]="serialInput" [maxlength]="SERIAL_LENGTH" [clearInput]="true" />
+          </div>
+        </div>
 
-    <ion-button expand="block" fill="solid" color="primary"
-                (click)="searchBySn()" [disabled]="snInput.length < (configStore.business()?.snMinLength ?? 0)"
-                *appFeatureFlag="'deviceManagement'">
-      <ion-icon name="search-outline" slot="start" />
-      {{ 'home_search' | transloco }}
-    </ion-button>
+        <ion-button expand="block" fill="solid" color="primary"
+                    (click)="searchBySn()" [disabled]="!canSearchSplit">
+          <ion-icon name="search-outline" slot="start" />
+          {{ 'home_search' | transloco }}
+        </ion-button>
+      </div>
+    } @else {
+      <ion-item *appFeatureFlag="'deviceManagement'">
+        <ion-input [placeholder]="'home_sn_placeholder' | transloco"
+                   [(ngModel)]="snInput"
+                   [maxlength]="configStore.business()?.snMaxLength!"
+                   [clearInput]="true" />
+      </ion-item>
 
-    <ion-button expand="block" fill="outline" color="primary"
-                (click)="scanBarcode()" *appFeatureFlag="'deviceManagement'">
-      <ion-icon name="barcode-outline" slot="start" />
-      {{ 'home_scan_barcode' | transloco }}
-    </ion-button>
+      <ion-button expand="block" fill="solid" color="primary"
+                  (click)="searchBySn()" [disabled]="snInput.length < (configStore.business()?.snMinLength ?? 0)"
+                  *appFeatureFlag="'deviceManagement'">
+        <ion-icon name="search-outline" slot="start" />
+        {{ 'home_search' | transloco }}
+      </ion-button>
+    }
+
+    @if (!isSplitSn) {
+      <ion-button expand="block" fill="outline" color="primary"
+                  (click)="scanBarcode()" *appFeatureFlag="'deviceManagement'">
+        <ion-icon name="barcode-outline" slot="start" />
+        {{ 'home_scan_barcode' | transloco }}
+      </ion-button>
+    }
 
     <ion-button expand="block" fill="outline" color="primary"
                 (click)="navigateTo('/docs')" *appFeatureFlag="'documentation'">

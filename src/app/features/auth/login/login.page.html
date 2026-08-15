@@ -1,57 +1,87 @@
 <ion-content class="login-content">
   <div class="login-container">
+    <!-- Izbor jezika: padajući meni. Dostupni jezici i podrazumevani dolaze iz
+         environment-a (po brendu). Pozicioniran uz safe-area da ne uleti pod
+         statusnu traku (sat/baterija). -->
+    @if (languages().length > 1) {
+      <div class="lang-switcher">
+        <ion-select
+          [value]="currentLang()"
+          interface="popover"
+          [interfaceOptions]="{ cssClass: 'lang-popover' }"
+          (ionChange)="selectLanguage($event.detail.value)"
+          aria-label="Language"
+        >
+          @for (lang of languages(); track lang) {
+            <ion-select-option [value]="lang">
+              {{ lang | uppercase }}
+            </ion-select-option>
+          }
+        </ion-select>
+      </div>
+    }
+
+    <!-- Univerzalna ikona naloga — bez brenda, bez teksta. Login je isti za
+         sve klijente pa je namerno brand-neutralan. -->
     <div class="login-header">
-      <h1>{{ configStore.appTitle() }}</h1>
-      <p>{{ 'login_subtitle' | transloco }}</p>
+      <ion-icon name="person-circle-outline" class="login-account-icon" aria-hidden="true" />
     </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
-      <ion-item>
+      <!-- Email polje: ikona + univerzalni termin "Email". Crvena ivica SAMO ako
+           je unet neispravan email (ima vrednost + loš format) — ne kad je prazno
+           ili samo dodirnuto, da klik na drugo mesto ne oboji polje crveno. -->
+      <ion-item
+        [class.field-invalid]="loginForm.get('email')?.value && loginForm.get('email')?.errors?.['pattern']"
+      >
+        <ion-icon name="mail-outline" slot="start" aria-hidden="true" />
         <ion-input
           formControlName="email"
           type="email"
-          label="Email"
+          [label]="'login_email_label' | transloco"
           labelPlacement="floating"
           placeholder="email@example.com"
+          autocomplete="email"
+          inputmode="email"
         />
       </ion-item>
-      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['required']) {
-        <div class="error-text">{{ 'login_email_required' | transloco }}</div>
-      }
-      @if (loginForm.get('email')?.touched && loginForm.get('email')?.errors?.['pattern']) {
-        <div class="error-text">{{ 'login_email_invalid' | transloco }}</div>
-      }
 
+      <!-- Password polje: ikona + univerzalni termin "Password". Nema crvene
+           ivice — jedini validator je "obavezno", a prazno polje ne bojimo
+           (dugme je ionako disabled dok se ne unese). -->
       <ion-item>
+        <ion-icon name="lock-closed-outline" slot="start" aria-hidden="true" />
         <ion-input
           formControlName="password"
           type="password"
           [label]="'login_password_label' | transloco"
           labelPlacement="floating"
-          [placeholder]="'login_password_placeholder' | transloco"
+          autocomplete="current-password"
         />
       </ion-item>
-      @if (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['required']) {
-        <div class="error-text">{{ 'login_password_required' | transloco }}</div>
-      }
 
+      <!-- Dugme: strelica ikona (bez teksta) — vizuelno, univerzalno.
+           Disabled dok forma nije validna, pa "obavezno" poruke ne trebaju. -->
       <ion-button
         expand="block"
         type="submit"
         [disabled]="loginForm.invalid || authStore.isLoading()"
         class="login-button"
+        aria-label="Sign in"
       >
         @if (authStore.isLoading()) {
           <ion-spinner name="crescent" />
         } @else {
-          {{ 'login_submit' | transloco }}
+          <ion-icon name="arrow-forward-outline" slot="icon-only" />
         }
       </ion-button>
     </form>
 
+    <!-- Auth greške: prevedene na izabrani jezik (iznad). Jedini tekst koji
+         korisniku mora biti razumljiv. -->
     @if (authStore.error(); as error) {
       <div class="error-message">
-        <ion-icon name="alert-circle-outline" />
+        <ion-icon name="alert-circle-outline" aria-hidden="true" />
         {{ error }}
       </div>
     }

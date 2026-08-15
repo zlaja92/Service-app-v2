@@ -41,6 +41,7 @@ describe('ConfigService', () => {
     interventionFaultOptions: {},
     interventionErrorOptions: {},
     interventionPhotoConfig: {},
+    interventionLocationOptions: {},
   };
 
   const validFullConfig: AppConfig = { ...validRemoteConfig, version: 5 };

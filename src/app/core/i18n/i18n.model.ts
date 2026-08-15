@@ -1,4 +1,5 @@
 import { Translation } from '@jsverse/transloco';
+import { environment } from '../../../environments/environment';
 
 export interface TranslationVersionEntry {
   version: number;
@@ -9,8 +10,10 @@ export interface TranslationVersionDoc {
   [lang: string]: TranslationVersionEntry;
 }
 
-export const DEFAULT_LANGUAGE = 'sr';
-export const BUNDLED_LANGUAGES = ['sr', 'en'];
+// Jezici i podrazumevani jezik dolaze iz environment-a (po brendu). Fallback je
+// SAMO engleski (univerzalan) ako environment nema polja.
+export const DEFAULT_LANGUAGE = environment.defaultLanguage ?? 'en';
+export const BUNDLED_LANGUAGES = environment.languages ?? ['en'];
 
 export const LANGUAGE_PREF_KEY = 'app_language';
 

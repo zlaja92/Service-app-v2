@@ -102,17 +102,35 @@ export function interventionReceiptDefault(
   content.push(divider());
 
   // ── Device / intervention ──
+  const iv = ctx.intervention;
   content.push(row(t('report_model'), ctx.device.name));
-  content.push(row(t('report_intervention_type'), ctx.intervention.typeLabel));
-  content.push(row(t('report_date'), ctx.intervention.date));
+  // Non-mode2: intervention type. mode2 hides it (replaced by the fault row below).
+  if (!iv.isMode2) content.push(row(t('report_intervention_type'), iv.typeLabel));
+  content.push(row(t('report_date'), iv.date));
   content.push(row(t('report_serial'), ctx.device.sn));
   if (ctx.device.connectedSn) content.push(row(t('report_serial2'), ctx.device.connectedSn));
-  content.push(row(t('report_fault'), ctx.intervention.faultDescription));
-  content.push(row(t('report_purchase_date'), ctx.intervention.purchaseDate));
-  (ctx.intervention.parts ?? []).forEach((part, i) => {
+
+  if (iv.isMode2) {
+    // mode2 rows: fault, fault location, field visits.
+    content.push(row(t('report_fault_mode2'), iv.fault));
+    content.push(row(t('report_location'), iv.interventionLocation));
+    content.push(row(t('report_visits'), iv.visits));
+  } else {
+    content.push(row(t('report_fault'), iv.faultDescription));
+  }
+
+  content.push(row(t('report_purchase_date'), iv.purchaseDate));
+  (iv.parts ?? []).forEach((part, i) => {
     if (part && part.trim()) content.push(row(`${t('report_spare_part')} ${i + 1}`, part));
   });
-  content.push(...stacked(t('report_note'), ctx.intervention.note));
+
+  if (iv.isMode2) {
+    // mode2: fault description + technician work description (both free text).
+    content.push(...stacked(t('report_fault_description'), iv.faultDescription));
+    content.push(...stacked(t('report_work_description'), iv.workDescription));
+  } else {
+    content.push(...stacked(t('report_note'), iv.note));
+  }
 
   // ── Device parameters (env-info) — only when present ──
   const sections = ctx.parameterSections ?? [];
@@ -180,8 +198,15 @@ export function interventionReceiptDefault(
   content.push({ text: signLine, alignment: 'center', margin: [0, 32, 0, 0] });
   content.push({ text: t('report_sign_servicer'), alignment: 'center', margin: [0, 1, 0, 0] });
 
+  // FIKSNA visina strane (ne 'auto'). 'auto' pravi JEDNU dugu stranu tačno visine
+  // sadržaja; dugi izveštaj (npr. gasni kotao sa svim parametrima) tako postane
+  // vrlo visok, a ESC/POS print servis renderuje PDF stranu u bitmap i ne uspeva
+  // da rasterizuje previsoku stranu na 80mm (bafer/veličina bitmapa) — print ne
+  // izađe. Fiksna visina tera pdfMake da PRELOMI sadržaj na više kraćih strana,
+  // pa je svaki bitmap mali i pouzdano se štampa (kao u staroj verziji app-a).
+  const pageHeightPt = Math.round(140 * MM_TO_PT); // ~397pt, blizu visine koja radi
   return {
-    pageSize: { width: widthPt, height: 'auto' },
+    pageSize: { width: widthPt, height: pageHeightPt },
     pageMargins: [10, 10, 10, 10],
     defaultStyle: { fontSize: 9 },
     content,

@@ -1,5 +1,17 @@
+// Razvojni (dev) Angular environment — koristi se za `ng serve`, `ng test` i
+// `ng build` bez --configuration=production. Za PRODUKCIJU se ovaj fajl
+// ZAMENJUJE odgovarajućim brands/<brand>/environment.ts (vidi angular.json
+// fileReplacements i scripts/set-brand.js), a tamo NEMA web `firebase` ključa.
+//
+// Produkcija koristi Firebase isključivo kroz native plugine (@capacitor-firebase/*).
+// Web `firebase` config ostaje SAMO ovde jer ga integracioni testovi
+// (*.spec.ts) koriste da inicijalizuju web JS SDK DEFAULT app (inače
+// getFirestore()/getAuth() bacaju "No Firebase App"). Nije bezbednosno
+// osetljiv — Firebase web API ključevi nisu tajne (zaštita ide kroz Security
+// Rules i App Check), a u produkcijski build ne ulazi.
 export const environment = {
   production: false,
+  brand: 'dev',
   firebase: {
     apiKey: 'AIzaSyBXcLf2ZUlA3HHVeizPQ3LdT9WWphDmgOY',
     authDomain: 'aristonboilersmk-af027.firebaseapp.com',
@@ -11,4 +23,9 @@ export const environment = {
   cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
   nativeStorageBucket: 'ariston-srb.firebasestorage.app',
   logLevel: 'INFO',
+  // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
+  languages: ['sr', 'en'],
+  defaultLanguage: 'sr',
+  // Podrazumevana primarna boja (pre učitavanja config-a iz Firestore-a).
+  primaryColor: '#B71C1C',
 };

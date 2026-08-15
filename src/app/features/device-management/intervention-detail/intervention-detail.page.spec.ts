@@ -35,6 +35,7 @@ import { LoadingAlertService } from '../../../shared/services/loading-alert.serv
 import { ConfigStore } from '../../../core/config/config.store';
 import { getDefaultConfig } from '../../../core/config/config.model';
 import { ToastController } from '@ionic/angular/standalone';
+import { ServicerService } from '../../../core/servicer/servicer.service';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,7 @@ describe('InterventionDetailPage', () => {
   let mockInterventionReportService: jasmine.SpyObj<InterventionReportService>;
   let mockLoadingAlert: jasmine.SpyObj<LoadingAlertService>;
   let mockToastCtrl: jasmine.SpyObj<ToastController>;
+  let mockServicerService: jasmine.SpyObj<ServicerService>;
   let mockConfigStore: MockConfigStore;
 
   function setup(
@@ -139,6 +141,7 @@ describe('InterventionDetailPage', () => {
         { provide: LoadingAlertService, useValue: mockLoadingAlert },
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: ConfigStore, useValue: mockConfigStore },
+        { provide: ServicerService, useValue: mockServicerService },
       ],
     });
 
@@ -158,6 +161,8 @@ describe('InterventionDetailPage', () => {
     mockInterventionReportService = createMockInterventionReportService();
     mockLoadingAlert = createMockLoadingAlertService();
     mockToastCtrl = createMockToastController();
+    mockServicerService = jasmine.createSpyObj<ServicerService>('ServicerService', ['getByEmail']);
+    mockServicerService.getByEmail.and.resolveTo(null);
     mockConfigStore = createMockConfigStore();
     // Report feature ON by default so canReport reflects the non-registration case;
     // individual tests flip pdfReports to assert the feature-flag gating.
@@ -259,7 +264,10 @@ describe('InterventionDetailPage', () => {
     });
     setup({ sn: 'SN001', id: 'int-1' });
 
-    await component.ionViewWillEnter();
+    component.ionViewWillEnter();
+    // addedBy triggers an extra async hop (servicerService.getByEmail), so wait
+    // for all pending microtasks before asserting on the built field list.
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     const fields = (component as unknown as { fields: Array<{ key: string }> }).fields;
     const keys = fields.map(f => f.key);
@@ -398,8 +406,8 @@ describe('InterventionDetailPage', () => {
     const fields = (component as unknown as { fields: Array<{ key: string; rawValue: unknown }> }).fields;
     const field = fields.find(f => f.key === 'addedDate');
 
-    // Should be formatted as 15.06.2024
-    expect(field?.rawValue).toBe('15.06.2024');
+    // Serbian date format ends with a trailing dot: 15.06.2024.
+    expect(field?.rawValue).toBe('15.06.2024.');
   });
 
   // ─── TC-IDP-16: spareParts array → joined with comma separator ───────────────
@@ -611,6 +619,7 @@ describe('InterventionDetailPage', () => {
         { provide: LoadingAlertService, useValue: mockLoadingAlert },
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: ConfigStore, useValue: mockConfigStore },
+        { provide: ServicerService, useValue: mockServicerService },
       ],
     });
 

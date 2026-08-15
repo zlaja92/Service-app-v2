@@ -244,7 +244,7 @@ describe('InterventionPage', () => {
     const c = component as any;
     c.form.controls.warrantyStatus.setValue(warrantyStatus);
     c.form.controls.interventionType.setValue(interventionType);
-    c.form.controls.description.setValue('Test fault description');
+    c.form.controls.interventionFault.setValue('Test fault description');
   }
 
   // =========================================================================
@@ -509,7 +509,7 @@ describe('InterventionPage', () => {
     it('TC-IP-18: shows toast and blocks save when warrantyStatus is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
-      (component as any).form.controls.description.setValue('Fault');
+      (component as any).form.controls.interventionFault.setValue('Fault');
 
       await component.onSave();
 
@@ -521,7 +521,7 @@ describe('InterventionPage', () => {
     it('TC-IP-19: shows toast and blocks save when interventionType is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue('');
-      (component as any).form.controls.description.setValue('Fault');
+      (component as any).form.controls.interventionFault.setValue('Fault');
 
       await component.onSave();
 
@@ -532,7 +532,7 @@ describe('InterventionPage', () => {
     it('TC-IP-20: shows toast and blocks save when description is empty', async () => {
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
-      (component as any).form.controls.description.setValue('');
+      (component as any).form.controls.interventionFault.setValue('');
 
       await component.onSave();
 
@@ -549,7 +549,7 @@ describe('InterventionPage', () => {
       };
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
-      (component as any).form.controls.description.setValue('Fault');
+      (component as any).form.controls.interventionFault.setValue('Fault');
       // Set photoRequirement so validation runs
       (component as any).photoRequirement = requirement;
       // Add 1 non-empty spare part → totalRequired = 2 + 1 = 3
@@ -785,13 +785,13 @@ describe('InterventionPage', () => {
       // Pre-fill form
       (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
-      (component as any).form.controls.description.setValue('Some fault');
+      (component as any).form.controls.interventionFault.setValue('Some fault');
 
       component.ionViewWillEnter();
 
       expect((component as any).form.controls.warrantyStatus.value).toBe('');
       expect((component as any).form.controls.interventionType.value).toBe('');
-      expect((component as any).form.controls.description.value).toBe('');
+      expect((component as any).form.controls.interventionFault.value).toBe('');
     });
 
     it('TC-IP-41: clears spareParts FormArray and resets to exactly one empty control', () => {
