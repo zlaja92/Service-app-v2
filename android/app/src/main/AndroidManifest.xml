@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Backup is OFF on purpose. Capacitor Preferences hold only caches and local
+         settings (language, dark mode, tenant config cache, logo cache). With Auto
+         Backup on, an uninstall+install silently restores those, so a "fresh"
+         install starts with a stale tenant config and the previously chosen
+         language instead of the brand default. Nothing here is irreplaceable:
+         auth goes through Firebase, data lives in Firestore.
+         allowBackup=false covers cloud backup; dataExtractionRules is still needed
+         because on Android 12+ device-to-device transfer ignores allowBackup. -->
     <application
         android:name=".MainApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

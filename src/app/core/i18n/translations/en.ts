@@ -12,6 +12,13 @@ export const en: Translation = {
   menu_version: 'Version',
   menu_servicer_report: 'My interventions',
 
+  // Language names shown in the language picker (rendered in the active language).
+  language_sr: 'Serbian',
+  language_en: 'English',
+  language_sl: 'Slovenian',
+  language_hr: 'Croatian',
+  language_bs: 'Bosnian',
+
   // Login je vizuelan/minimalan. Prevode se samo labele polja i auth greške —
   // prikazuju se na jeziku izabranom na login switcheru.
   login_email_label: 'Email',
