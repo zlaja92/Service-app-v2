@@ -34,8 +34,8 @@ android {
         applicationId brandApplicationId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20006
-        versionName "2.0.6"
+        versionCode 20100
+        versionName "2.1.0"
         resValue "string", "app_name", brandAppName
         resValue "string", "title_activity_main", brandAppName
         resValue "string", "custom_url_scheme", brandUrlScheme

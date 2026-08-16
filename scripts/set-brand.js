@@ -240,7 +240,13 @@ function main() {
   ];
   if (fs.existsSync(splashIconSrc)) {
     for (const target of splashIconTargets) {
-      if (!fs.existsSync(path.dirname(target))) continue;
+      // Create the folder if missing instead of skipping. drawable-nodpi does not
+      // exist in a fresh Capacitor project, and silently skipping it left
+      // splash_icon only under drawable-night: light mode had no match, so the
+      // system logged "Get attribute fail, return default" and fell back to the
+      // stock icon, and `lintVitalRelease` failed the release build with
+      // MissingDefaultResource.
+      fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(splashIconSrc, target);
       // Skaliraj na 432x432 (dimenzija koju tema očekuje) preko macOS `sips`.
       try {

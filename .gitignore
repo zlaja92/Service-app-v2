@@ -13,6 +13,9 @@
 /ios/App/GoogleService-Info.plist
 /src/environments/environment.prod.ts
 
+# Release artefakti (.aab / .apk po brendu) — desetine MB, prave se iz taga.
+/release/
+
 # Keystore-ovi (Android potpis) — NIKAD u git. Čuvaju se van repoa / u secret store.
 /brands/*/release.keystore
 *.keystore
