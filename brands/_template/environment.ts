@@ -6,8 +6,6 @@ export const environment = {
   production: true,
   brand: 'REPLACE-brand-id',
   firebase: null,
-  cloudFunctionBaseUrl: 'https://us-central1-REPLACE-project.cloudfunctions.net',
-  nativeStorageBucket: 'REPLACE.firebasestorage.app',
   logLevel: 'WARN',
   // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
   // Posle logina tenant može dodati još jezika iz Firestore-a.

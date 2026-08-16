@@ -6,8 +6,6 @@ export const environment = {
   production: true,
   brand: 'ariston-srb',
   firebase: null,
-  cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
-  nativeStorageBucket: 'ariston-srb.firebasestorage.app',
   logLevel: 'WARN',
   // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
   // Posle logina tenant može dodati još jezika iz Firestore-a.

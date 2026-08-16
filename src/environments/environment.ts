@@ -4,24 +4,22 @@
 // fileReplacements i scripts/set-brand.js), a tamo NEMA web `firebase` ključa.
 //
 // Produkcija koristi Firebase isključivo kroz native plugine (@capacitor-firebase/*).
-// Web `firebase` config ostaje SAMO ovde jer ga integracioni testovi
-// (*.spec.ts) koriste da inicijalizuju web JS SDK DEFAULT app (inače
-// getFirestore()/getAuth() bacaju "No Firebase App"). Nije bezbednosno
-// osetljiv — Firebase web API ključevi nisu tajne (zaštita ide kroz Security
-// Rules i App Check), a u produkcijski build ne ulazi.
+// Web `firebase` config postoji SAMO da bi unit testovi (*.spec.ts) mogli da
+// pozovu initializeApp() i dobiju DEFAULT app — bez njega getAuth()/getFirestore()
+// bacaju "No Firebase App '[DEFAULT]'". Testovi mock-uju sve SDK pozive i ne idu
+// na mrežu, pa ove vrednosti NE moraju da pripadaju živom projektu i namerno su
+// lažne. Aplikacija ih nigde ne koristi i u produkcijski build ne ulaze.
 export const environment = {
   production: false,
   brand: 'dev',
   firebase: {
-    apiKey: 'AIzaSyBXcLf2ZUlA3HHVeizPQ3LdT9WWphDmgOY',
-    authDomain: 'aristonboilersmk-af027.firebaseapp.com',
-    projectId: 'aristonboilersmk-af027',
-    storageBucket: 'aristonboilersmk-af027.appspot.com',
-    messagingSenderId: '399858868527',
-    appId: '1:399858868527:web:7048caeddb546e853681da',
+    apiKey: 'test-only-not-a-real-key',
+    authDomain: 'localhost',
+    projectId: 'ariston-srb',
+    storageBucket: 'ariston-srb.firebasestorage.app',
+    messagingSenderId: '000000000000',
+    appId: '1:000000000000:web:0000000000000000000000',
   },
-  cloudFunctionBaseUrl: 'https://us-central1-aristonboilersmk-af027.cloudfunctions.net',
-  nativeStorageBucket: 'ariston-srb.firebasestorage.app',
   logLevel: 'INFO',
   // Jezici dostupni na login ekranu (pre logina) i podrazumevani jezik.
   languages: ['sr', 'en'],

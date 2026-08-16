@@ -6,7 +6,7 @@
  * Kopira SVE fajlove izabranog brenda (brands/<id>/) na prava mesta u projektu:
  *   - environment.ts        → src/environments/environment.prod.ts
  *   - google-services.json  → android/app/google-services.json
- *   - GoogleService-Info.plist → ios/App/App/GoogleService-Info.plist
+ *   - GoogleService-Info.plist → ios/App/GoogleService-Info.plist
  *   - brand.json vrednosti  → android/app/brand.properties (čita ga build.gradle)
  *   - brand.json vrednosti  → capacitor.brand.json (čita ga capacitor.config.ts)
  *   - android strings.xml (app_name, package_name, custom_url_scheme)
@@ -136,8 +136,13 @@ function main() {
   // 2) Native Firebase config.
   requireBrandFile(brandDir, brandId, 'google-services.json',
     path.join(ROOT, 'android/app/google-services.json'));
+  // PAŽNJA: odredište je ios/App/, NE ios/App/App/. GoogleService-Info.plist je
+  // u Xcode projektu dete ROOT grupe (bez `path` atributa), pa se rešava na
+  // ios/App/ — to je fajl koji se stvarno pakuje u aplikaciju. Kopija u
+  // ios/App/App/ nije referencirana ni u jednom targetu i build je ignoriše,
+  // zbog čega prebacivanje brenda ranije NIJE menjalo iOS Firebase config.
   requireBrandFile(brandDir, brandId, 'GoogleService-Info.plist',
-    path.join(ROOT, 'ios/App/App/GoogleService-Info.plist'));
+    path.join(ROOT, 'ios/App/GoogleService-Info.plist'));
 
   // 3) brand.properties — čita ga android/app/build.gradle.
   const brandProps =

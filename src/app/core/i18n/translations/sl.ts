@@ -363,6 +363,8 @@ export const sl: Translation = {
   cart_note_placeholder: 'Dodajte opombo za vaše naročilo...',
   cart_total: 'Skupaj',
   cart_order: 'Naroči',
+  cart_email_no_account: 'Na napravi ni nastavljenega e-poštnega računa. Nastavite ga in poskusite znova.',
+  cart_email_open_error: 'E-poštne aplikacije ni mogoče odpreti.',
 
   // ─── Servicer Report ──────────────────────────────────────────────
   servicer_report_title: 'Poročilo serviserja',

@@ -10,7 +10,7 @@
 /capacitor.brand.json
 /android/app/brand.properties
 /android/app/google-services.json
-/ios/App/App/GoogleService-Info.plist
+/ios/App/GoogleService-Info.plist
 /src/environments/environment.prod.ts
 
 # Keystore-ovi (Android potpis) — NIKAD u git. Čuvaju se van repoa / u secret store.

@@ -363,6 +363,8 @@ export const hr: Translation = {
   cart_note_placeholder: 'Dodajte napomenu za vašu narudžbu...',
   cart_total: 'Ukupno',
   cart_order: 'Naruči',
+  cart_email_no_account: 'Na uređaju nije postavljen račun e-pošte. Postavite ga i pokušajte ponovno.',
+  cart_email_open_error: 'Nije moguće otvoriti aplikaciju za e-poštu.',
 
   // ─── Servicer Report ──────────────────────────────────────────────
   servicer_report_title: 'Izvještaj servisera',

@@ -363,6 +363,8 @@ export const en: Translation = {
   cart_note_placeholder: 'Add a note for your order...',
   cart_total: 'Total',
   cart_order: 'Place Order',
+  cart_email_no_account: 'No email account is set up on this device. Set one up and try again.',
+  cart_email_open_error: 'Could not open the email app.',
 
   // ─── Servicer Report ──────────────────────────────────────────────
   servicer_report_title: 'Servicer Report',

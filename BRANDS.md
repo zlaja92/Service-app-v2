@@ -91,8 +91,10 @@ npm run build:brand -- <id> [android|ios] [--no-assets] [--no-native]
    ```
 
 3. **Popuni `brands/ariston-hr/environment.ts`** (zameni `REPLACE` vrednosti:
-   `brand`, `cloudFunctionBaseUrl`, `nativeStorageBucket`). Firebase ostaje
-   `null` — u produkciji ide samo native.
+   `brand`, `languages`, `defaultLanguage`, `primaryColor`). Firebase ostaje
+   `null` — u produkciji ide samo native, kroz `google-services.json` /
+   `GoogleService-Info.plist`. Storage bucket i Cloud Functions se NE navode u
+   environment-u: native plugini ih čitaju iz tih Firebase fajlova.
 
 4. **Firebase native fajlovi** (iz Firebase konzole tog projekta):
    - Android app sa package name iz `androidPackage` → preuzmi `google-services.json`
