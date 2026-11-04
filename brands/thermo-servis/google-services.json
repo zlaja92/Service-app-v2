@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "840267674099",
+    "project_id": "thermo-service-6d86e",
+    "storage_bucket": "thermo-service-6d86e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840267674099:android:c2ea7c78d96a16882b2286",
+        "android_client_info": {
+          "package_name": "rs.agtbaza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3Evhx2_HYjt5QMnR5D5Fnmijlkukz_kc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

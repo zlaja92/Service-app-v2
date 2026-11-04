@@ -1,0 +1,12 @@
+{
+  "id": "thermo-servis",
+  "displayName": "Thermo Service",
+  "appId": "rs.agtbaza",
+  "androidPackage": "rs.agtbaza",
+  "iosBundleId": "rs.agtbaza",
+  "customUrlScheme": "rs.agtbaza",
+  "keystoreFile": "brands/thermo-servis/release.keystore",
+  "splashBackgroundLight": "#FFFFFF",
+  "splashBackgroundDark": "#000000",
+  "primaryColor": "#B71C1C"
+}

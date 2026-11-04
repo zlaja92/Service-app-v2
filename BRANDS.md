@@ -30,6 +30,7 @@ npm run set-brand -- <brand>
 |----|-------------|---------------------------|
 | `ariston-srb` | Ariston Service | `io.ionic.Ariston` |
 | `tiki` | Tiki Servis | `rs.Tiki` |
+| `thermo-servis` | Thermo Service | `rs.agtbaza` |
 
 > `namespace` (Android) i source paket ostaju `io.ionic.Ariston` za SVE brendove —
 > to je interni identifikator koda, ne menja se. Identitet app na Store-u
