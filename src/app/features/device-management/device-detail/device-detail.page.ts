@@ -5,7 +5,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonButton, IonIcon, IonSkeletonText, IonMenuButton,
-  IonItem, IonLabel, IonInput, IonSpinner,
+  IonItem, IonLabel, IonInput, IonSpinner, IonSelect, IonSelectOption,
   ViewWillEnter, ToastController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -40,7 +40,7 @@ import { stripWhitespace, hasWhitespace } from '../../../shared/utils/trim';
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
     IonButton, IonIcon, IonSkeletonText, IonMenuButton,
-    IonItem, IonLabel, IonInput, IonSpinner,
+    IonItem, IonLabel, IonInput, IonSpinner, IonSelect, IonSelectOption,
     TranslocoModule,
     FeatureFlagDirective,
   ],
@@ -70,6 +70,11 @@ export class DeviceDetailPage implements ViewWillEnter {
   /** True when a warranty-extension request already exists for this device → button disabled. */
   protected warrantyRequestExists = false;
 
+  /** No-catalog mode, SN confirmed unregistered: the device type is picked before adding the user. */
+  protected canPickType = false;
+  protected typeOptions: Device[] = [];
+  protected selectedType = '';
+
   constructor() {
     addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline, searchOutline, barcodeOutline, shieldCheckmarkOutline });
   }
@@ -85,19 +90,46 @@ export class DeviceDetailPage implements ViewWillEnter {
   private async initializeDevice(): Promise<void> {
     this.isInitializing = true;
     this.isCommissioningDone = false;
+    this.warrantyRequestExists = false;
+    this.canPickType = false;
 
     if (this.lookupService.sn !== this.sn) {
       await this.lookupService.lookup(this.sn);
     }
 
-    const device = this.lookupService.device;
+    let device = this.lookupService.device;
+    const unregisteredNoCatalog = this.isNoCatalogMode
+      && this.lookupService.registrationStatus === 'unregistered';
 
-    if (!device) {
+    if (!device && !unregisteredNoCatalog) {
       this.isInitializing = false;
       return;
     }
 
     await this.registrationService.checkRegistration(this.sn);
+
+    if (unregisteredNoCatalog) {
+      // Registration overwrites users/{sn}, so the type is offered only when
+      // this second check also confirms the SN is unregistered.
+      if (this.registrationService.isRegistered === false) {
+        this.canPickType = true;
+        this.typeOptions = await this.lookupService.getSelectableDevices();
+        this.selectedType = device?.type ?? '';
+      } else if (this.registrationService.isRegistered === true && !device) {
+        // Registered meanwhile: resolve it like any registered SN.
+        device = await this.lookupService.lookup(this.sn);
+      } else if (this.registrationService.isRegistered === null) {
+        void this.showToast(this.transloco.translate('device_detail_registration_check_error'));
+      }
+    }
+
+    if (!device) {
+      // No-catalog mode, no type picked yet (or the check failed).
+      this.eligibilityService.clear();
+      this.isInitializing = false;
+      this.cdr.markForCheck();
+      return;
+    }
 
     if (this.registrationService.isRegistered) {
       const savedConnected = this.registrationService.userData?.['connectedDevice'] as string | undefined;
@@ -125,6 +157,23 @@ export class DeviceDetailPage implements ViewWillEnter {
     if (this.needsCommissioning) {
       void this.confirmService.warn('device_detail_commissioning_required_message');
     }
+  }
+
+  /** Device catalog off: the device type comes from the registration, not the SN. */
+  protected get isNoCatalogMode(): boolean {
+    return !this.configStore.isFeatureEnabled('deviceCatalog');
+  }
+
+  /** Makes the picked device type the active device of this unregistered SN. */
+  protected onTypeSelected(): void {
+    const device = this.typeOptions.find(d => d.type === this.selectedType);
+    if (!device || device.type === this.lookupService.device?.type) return;
+
+    this.lookupService.device = device;
+    this.lookupService.sn = this.sn;
+    // An unregistered SN has no eligibility yet; drop any state of a previous device.
+    this.eligibilityService.clear();
+    this.cdr.markForCheck();
   }
 
   get needsCommissioning(): boolean {
@@ -216,6 +265,18 @@ export class DeviceDetailPage implements ViewWillEnter {
       return false;
     }
 
+    // The SN is a Firestore document ID, where '/' is a path separator.
+    if (sn.includes('/')) {
+      await this.showToast(this.transloco.translate('home_sn_no_slash'));
+      return false;
+    }
+
+    // Applies in both modes: a unit cannot be connected to itself.
+    if (sn === this.sn) {
+      await this.showToast(this.transloco.translate('connected_device_same_sn'));
+      return false;
+    }
+
     const minLength = this.configStore.business()?.snMinLength ?? 0;
     if (sn.length < minLength) {
       await this.showToast(
@@ -227,6 +288,17 @@ export class DeviceDetailPage implements ViewWillEnter {
     this.isSearchingConnected = true;
 
     try {
+      if (this.isNoCatalogMode) {
+        // No catalog to validate the connected unit against: it gets the main
+        // device's type (both units are registered with the same device).
+        if (await this.interventionService.getRegistration(sn)) {
+          await this.showToast(this.transloco.translate('connected_device_already_registered'));
+          return false;
+        }
+        this.connectedSn = sn;
+        return true;
+      }
+
       const device = await this.lookupConnectedDevice(sn);
 
       if (!device) {

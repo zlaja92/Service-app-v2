@@ -3,9 +3,9 @@ import { buildDevice } from '../../testing/test-data-builders';
 
 describe('Device Model', () => {
   describe('DeviceType enum', () => {
-    it('TC-DV-01: should contain exactly 4 enum members', () => {
+    it('TC-DV-01: should contain exactly 5 enum members', () => {
       const values = Object.values(DeviceType);
-      expect(values.length).toBe(4);
+      expect(values.length).toBe(5);
     });
 
     it('TC-DV-02: HEAT_PUMP should equal "heat-pump"', () => {
@@ -30,6 +30,7 @@ describe('Device Model', () => {
       ['GAS_BOILER', 'gas-boiler'],
       ['BOILER', 'boiler'],
       ['AIR_CONDITION', 'air-condition'],
+      ['PELLET_BOILER', 'pellet-boiler'],
     ];
 
     deviceTypeCases.forEach(([key, value]) => {

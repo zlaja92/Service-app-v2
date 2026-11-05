@@ -3,6 +3,7 @@ export enum DeviceType {
   GAS_BOILER = 'gas-boiler',
   BOILER = 'boiler',
   AIR_CONDITION = 'air-condition',
+  PELLET_BOILER = 'pellet-boiler',
 }
 
 export interface Device {

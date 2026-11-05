@@ -86,4 +86,5 @@ export const DEVICE_FORM_CONFIG: Record<DeviceType, FieldConfig[]> = {
   [DeviceType.AIR_CONDITION]: BASE_FIELDS,
   [DeviceType.HEAT_PUMP]: HEAT_PUMP_FIELDS,
   [DeviceType.GAS_BOILER]: GAS_BOILER_FIELDS,
+  [DeviceType.PELLET_BOILER]: BASE_FIELDS,
 };

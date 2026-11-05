@@ -109,7 +109,7 @@ export function createMockTenantService(): jasmine.SpyObj<TenantService> {
     (_deviceType: string) => 'tenants/mock-tenant/interventions',
   );
   mock.isDeviceTypeAllowed.and.returnValue(true);
-  mock.getAllowedDeviceTypes.and.returnValue(['gas-boiler', 'heat-pump', 'boiler', 'air-condition']);
+  mock.getAllowedDeviceTypes.and.returnValue(['gas-boiler', 'heat-pump', 'boiler', 'air-condition', 'pellet-boiler']);
 
   return mock;
 }

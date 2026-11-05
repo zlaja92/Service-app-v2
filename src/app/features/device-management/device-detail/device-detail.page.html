@@ -32,13 +32,19 @@
     </div>
   }
 
-  @if (!isInitializing && lookupService.device; as device) {
+  <!-- canPickType: no-catalog mode, unregistered SN — the page is shown before
+       a device type is picked, so `device` may still be null here. -->
+  @if (!isInitializing && (lookupService.device || canPickType)) {
+    @let device = lookupService.device;
+
     <ion-card class="device-card">
       <ion-card-header>
-        <ion-card-title>{{ device.name }}</ion-card-title>
+        @if (device) {
+          <ion-card-title>{{ device.name }}</ion-card-title>
+        }
         <ion-card-subtitle>{{ sn }}</ion-card-subtitle>
       </ion-card-header>
-      @if (registrationService.userData; as user) {
+      @if (device && registrationService.userData; as user) {
         <ion-card-content>
           <ion-item>
             <ion-label position="stacked">{{ 'device_info_user_name' | transloco }}</ion-label>
@@ -74,30 +80,55 @@
       }
     </ion-card>
 
-    @if (needsConnectedDevice) {
+    @if (canPickType || needsConnectedDevice) {
       <ion-card class="connected-card">
         <ion-card-content>
-          <p class="connected-label">{{ 'connected_device_title' | transloco }}</p>
-          <div class="connected-row">
-            <ion-item class="connected-input">
-              <ion-input [(ngModel)]="connectedSnInput"
-                         [placeholder]="'connected_device_sn_placeholder' | transloco"
-                         [maxlength]="configStore.business()?.snMaxLength!"
-                         [clearInput]="true" />
-            </ion-item>
-            <ion-button fill="outline" color="primary" class="connected-scan"
-                        (click)="scanConnectedBarcode()">
-              <ion-icon slot="icon-only" name="barcode-outline" />
-            </ion-button>
-          </div>
+          @if (canPickType) {
+            <div class="field-group">
+              <p class="connected-label">{{ 'device_detail_select_type' | transloco }}</p>
+              <ion-item class="connected-input">
+                <!-- labelPlacement="stacked" without a label: Ionic then renders the
+                     arrow outside the text wrapper, at the right edge. With the default
+                     placement the arrow sits right after the text. -->
+                <ion-select labelPlacement="stacked"
+                            [attr.aria-label]="'device_detail_select_type' | transloco"
+                            [placeholder]="'device_detail_select_type_placeholder' | transloco"
+                            interface="action-sheet"
+                            [(ngModel)]="selectedType" (ionChange)="onTypeSelected()">
+                  @for (option of typeOptions; track option.type) {
+                    <ion-select-option [value]="option.type">{{ option.name }}</ion-select-option>
+                  }
+                </ion-select>
+              </ion-item>
+            </div>
+          }
+
+          @if (needsConnectedDevice) {
+            <div class="field-group">
+              <p class="connected-label">{{ 'connected_device_title' | transloco }}</p>
+              <div class="connected-row">
+                <ion-item class="connected-input">
+                  <ion-input [(ngModel)]="connectedSnInput"
+                             [placeholder]="'connected_device_sn_placeholder' | transloco"
+                             [maxlength]="configStore.business()?.snMaxLength!"
+                             [clearInput]="true" />
+                </ion-item>
+                <ion-button fill="outline" color="primary" class="connected-scan"
+                            (click)="scanConnectedBarcode()">
+                  <ion-icon slot="icon-only" name="barcode-outline" />
+                </ion-button>
+              </div>
+            </div>
+          }
         </ion-card-content>
       </ion-card>
     }
 
     <div class="action-buttons">
       @if (registrationService.isRegistered !== true) {
+        <!-- Disabled until a device type is picked (no-catalog mode). -->
         <ion-button expand="block" fill="outline" (click)="onAddUser()"
-                    [disabled]="isSearchingConnected">
+                    [disabled]="isSearchingConnected || !device">
           @if (isSearchingConnected) {
             <ion-spinner name="crescent" slot="start" class="button-spinner" />
           } @else {
@@ -115,7 +146,7 @@
         </ion-button>
       }
 
-      @if (device.annualService) {
+      @if (device?.annualService) {
         <ion-button expand="block" fill="outline" (click)="onAnnualService()"
                     [disabled]="!isAnnualServiceEnabled"
                     *appFeatureFlag="'deviceManagement'">
@@ -148,7 +179,7 @@
     </div>
   }
 
-  @if (!isInitializing && !lookupService.device) {
+  @if (!isInitializing && !lookupService.device && !canPickType) {
     <div class="empty-state">
       <p>{{ 'device_info_not_found' | transloco }}</p>
     </div>

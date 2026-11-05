@@ -45,7 +45,9 @@ import {
   createMockToastController,
   createMockTranslocoService,
   createMockAlertController,
+  MockConfigStore,
 } from '../../../testing/mock-factories';
+import { getDefaultConfig } from '../../../core/config/config.model';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1126,6 +1128,155 @@ describe('DeviceDetailPage', () => {
         tick();
         expect(mockLookupService.device?.name).toBe(name);
       }));
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // No-catalog mode (deviceCatalog = false) and connected-device SN checks
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  describe('no-catalog mode', () => {
+    type PageState = {
+      sn: string;
+      canPickType: boolean;
+      typeOptions: Device[];
+      selectedType: string;
+      connectedSnInput: string;
+      onTypeSelected(): void;
+    };
+    const page = () => component as unknown as PageState;
+    const setRegistered = (value: boolean | null): void => {
+      (mockRegistrationService as unknown as { isRegistered: boolean | null }).isRegistered = value;
+    };
+    const pellet = buildDevice({ type: DeviceType.PELLET_BOILER, name: 'Kotao na pelet', commissioning: false });
+    const heatPump = buildDevice({ type: DeviceType.HEAT_PUMP, name: 'Toplotna pumpa', connectedDevice: true });
+
+    beforeEach(() => {
+      const cfg = getDefaultConfig();
+      cfg.features.deviceCatalog = false;
+      (TestBed.inject(ConfigStore) as unknown as MockConfigStore).setConfig(cfg);
+      mockTransloco.translate.and.callFake(((key: string) => key) as never);
+
+      // Unregistered SN: lookup finds no registration.
+      (mockLookupService as unknown as { device: Device | null }).device = null;
+      (mockLookupService as unknown as { sn: string }).sn = '';
+      mockLookupService.lookup.and.callFake(async () => {
+        (mockLookupService as unknown as { registrationStatus: string }).registrationStatus = 'unregistered';
+        return null;
+      });
+      (mockLookupService as unknown as { getSelectableDevices: jasmine.Spy }).getSelectableDevices =
+        jasmine.createSpy('getSelectableDevices').and.resolveTo([heatPump, pellet]);
+    });
+
+    it('offers the type picker when the second registration check confirms the SN is unregistered', fakeAsync(() => {
+      mockRegistrationService.checkRegistration.and.callFake(async () => setRegistered(false));
+
+      component.ionViewWillEnter();
+      tick();
+
+      expect(mockRegistrationService.checkRegistration).toHaveBeenCalledWith(TEST_SN);
+      expect(page().canPickType).toBeTrue();
+      expect(page().typeOptions.map(d => d.type)).toEqual([DeviceType.HEAT_PUMP, DeviceType.PELLET_BOILER]);
+      expect(mockEligibilityService.clear).toHaveBeenCalled();
+    }));
+
+    it('does not offer the type picker when the registration check fails', fakeAsync(() => {
+      mockRegistrationService.checkRegistration.and.callFake(async () => setRegistered(null));
+
+      component.ionViewWillEnter();
+      tick();
+
+      expect(page().canPickType).toBeFalse();
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'device_detail_registration_check_error' }),
+      );
+    }));
+
+    it('does not offer the type picker in catalog mode', fakeAsync(() => {
+      (TestBed.inject(ConfigStore) as unknown as MockConfigStore).setConfig(getDefaultConfig());
+      mockRegistrationService.checkRegistration.and.callFake(async () => setRegistered(false));
+
+      component.ionViewWillEnter();
+      tick();
+
+      expect(page().canPickType).toBeFalse();
+      expect(mockRegistrationService.checkRegistration).not.toHaveBeenCalled();
+    }));
+
+    it('picking a type makes it the active device and resets eligibility', () => {
+      page().sn = TEST_SN;
+      page().typeOptions = [heatPump, pellet];
+      page().selectedType = DeviceType.PELLET_BOILER;
+
+      page().onTypeSelected();
+
+      expect(mockLookupService.device).toBe(pellet);
+      expect(mockLookupService.sn).toBe(TEST_SN);
+      expect(mockEligibilityService.clear).toHaveBeenCalled();
+    });
+
+    describe('connected unit', () => {
+      beforeEach(() => {
+        (mockLookupService as unknown as { device: Device | null }).device = heatPump;
+        setRegistered(false);
+        page().sn = TEST_SN;
+      });
+
+      it('does not look the connected unit up in the catalog and passes it to add-user', async () => {
+        page().connectedSnInput = 'CONNECTED123456789012';
+
+        await component.onAddUser();
+
+        expect(mockLookupService.lookupSilent).not.toHaveBeenCalled();
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['/device-management', TEST_SN, 'add-user'],
+          { queryParams: { connectedSn: 'CONNECTED123456789012' } },
+        );
+      });
+
+      it('rejects a connected unit that is already registered', async () => {
+        page().connectedSnInput = 'CONNECTED123456789012';
+        mockInterventionService.getRegistration.and.resolveTo({ deviceType: 'heat-pump' });
+
+        await component.onAddUser();
+
+        expect(mockToastController.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({ message: 'connected_device_already_registered' }),
+        );
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('connected unit SN checks (both modes)', () => {
+    beforeEach(() => {
+      mockTransloco.translate.and.callFake(((key: string) => key) as never);
+      (mockLookupService as unknown as { device: Device | null }).device = buildDevice({ connectedDevice: true });
+      (mockRegistrationService as unknown as { isRegistered: boolean | null }).isRegistered = false;
+      (component as unknown as { sn: string }).sn = TEST_SN;
+    });
+
+    it('rejects the same SN as the main device', async () => {
+      (component as unknown as { connectedSnInput: string }).connectedSnInput = TEST_SN;
+
+      await component.onAddUser();
+
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'connected_device_same_sn' }),
+      );
+      expect(mockLookupService.lookupSilent).not.toHaveBeenCalled();
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('rejects an SN containing "/"', async () => {
+      (component as unknown as { connectedSnInput: string }).connectedSnInput = 'SN/123';
+
+      await component.onAddUser();
+
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'home_sn_no_slash' }),
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
     });
   });
 });

@@ -65,6 +65,8 @@ const translocoLangs = {
     home_device_not_found: 'home_device_not_found',
     home_scan_error: 'home_scan_error',
     home_sn_no_spaces: 'home_sn_no_spaces',
+    home_sn_no_slash: 'home_sn_no_slash',
+    home_device_type_not_allowed: 'home_device_type_not_allowed',
   },
 };
 
@@ -269,6 +271,72 @@ describe('HomePage', () => {
       }),
     );
     expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
+  // ─── SN with '/' and no-catalog lookup statuses ───────────────────────────────
+
+  describe('searchBySn — slash and registration status', () => {
+    function setStatus(status: DeviceLookupService['registrationStatus']): void {
+      (mockLookupService as { registrationStatus: typeof status }).registrationStatus = status;
+    }
+
+    it('rejects an SN containing "/" with home_sn_no_slash and does not call lookup', async () => {
+      createAndDetect();
+      component.snInput = 'SN123/456';
+
+      await component.searchBySn();
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'home_sn_no_slash', color: 'warning' }),
+      );
+      expect(mockLookupService.lookup).not.toHaveBeenCalled();
+    });
+
+    it('opens the device page for an unregistered SN (no-catalog mode)', async () => {
+      createAndDetect();
+      component.snInput = 'SN12345678901234567890';
+      mockLookupService.lookup.and.callFake(async () => {
+        setStatus('unregistered');
+        return null;
+      });
+
+      await component.searchBySn();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/device-management', 'SN12345678901234567890']);
+      expect(mockToastCtrl.create).not.toHaveBeenCalled();
+    });
+
+    it('shows home_device_type_not_allowed when the registered type is not allowed', async () => {
+      createAndDetect();
+      component.snInput = 'SN12345678901234567890';
+      mockLookupService.lookup.and.callFake(async () => {
+        setStatus('not-allowed');
+        return null;
+      });
+
+      await component.searchBySn();
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'home_device_type_not_allowed' }),
+      );
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('shows home_device_not_found (and does not navigate) on a lookup error', async () => {
+      createAndDetect();
+      component.snInput = 'SN12345678901234567890';
+      mockLookupService.lookup.and.callFake(async () => {
+        setStatus('error');
+        return null;
+      });
+
+      await component.searchBySn();
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'home_device_not_found' }),
+      );
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
   });
 
   // ─── TC-05: searchBySn — lookup returns null (internal error path) ────────────

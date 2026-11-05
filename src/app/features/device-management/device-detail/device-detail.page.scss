@@ -55,6 +55,11 @@ ion-card {
   --background: transparent;
 }
 
+/* Device type picker and connected-device input share one card. */
+.field-group + .field-group {
+  margin-top: 16px;
+}
+
 .connected-scan {
   flex-shrink: 0;
   --padding-start: 16px;
