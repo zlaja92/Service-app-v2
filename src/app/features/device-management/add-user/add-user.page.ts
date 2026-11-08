@@ -15,6 +15,7 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { toLatinUpperCase } from '../../../shared/utils/transliterate';
+import { DatePickerDirective } from '../../../shared/directives/date-picker.directive';
 
 @Component({
   selector: 'app-add-user',
@@ -27,6 +28,7 @@ import { toLatinUpperCase } from '../../../shared/utils/transliterate';
     IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
     IonSpinner,
     TranslocoModule,
+    DatePickerDirective,
   ],
 })
 export class AddUserPage implements ViewWillEnter {
