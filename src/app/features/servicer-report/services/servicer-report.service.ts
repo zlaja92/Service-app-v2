@@ -111,50 +111,46 @@ export class ServicerReportService {
 
     // Enrich raw items sequentially.
     // Promise.all over unique SNs is a future optimisation.
-    const userCache = new Map<string, { streetName: string; homeNumber: string; city: string } | null>();
+    const userCache = new Map<string, { streetName: string; homeNumber: string; city: string; deviceType: string } | null>();
     const items: ServicerReportItem[] = [];
 
     for (const raw of rawItems) {
       const sn = this.str(raw.data['sn']);
 
+      // User (registration) lookup — skipped when SN is empty, result may be null.
+      // It gives the address and the device type of the SN.
+      if (sn && !userCache.has(sn)) {
+        try {
+          const userData = await this.firestoreService.getTenantDocument<Record<string, unknown>>('users', sn);
+          if (userData) {
+            userCache.set(sn, {
+              streetName: this.str(userData['streetName']),
+              homeNumber: this.str(userData['homeNumber']),
+              city: this.str(userData['city']),
+              deviceType: this.str(userData['deviceType']),
+            });
+          } else {
+            userCache.set(sn, null);
+          }
+        } catch (error) {
+          this.logger.warn('ServicerReportService: user lookup failed', { sn, error: String(error) });
+          userCache.set(sn, null);
+        }
+      }
+      const registration = sn ? (userCache.get(sn) ?? null) : null;
+      const address = registration ? `${registration.streetName} ${registration.homeNumber}`.trim() : '';
+      const city = registration?.city ?? '';
+
       // interventionTypeRaw must be read before resolveDeviceType so it can be
       // passed to the heuristic that disambiguates shared collections.
       const interventionTypeRaw = this.str(raw.data['interventionType']);
-      const deviceType = this.resolveDeviceType(raw.data, interventionTypeRaw, raw.mappedDeviceTypes);
+      const deviceType = this.resolveDeviceType(
+        raw.data, interventionTypeRaw, raw.mappedDeviceTypes, registration?.deviceType ?? '',
+      );
 
       const interventionTypeLabelKey = interventionTypeRaw
         ? (this.interventionService.getInterventionLabel(deviceType, interventionTypeRaw) ?? interventionTypeRaw)
         : '';
-
-      // User (address) lookup — skipped when SN is empty, result may be null.
-      let address = '';
-      let city = '';
-
-      if (sn) {
-        if (!userCache.has(sn)) {
-          try {
-            const userData = await this.firestoreService.getTenantDocument<Record<string, unknown>>('users', sn);
-            if (userData) {
-              userCache.set(sn, {
-                streetName: this.str(userData['streetName']),
-                homeNumber: this.str(userData['homeNumber']),
-                city: this.str(userData['city']),
-              });
-            } else {
-              userCache.set(sn, null);
-            }
-          } catch (error) {
-            this.logger.warn('ServicerReportService: user lookup failed', { sn, error: String(error) });
-            userCache.set(sn, null);
-          }
-        }
-
-        const cached = userCache.get(sn) ?? null;
-        if (cached) {
-          address = `${cached.streetName} ${cached.homeNumber}`.trim();
-          city = cached.city;
-        }
-      }
 
       const spareParts = this.extractSpareParts(raw.data);
       const distance = Number(raw.data['distance']) || 0;
@@ -191,6 +187,18 @@ export class ServicerReportService {
 
     items.sort((a, b) => b.dateTimestamp - a.dateTimestamp);
     return items;
+  }
+
+  /**
+   * Keeps only the intervention types that exist for at least one device type
+   * allowed in the user's claims — e.g. a boiler-only account gets no
+   * commissioning or annual service.
+   */
+  filterAvailableInterventionTypes<T extends { value: string }>(options: T[]): T[] {
+    const allowed = this.tenantService.getAllowedDeviceTypes() as DeviceType[];
+    return options.filter(option =>
+      allowed.some(type => this.interventionService.getInterventionLabel(type, option.value) !== null),
+    );
   }
 
   /**
@@ -231,29 +239,40 @@ export class ServicerReportService {
 
   /**
    * Resolves the DeviceType for a raw intervention document using a
-   * three-step strategy:
+   * four-step strategy:
    *
    * 1. Explicit field — if the document contains a 'deviceType' field
    *    with a recognised enum value, use it directly. Documents currently
    *    do not include this field, but the check is future-proof.
-   * 2. InterventionType heuristic — if the collection is shared by multiple
+   * 2. Registration — the deviceType of the SN's registration (users/{sn}).
+   *    Needed for shared collections: gas boiler and heat pump interventions
+   *    have the same codes, so the heuristic below cannot tell them apart.
+   * 3. InterventionType heuristic — if the collection is shared by multiple
    *    device types and an interventionType code is present, return the first
    *    type for which that code is a known option.
-   * 3. Fallback — use the first mapped device type, or DeviceType.BOILER if
+   * 4. Fallback — use the first mapped device type, or DeviceType.BOILER if
    *    the list is empty.
    */
   private resolveDeviceType(
     data: Record<string, unknown>,
     interventionTypeRaw: string,
     mappedDeviceTypes: DeviceType[],
+    registrationDeviceType = '',
   ): DeviceType {
+    const isKnown = (value: string) => (Object.values(DeviceType) as string[]).includes(value);
+
     // Step 1: explicit 'deviceType' field on the document (future-proof).
     const raw = this.str(data['deviceType']);
-    if (raw && (Object.values(DeviceType) as string[]).includes(raw)) {
+    if (raw && isKnown(raw)) {
       return raw as DeviceType;
     }
 
-    // Step 2: disambiguation heuristic for shared collections.
+    // Step 2: device type from the SN's registration.
+    if (registrationDeviceType && isKnown(registrationDeviceType)) {
+      return registrationDeviceType as DeviceType;
+    }
+
+    // Step 3: disambiguation heuristic for shared collections.
     if (mappedDeviceTypes.length > 1 && interventionTypeRaw) {
       for (const dt of mappedDeviceTypes) {
         if (this.interventionService.getInterventionLabel(dt, interventionTypeRaw) !== null) {
@@ -262,7 +281,7 @@ export class ServicerReportService {
       }
     }
 
-    // Step 3: fallback.
+    // Step 4: fallback.
     return mappedDeviceTypes[0] ?? DeviceType.BOILER;
   }
 
