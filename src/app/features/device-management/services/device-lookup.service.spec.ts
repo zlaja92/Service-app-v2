@@ -486,16 +486,32 @@ describe('DeviceLookupService', () => {
     });
 
     it('resolves a registered SN via users/{sn}.deviceType and devices/{deviceType}', async () => {
-      users[SN] = { deviceType: 'heat-pump' };
+      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
 
       const result = await service.lookup(SN);
 
       expect(result?.type).toBe(DeviceType.HEAT_PUMP);
-      expect(result?.name).toBe('Toplotna pumpa');
+      expect(result?.connectedDevice).toBeTrue();
       expect(service.device).toBe(result);
       expect(service.registrationStatus).toBe('registered');
       expect(mockFirestore.getTenantDocument).toHaveBeenCalledWith('users', SN);
       expect(mockFirestore.getTenantDocument).toHaveBeenCalledWith('devices', 'heat-pump');
+    });
+
+    it('takes the name from the registration model, not from devices/{deviceType}', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('NIMBUS 80');
+    });
+
+    it('has an empty name when the registration has no model', async () => {
+      users[SN] = { deviceType: 'heat-pump' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('');
     });
 
     it('does not read the model code from the SN', async () => {

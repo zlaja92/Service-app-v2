@@ -362,6 +362,11 @@ export const sr: Translation = {
   device_detail_commissioning_required_message: 'Sačuvani su podaci o korisniku, ali uređaj i dalje nije pušten u rad. Potrebno je da odradite puštanje u rad.',
   device_detail_select_type: 'Tip uređaja',
   device_detail_select_type_placeholder: 'Izaberite tip uređaja',
+  device_detail_model: 'Model uređaja',
+  device_detail_model_placeholder: 'Unesite model',
+  device_detail_connected_model: 'Model povezanog uređaja',
+  device_detail_model_required: 'Unesite model uređaja',
+  device_detail_connected_model_required: 'Unesite model povezanog uređaja',
   device_detail_registration_check_error: 'Provera registracije nije uspela. Pokušajte ponovo.',
 
   cart_title: 'Korpa',

@@ -362,6 +362,11 @@ export const sl: Translation = {
   device_detail_commissioning_required_message: 'Podatki o uporabniku so shranjeni, vendar naprava še ni zagnana. Opraviti morate zagon.',
   device_detail_select_type: 'Tip naprave',
   device_detail_select_type_placeholder: 'Izberite tip naprave',
+  device_detail_model: 'Model naprave',
+  device_detail_model_placeholder: 'Vnesite model',
+  device_detail_connected_model: 'Model povezane naprave',
+  device_detail_model_required: 'Vnesite model naprave',
+  device_detail_connected_model_required: 'Vnesite model povezane naprave',
   device_detail_registration_check_error: 'Preverjanje registracije ni uspelo. Poskusite znova.',
 
   cart_title: 'Košarica',

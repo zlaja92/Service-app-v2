@@ -74,6 +74,9 @@ export class DeviceDetailPage implements ViewWillEnter {
   protected canPickType = false;
   protected typeOptions: Device[] = [];
   protected selectedType = '';
+  /** No-catalog mode: models are entered per SN and stored in each unit's registration. */
+  protected modelInput = '';
+  protected connectedModelInput = '';
 
   constructor() {
     addIcons({ personAddOutline, buildOutline, constructOutline, hammerOutline, timeOutline, searchOutline, barcodeOutline, shieldCheckmarkOutline });
@@ -115,8 +118,9 @@ export class DeviceDetailPage implements ViewWillEnter {
         this.canPickType = true;
         this.typeOptions = await this.lookupService.getSelectableDevices();
         this.selectedType = device?.type ?? '';
-      } else if (this.registrationService.isRegistered === true && !device) {
-        // Registered meanwhile: resolve it like any registered SN.
+      } else if (this.registrationService.isRegistered === true) {
+        // Just registered (back from add-user) or registered meanwhile: resolve it
+        // like any registered SN, so the model comes from the registration.
         device = await this.lookupService.lookup(this.sn);
       } else if (this.registrationService.isRegistered === null) {
         void this.showToast(this.transloco.translate('device_detail_registration_check_error'));
@@ -169,7 +173,9 @@ export class DeviceDetailPage implements ViewWillEnter {
     const device = this.typeOptions.find(d => d.type === this.selectedType);
     if (!device || device.type === this.lookupService.device?.type) return;
 
-    this.lookupService.device = device;
+    // The type's deviceName only labels the picker; the model name is unknown
+    // until registration, so the card shows no title yet.
+    this.lookupService.device = { ...device, name: '' };
     this.lookupService.sn = this.sn;
     // An unregistered SN has no eligibility yet; drop any state of a previous device.
     this.eligibilityService.clear();
@@ -239,14 +245,29 @@ export class DeviceDetailPage implements ViewWillEnter {
   }
 
   async onAddUser(): Promise<void> {
+    if (this.canPickType && !this.modelInput.trim()) {
+      await this.showToast(this.transloco.translate('device_detail_model_required'));
+      return;
+    }
+
     if (this.needsConnectedDevice) {
       const valid = await this.validateConnectedDevice();
       if (!valid) return;
+
+      if (this.canPickType && !this.connectedModelInput.trim()) {
+        await this.showToast(this.transloco.translate('device_detail_connected_model_required'));
+        return;
+      }
     }
 
-    const extras = this.connectedSn
-      ? { queryParams: { connectedSn: this.connectedSn } }
-      : undefined;
+    const queryParams: Record<string, string> = {};
+    if (this.connectedSn) queryParams['connectedSn'] = this.connectedSn;
+    if (this.canPickType) {
+      queryParams['deviceModel'] = this.modelInput.trim();
+      if (this.connectedSn) queryParams['connectedDeviceModel'] = this.connectedModelInput.trim();
+    }
+
+    const extras = Object.keys(queryParams).length > 0 ? { queryParams } : undefined;
     this.router.navigate(['/device-management', this.sn, 'add-user'], extras);
   }
 

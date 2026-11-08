@@ -218,7 +218,10 @@ export class DeviceLookupService implements Clearable {
     const doc = await this.firestoreService.getTenantDocument<DeviceDoc>('devices', deviceType);
     if (!doc) return { status: 'error', device: null };
 
-    return { status: 'registered', device: this.mapTypeDevice(deviceType, doc) };
+    // devices/{deviceType} holds only the per-type parameters; the model is
+    // entered per SN at registration, so the name comes from the registration.
+    const device = { ...this.mapTypeDevice(deviceType, doc), name: String(registration['deviceModel'] ?? '') };
+    return { status: 'registered', device };
   }
 
   /**

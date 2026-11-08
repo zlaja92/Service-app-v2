@@ -1149,6 +1149,62 @@ describe('AddUserPage', () => {
   });
 
   // =========================================================================
+  // No-catalog mode: per-unit device models from the device page
+  // =========================================================================
+
+  describe('onSave() — device models (no-catalog mode)', () => {
+    function prepare(): void {
+      (mockLookupService as unknown as { device: Device }).device = buildDevice({
+        commissioning: false,
+        annualService: false,
+      });
+      fillValidForm(page);
+      internals(page).form.get('warrantyStatus').setValue('out-of-warranty');
+    }
+
+    it('stores each unit model in its own registration', async () => {
+      prepare();
+      const state = page as unknown as { sn: string; connectedSn: string; deviceModel: string; connectedDeviceModel: string };
+      state.sn = 'MAIN-SN';
+      state.connectedSn = 'CONN-SN';
+      state.deviceModel = 'NIMBUS 80';
+      state.connectedDeviceModel = 'NIMBUS EXT';
+
+      await page.onSave();
+
+      expect(mockRegistrationService.registerBatch).toHaveBeenCalledWith([
+        jasmine.objectContaining({
+          sn: 'MAIN-SN',
+          dynamicFields: jasmine.objectContaining({ deviceModel: 'NIMBUS 80', connectedDevice: 'CONN-SN' }),
+        }),
+        jasmine.objectContaining({
+          sn: 'CONN-SN',
+          dynamicFields: jasmine.objectContaining({ deviceModel: 'NIMBUS EXT', connectedDevice: 'MAIN-SN' }),
+        }),
+      ]);
+    });
+
+    it('stores the model of a single unit', async () => {
+      prepare();
+      (page as unknown as { deviceModel: string }).deviceModel = 'PELLET 25';
+
+      await page.onSave();
+
+      const data = mockRegistrationService.register.calls.mostRecent().args[2];
+      expect(data['deviceModel']).toBe('PELLET 25');
+    });
+
+    it('does not write deviceModel in catalog mode (no model passed)', async () => {
+      prepare();
+
+      await page.onSave();
+
+      const data = mockRegistrationService.register.calls.mostRecent().args[2];
+      expect('deviceModel' in data).toBeFalse();
+    });
+  });
+
+  // =========================================================================
   // EXPANSION PASS 2: toLatinUpperCase — full sentence parameterization
   // =========================================================================
 

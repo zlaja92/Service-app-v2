@@ -362,6 +362,11 @@ export const hr: Translation = {
   device_detail_commissioning_required_message: 'Spremljeni su podaci o korisniku, ali uređaj i dalje nije pušten u rad. Potrebno je obaviti puštanje u rad.',
   device_detail_select_type: 'Vrsta uređaja',
   device_detail_select_type_placeholder: 'Odaberite vrstu uređaja',
+  device_detail_model: 'Model uređaja',
+  device_detail_model_placeholder: 'Unesite model',
+  device_detail_connected_model: 'Model povezanog uređaja',
+  device_detail_model_required: 'Unesite model uređaja',
+  device_detail_connected_model_required: 'Unesite model povezanog uređaja',
   device_detail_registration_check_error: 'Provjera registracije nije uspjela. Pokušajte ponovno.',
 
   cart_title: 'Košarica',

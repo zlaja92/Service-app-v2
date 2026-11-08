@@ -1142,6 +1142,8 @@ describe('DeviceDetailPage', () => {
       typeOptions: Device[];
       selectedType: string;
       connectedSnInput: string;
+      modelInput: string;
+      connectedModelInput: string;
       onTypeSelected(): void;
     };
     const page = () => component as unknown as PageState;
@@ -1203,14 +1205,16 @@ describe('DeviceDetailPage', () => {
       expect(mockRegistrationService.checkRegistration).not.toHaveBeenCalled();
     }));
 
-    it('picking a type makes it the active device and resets eligibility', () => {
+    it('picking a type makes it the active device (without a name) and resets eligibility', () => {
       page().sn = TEST_SN;
       page().typeOptions = [heatPump, pellet];
       page().selectedType = DeviceType.PELLET_BOILER;
 
       page().onTypeSelected();
 
-      expect(mockLookupService.device).toBe(pellet);
+      // The type's deviceName labels only the picker; the model name comes at registration.
+      expect(mockLookupService.device?.type).toBe(DeviceType.PELLET_BOILER);
+      expect(mockLookupService.device?.name).toBe('');
       expect(mockLookupService.sn).toBe(TEST_SN);
       expect(mockEligibilityService.clear).toHaveBeenCalled();
     });
@@ -1222,16 +1226,45 @@ describe('DeviceDetailPage', () => {
         page().sn = TEST_SN;
       });
 
-      it('does not look the connected unit up in the catalog and passes it to add-user', async () => {
+      it('does not look the connected unit up in the catalog and passes SN and both models to add-user', async () => {
+        page().canPickType = true;
+        page().modelInput = ' NIMBUS 80 ';
         page().connectedSnInput = 'CONNECTED123456789012';
+        page().connectedModelInput = 'NIMBUS EXT';
 
         await component.onAddUser();
 
         expect(mockLookupService.lookupSilent).not.toHaveBeenCalled();
         expect(router.navigate).toHaveBeenCalledWith(
           ['/device-management', TEST_SN, 'add-user'],
-          { queryParams: { connectedSn: 'CONNECTED123456789012' } },
+          { queryParams: { connectedSn: 'CONNECTED123456789012', deviceModel: 'NIMBUS 80', connectedDeviceModel: 'NIMBUS EXT' } },
         );
+      });
+
+      it('requires the device model before adding the user', async () => {
+        page().canPickType = true;
+        page().connectedSnInput = 'CONNECTED123456789012';
+        page().connectedModelInput = 'NIMBUS EXT';
+
+        await component.onAddUser();
+
+        expect(mockToastController.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({ message: 'device_detail_model_required' }),
+        );
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+
+      it('requires the connected unit model when a connected unit is needed', async () => {
+        page().canPickType = true;
+        page().modelInput = 'NIMBUS 80';
+        page().connectedSnInput = 'CONNECTED123456789012';
+
+        await component.onAddUser();
+
+        expect(mockToastController.create).toHaveBeenCalledWith(
+          jasmine.objectContaining({ message: 'device_detail_connected_model_required' }),
+        );
+        expect(router.navigate).not.toHaveBeenCalled();
       });
 
       it('rejects a connected unit that is already registered', async () => {

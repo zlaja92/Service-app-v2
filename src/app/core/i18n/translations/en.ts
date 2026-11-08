@@ -362,6 +362,11 @@ export const en: Translation = {
   device_detail_commissioning_required_message: 'User data has been saved, but the device has not been commissioned yet. Please complete the commissioning.',
   device_detail_select_type: 'Device type',
   device_detail_select_type_placeholder: 'Select device type',
+  device_detail_model: 'Device model',
+  device_detail_model_placeholder: 'Enter model',
+  device_detail_connected_model: 'Connected device model',
+  device_detail_model_required: 'Enter the device model',
+  device_detail_connected_model_required: 'Enter the connected device model',
   device_detail_registration_check_error: 'Registration check failed. Please try again.',
 
   cart_title: 'Cart',

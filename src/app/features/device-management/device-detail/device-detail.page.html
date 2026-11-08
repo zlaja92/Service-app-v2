@@ -39,8 +39,9 @@
 
     <ion-card class="device-card">
       <ion-card-header>
-        @if (device) {
-          <ion-card-title>{{ device.name }}</ion-card-title>
+        <!-- No-catalog mode: the name is the model from the registration, empty before it. -->
+        @if (device?.name) {
+          <ion-card-title>{{ device?.name }}</ion-card-title>
         }
         <ion-card-subtitle>{{ sn }}</ion-card-subtitle>
       </ion-card-header>
@@ -101,6 +102,16 @@
                 </ion-select>
               </ion-item>
             </div>
+
+            <div class="field-group">
+              <p class="connected-label">{{ 'device_detail_model' | transloco }}</p>
+              <ion-item class="connected-input">
+                <ion-input [(ngModel)]="modelInput"
+                           [attr.aria-label]="'device_detail_model' | transloco"
+                           [placeholder]="'device_detail_model_placeholder' | transloco"
+                           [clearInput]="true" />
+              </ion-item>
+            </div>
           }
 
           @if (needsConnectedDevice) {
@@ -119,6 +130,18 @@
                 </ion-button>
               </div>
             </div>
+
+            @if (canPickType) {
+              <div class="field-group">
+                <p class="connected-label">{{ 'device_detail_connected_model' | transloco }}</p>
+                <ion-item class="connected-input">
+                  <ion-input [(ngModel)]="connectedModelInput"
+                             [attr.aria-label]="'device_detail_connected_model' | transloco"
+                             [placeholder]="'device_detail_model_placeholder' | transloco"
+                             [clearInput]="true" />
+                </ion-item>
+              </div>
+            }
           }
         </ion-card-content>
       </ion-card>
