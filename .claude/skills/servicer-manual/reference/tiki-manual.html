@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<title>Tiki Servis — Uputstvo za servisere</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 17mm 17mm 18mm 17mm; }
+  @page :first { margin: 0; }
+  :root { --accent: #1578BB; --accent-soft: #eaf3fa; --ink: #1b2130; --muted: #5d667a; --line: #dfe4ee; --warn: #b45309; --warn-soft: #fff7ed; --ok-soft: #ecfdf3; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Plus Jakarta Sans", system-ui, sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.5; counter-reset: fig; }
+  h2 { font-size: 17pt; font-weight: 800; margin: 9mm 0 3mm; letter-spacing: -0.01em; break-after: avoid; }
+  h2 .num { color: var(--accent); margin-right: 2.5mm; }
+  h3 { font-size: 11.5pt; font-weight: 700; margin: 4.5mm 0 1.5mm; break-after: avoid; }
+  h2 + *, h3 + * { break-before: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 2.5mm; padding-left: 5.5mm; }
+  li { margin: 0 0 1mm; }
+  .btn { display: inline-block; font-weight: 600; font-size: 8.8pt; padding: 0 2mm; border-radius: 5px; border: 1px solid var(--line); background: #fff; white-space: nowrap; line-height: 1.6; }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .phones { display: flex; justify-content: center; gap: 7mm; margin: 3mm 0 5mm; break-inside: avoid; }
+  .phones figure { margin: 0; width: 52mm; counter-increment: fig; break-inside: avoid; }
+  .phones.two figure { width: 58mm; }
+  .phones img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4mm; }
+  figcaption { display: block; font-size: 8.4pt; color: var(--muted); margin-top: 2.2mm; text-align: center; line-height: 1.35; }
+  figcaption::before { content: "Slika " counter(fig) " — "; font-weight: 600; color: var(--ink); }
+
+  .note, .warn, .tip { border-radius: 6px; padding: 2.5mm 3.5mm; margin: 2.5mm 0 3.5mm; break-inside: avoid; font-size: 9.6pt; }
+  .note { background: var(--accent-soft); border-left: 1.1mm solid var(--accent); }
+  .warn { background: var(--warn-soft); border-left: 1.1mm solid var(--warn); }
+  .tip { background: var(--ok-soft); border-left: 1.1mm solid #15803d; }
+  .note b:first-child, .warn b:first-child, .tip b:first-child { display: block; margin-bottom: 0.6mm; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 3.5mm; font-size: 9.3pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 1.6mm 2.2mm; border-bottom: 1px solid var(--line); }
+  th { background: #f5f7fb; font-weight: 700; font-size: 8.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 8mm; margin-bottom: 1.8mm; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0.3mm; width: 5.4mm; height: 5.4mm; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 8pt; display: grid; place-items: center; }
+
+  .side { display: grid; grid-template-columns: 1fr 52mm; gap: 7mm; align-items: start; break-inside: avoid; margin: 2mm 0 4mm; }
+  .side .phones { margin: 0; }
+
+  .stores { display: flex; justify-content: center; gap: 10mm; margin: 3mm 0 5mm; break-inside: avoid; }
+  .store { width: 62mm; border: 1px solid var(--line); border-radius: 4mm; padding: 4mm 4mm 3.5mm; text-align: center; background: #fff; }
+  .store-name { font-weight: 800; font-size: 12pt; margin-bottom: 2.5mm; }
+  .store-name span { display: block; font-weight: 500; font-size: 8.8pt; color: var(--muted); }
+  .store img { width: 40mm; height: 40mm; display: block; margin: 0 auto 2.5mm; }
+  .store a { display: inline-block; background: var(--accent); color: #fff; font-size: 8.8pt; font-weight: 700; text-decoration: none; padding: 1.4mm 4mm; border-radius: 2.5mm; }
+  /* Naslovna */
+  .cover { height: 297mm; padding: 34mm 22mm 20mm; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(160deg, #eaf3fa 0%, #ffffff 60%); }
+  .cover .logo { width: 30mm; height: 30mm; border-radius: 7mm; border: 1px solid var(--line); overflow: hidden; background: #fff; margin-bottom: 8mm; }
+  .cover .logo img { width: 100%; height: 100%; display: block; }
+  .cover .kicker { font-size: 10.5pt; font-weight: 600; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3mm; }
+  .cover h1 { font-size: 40pt; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 3mm; }
+  .cover .sub { font-size: 13.5pt; color: var(--muted); max-width: 135mm; }
+  .cover .shots { margin-top: 12mm; display: flex; gap: 6mm; justify-content: center; }
+  .cover .shots img { width: 46mm; border-radius: 4mm; border: 1px solid var(--line); }
+  .cover .date { margin-top: auto; font-size: 10pt; color: var(--muted); }
+  .cover .date b { color: var(--ink); }
+
+  /* Sadržaj */
+  .toc { list-style: none; padding: 0; margin: 6mm 0 0; border-top: 1px solid var(--line); }
+  .toc li { display: grid; grid-template-columns: 12mm 1fr 12mm; align-items: center; padding: 3.1mm 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+  .toc .n { font-size: 15pt; font-weight: 800; color: var(--accent); line-height: 1; }
+  .toc a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 12pt; display: block; line-height: 1.3; }
+  .toc .d { display: block; font-size: 9.2pt; color: var(--muted); margin-top: 0.6mm; font-weight: 400; }
+  .toc .pg { text-align: right; font-size: 11pt; font-weight: 600; color: var(--muted); }
+  h2.toc-title { font-size: 24pt; margin: 4mm 0 0; }
+  h2.first { margin-top: 0; }
+</style>
+</head>
+<body>
+
+<!-- ───────────── NASLOVNA ───────────── -->
+<div class="cover">
+  <div class="logo"><img src="mshots/app-icon.png" alt=""></div>
+  <div class="kicker">Uputstvo za servisere</div>
+  <h1>Tiki Servis</h1>
+  <div class="sub">Mobilna aplikacija za registraciju uređaja i unos servisnih intervencija.</div>
+  <div class="shots">
+    <img src="mshots/m04-home-filled.png" alt="">
+    <img src="mshots/m10-device.png" alt="">
+    <img src="mshots/m33-int-form-top.png" alt="">
+  </div>
+  <div class="date">Datum izrade: <b>8. novembar 2026.</b></div>
+</div>
+
+<!-- ───────────── SADRŽAJ ───────────── -->
+<h2 class="first toc-title">Sadržaj</h2>
+<ol class="toc">
+  <li><span class="n">1</span><span><a href="#uvod">Uvod</a><span class="d">Čemu služi aplikacija, preuzimanje i nalog</span></span><span class="pg" data-pg="uvod">3</span></li>
+  <li><span class="n">2</span><span><a href="#prijava">Prijava i meni</a><span class="d">Prijava, jezik, tamni režim, odjava</span></span><span class="pg" data-pg="prijava">4</span></li>
+  <li><span class="n">3</span><span><a href="#pocetna">Pronalaženje uređaja</a><span class="d">Unos serijskog broja (Code i Ser.No.)</span></span><span class="pg" data-pg="pocetna">5</span></li>
+  <li><span class="n">4</span><span><a href="#uredjaj">Detalji uređaja</a><span class="d">Podaci o kupcu, garancija i dugmad</span></span><span class="pg" data-pg="uredjaj">6</span></li>
+  <li><span class="n">5</span><span><a href="#korisnik">Dodavanje korisnika</a><span class="d">Registracija uređaja i podaci o kupcu</span></span><span class="pg" data-pg="korisnik">7</span></li>
+  <li><span class="n">6</span><span><a href="#intervencija">Nova intervencija</a><span class="d">Kvar, lokacija, rezervni delovi, opisi i čuvanje</span></span><span class="pg" data-pg="intervencija">8</span></li>
+  <li><span class="n">7</span><span><a href="#istorija">Istorija intervencija</a><span class="d">Pregled ranijih intervencija i izveštaj</span></span><span class="pg" data-pg="istorija">10</span></li>
+  <li><span class="n">8</span><span><a href="#pretraga">Pretraga po korisniku</a><span class="d">Pronalaženje uređaja po imenu i prezimenu kupca</span></span><span class="pg" data-pg="pretraga">12</span></li>
+  <li><span class="n">9</span><span><a href="#katalog">Rezervni delovi i korpa</a><span class="d">Katalog, cene i poručivanje delova</span></span><span class="pg" data-pg="katalog">12</span></li>
+  <li><span class="n">10</span><span><a href="#moje">Moje intervencije</a><span class="d">Izveštaj o urađenim intervencijama za period</span></span><span class="pg" data-pg="moje">15</span></li>
+  <li><span class="n">11</span><span><a href="#dokumentacija">Dokumentacija</a><span class="d">Uputstva i obrasci</span></span><span class="pg" data-pg="dokumentacija">15</span></li>
+  <li><span class="n">12</span><span><a href="#pitanja">Česta pitanja</a><span class="d">Poruke u aplikaciji i šta uraditi</span></span><span class="pg" data-pg="pitanja">17</span></li>
+</ol>
+
+<!-- ───────────── 1. UVOD ───────────── -->
+<h2 id="uvod" style="break-before: page; margin-top: 0"><span class="num">1</span>Uvod</h2>
+<p>Aplikacija <b>Tiki Servis</b> služi serviserima za rad na terenu: pronalaženje uređaja po serijskom broju, registraciju uređaja i kupca, unos servisnih intervencija, pregled istorije intervencija, katalog rezervnih delova i dokumentaciju.</p>
+<h3>Preuzimanje aplikacije</h3>
+<p>U prodavnici aplikacija na telefonu potraži <b>Tiki Servis RS</b>: <b>App Store</b> na iPhone-u, <b>Google Play</b> na Android telefonu. Možeš i da skeniraš QR kod kamerom telefona ili da klikneš na dugme ispod njega.</p>
+<div class="stores">
+  <div class="store">
+    <div class="store-name">App Store <span>iPhone</span></div>
+    <img src="mshots/qr-appstore.svg" alt="QR kod za App Store">
+    <a href="https://apps.apple.com/rs/app/tiki-servis-rs/id6743663962">Preuzmi iz App Store-a</a>
+  </div>
+  <div class="store">
+    <div class="store-name">Google Play <span>Android</span></div>
+    <img src="mshots/qr-play.svg" alt="QR kod za Google Play">
+    <a href="https://play.google.com/store/apps/details?id=rs.Tiki">Preuzmi sa Google Play-a</a>
+  </div>
+</div>
+<table>
+  <tr><th style="width:30%">Nalog</th><td>Email i lozinka koje dobiješ od osobe koja upravlja servisnom mrežom</td></tr>
+  <tr><th>Internet</th><td>Potrebna je internet veza (mobilni podaci ili Wi-Fi)</td></tr>
+</table>
+<div class="note"><b>Napomena o slikama</b>Slike u uputstvu napravljene su sa probnim podacima o kupcima, na iPhone-u. Na Android telefonima izgled može malo da se razlikuje, ali su polja i dugmad isti.</div>
+
+<!-- ───────────── 2. PRIJAVA ───────────── -->
+<h2 id="prijava"><span class="num">2</span>Prijava i meni</h2>
+<div class="side">
+  <div>
+    <ol class="steps">
+      <li>Otvori aplikaciju i upiši <b>Email</b> i <b>Lozinku</b>.</li>
+      <li>Dodirni plavo dugme sa strelicom. Dugme postaje aktivno kad su oba polja ispravno popunjena.</li>
+    </ol>
+    <p>Prijava se pamti: sledeći put aplikacija se otvara direktno na početnom ekranu, sve dok se ne odjaviš. Jezik se bira gore desno (SR).</p>
+    <p>Moguće poruke ispod forme:</p>
+    <ul>
+      <li><b>„Pogrešan email ili lozinka"</b>: proveri podatke i pokušaj ponovo.</li>
+      <li><b>„Previše pokušaja. Pokušajte ponovo kasnije."</b></li>
+      <li><b>„Nema internet konekcije"</b>: proveri vezu.</li>
+    </ul>
+    <p>Za zaboravljenu lozinku obrati se osobi koja upravlja servisnom mrežom.</p>
+  </div>
+  <div class="phones"><figure><img src="mshots/m02-login-error.png" alt=""><figcaption>Prijava sa pogrešnom lozinkom.</figcaption></figure></div>
+</div>
+<div class="side">
+  <div>
+    <h3 style="margin-top:0">Meni</h3>
+    <p>Meni se otvara dodirom na ikonicu ☰ gore desno:</p>
+    <ul>
+      <li><b>Odjavi se</b>: odjava iz aplikacije.</li>
+      <li><b>Jezik</b>: izbor jezika aplikacije.</li>
+      <li><b>Tamni režim</b>: tamni izgled aplikacije.</li>
+      <li><b>Auto prikaz izveštaja</b>: kad je uključeno, posle čuvanja intervencije automatski se otvara PDF izveštaj.</li>
+      <li><b>Moje intervencije</b>: izveštaj o tvojim intervencijama (poglavlje 10).</li>
+    </ul>
+  </div>
+  <div class="phones"><figure><img src="mshots/m05-menu.png" alt=""><figcaption>Meni.</figcaption></figure></div>
+</div>
+
+<!-- ───────────── 3. POČETNA ───────────── -->
+<h2 id="pocetna"><span class="num">3</span>Pronalaženje uređaja</h2>
+<p>Uređaj se pronalazi po serijskom broju, koji se na početnom ekranu unosi u dva dela, onako kako piše na nalepnici uređaja:</p>
+<ul>
+  <li><b>Code</b>: šifra proizvoda sa kosom crtom, tačno 9 znakova (npr. <b>700278/01</b>);</li>
+  <li><b>Ser.No.</b>: serijski broj, tačno 10 cifara (npr. <b>2405001234</b>).</li>
+</ul>
+<p>Dugme <span class="btn primary">Pretraži</span> postaje aktivno kad su oba polja potpuno popunjena. Ako je uređaj pronađen, otvaraju se njegovi detalji.</p>
+<div class="phones">
+  <figure><img src="mshots/m04-home-filled.png" alt=""><figcaption>Početni ekran sa unetim serijskim brojem.</figcaption></figure>
+  <figure><img src="mshots/m06-sn-not-found.png" alt=""><figcaption>Poruka kad uređaj ne postoji u katalogu.</figcaption></figure>
+</div>
+<p>Ako se pojavi poruka <b>„Uređaj nije pronađen u bazi"</b>, proveri Code i Ser.No. sa nalepnice. Serijski broj ne sme da sadrži razmake. Ispod polja su i dugmad <b>Dokumentacija</b>, <b>Pretraži po nazivu uređaja</b> i <b>Pretraži po korisniku</b>.</p>
+
+<!-- ───────────── 4. UREĐAJ ───────────── -->
+<h2 id="uredjaj"><span class="num">4</span>Detalji uređaja</h2>
+<p>Na vrhu su serijski broj i model uređaja. Ako je uređaj registrovan, prikazani su podaci o kupcu (ime i prezime, adresa, grad, telefon), <b>datum kupovine</b> i datum do kog važi <b>garancija</b>.</p>
+<div class="phones">
+  <figure><img src="mshots/m10-device.png" alt=""><figcaption>Registrovan uređaj.</figcaption></figure>
+  <figure><img src="mshots/m20-device-unregistered.png" alt=""><figcaption>Uređaj koji još nije registrovan.</figcaption></figure>
+</div>
+<table>
+  <tr><th style="width:30%">Dugme</th><th>Kada se koristi</th></tr>
+  <tr><td><b>Dodaj korisnika</b></td><td>Vidi se samo dok uređaj nije registrovan. Otvara unos podataka o kupcu (poglavlje 5).</td></tr>
+  <tr><td><b>Intervencija</b></td><td>Unos nove servisne intervencije (poglavlje 6). Aktivno kad je uređaj registrovan.</td></tr>
+  <tr><td><b>Istorija</b></td><td>Pregled ranijih intervencija na uređaju (poglavlje 7). Aktivno kad je uređaj registrovan.</td></tr>
+</table>
+
+<!-- ───────────── 5. KORISNIK ───────────── -->
+<h2 id="korisnik"><span class="num">5</span>Dodavanje korisnika</h2>
+<p>Pre prve intervencije uređaj se registruje na kupca. Na detaljima uređaja dodirni <span class="btn">Dodaj korisnika</span> i popuni podatke:</p>
+<ul>
+  <li><b>Ime</b>, <b>Prezime</b>, <b>Ulica</b>, <b>Kućni broj</b>, <b>Grad</b>, <b>Poštanski broj</b> i <b>Broj telefona</b>;</li>
+  <li><b>Garancija</b>: „Uređaj u garanciji" ili „Uređaj van garancije";</li>
+  <li><b>Datum kupovine</b>: pojavljuje se i obavezan je samo za uređaj u garanciji.</li>
+</ul>
+<p>Sva polja su obavezna. Ako nešto nedostaje, aplikacija javlja „Popunite obavezna polja: …" i navodi koja.</p>
+<div class="phones">
+  <figure><img src="mshots/m22-adduser-form.png" alt=""><figcaption>Popunjeni podaci o kupcu.</figcaption></figure>
+  <figure><img src="mshots/m23-adduser-confirm.png" alt=""><figcaption>Potvrda pre čuvanja.</figcaption></figure>
+  <figure><img src="mshots/m24-adduser-saved.png" alt=""><figcaption>Uređaj je registrovan.</figcaption></figure>
+</div>
+<div class="warn"><b>Podaci se posle čuvanja ne mogu menjati</b>Pre dodira na <b>Sačuvaj</b> u prozoru „Potvrda" proveri sve podatke, posebno broj telefona i datum kupovine. Ako je ipak potrebna ispravka, obrati se osobi koja upravlja servisnom mrežom.</div>
+<p>Posle uspešnog čuvanja pojavi se poruka „Korisnik je uspešno sačuvan", a na detaljima uređaja prikazani su podaci o kupcu i garanciji.</p>
+
+<!-- ───────────── 6. INTERVENCIJA ───────────── -->
+<h2 id="intervencija"><span class="num">6</span>Nova intervencija</h2>
+<p>Na detaljima uređaja dodirni <span class="btn">Intervencija</span> i popuni formu:</p>
+<table>
+  <tr><th style="width:32%">Polje</th><th>Opis</th></tr>
+  <tr><td><b>Garantni status</b></td><td>„Intervencija u garanciji" ili „Intervencija van garancije". Obavezno.</td></tr>
+  <tr><td><b>Kvar</b></td><td>Izbor vrste kvara sa liste. Obavezno.</td></tr>
+  <tr><td><b>Lokacija kvara</b></td><td>Izbor dela uređaja na kome je kvar. Obavezno.</td></tr>
+  <tr><td><b>Broj izlazaka na teren</b></td><td>1, 2 ili 3. Obavezno.</td></tr>
+  <tr><td><b>Kilometraža</b></td><td>Ukupno pređeni kilometri u oba smera (do kupca i nazad), do tri cifre. Unapred je upisano 30.</td></tr>
+  <tr><td><b>Datum</b></td><td>Današnji datum, upisuje se automatski.</td></tr>
+  <tr><td><b>Šifra zamenjenog dela 1–4</b></td><td>Šifre ugrađenih rezervnih delova. Dugme <b>+</b> dodaje polje (najviše 4), a <b>−</b> uklanja poslednje. Ako delovi nisu menjani, ostavi prazno.</td></tr>
+  <tr><td><b>Opis kvara</b></td><td>Kratak opis kvara, do 1000 znakova. Obavezno.</td></tr>
+  <tr><td><b>Opis posla tehničara</b></td><td>Šta je urađeno, do 1000 znakova. Obavezno.</td></tr>
+</table>
+<div class="phones">
+  <figure><img src="mshots/m32-int-fault-sheet.png" alt=""><figcaption>Izbor kvara sa liste.</figcaption></figure>
+  <figure><img src="mshots/m33-int-form-top.png" alt=""><figcaption>Popunjena forma.</figcaption></figure>
+  <figure><img src="mshots/m35-int-form-bottom.png" alt=""><figcaption>Dno forme sa dugmadima.</figcaption></figure>
+</div>
+<ol class="steps">
+  <li>Kad popuniš formu, dodirni <span class="btn">Sačuvaj</span> na dnu.</li>
+  <li>U prozoru „Upozorenje" proveri podatke i potvrdi sa <b>Sačuvaj</b>.</li>
+  <li>Pojavi se poruka „Intervencija je uspešno sačuvana" i vraćaš se na detalje uređaja. Ako je u meniju uključen „Auto prikaz izveštaja", otvori se i PDF izveštaj.</li>
+</ol>
+<div class="phones two">
+  <figure><img src="mshots/m36-int-confirm.png" alt=""><figcaption>Potvrda pre čuvanja.</figcaption></figure>
+  <figure><img src="mshots/m37-int-saved.png" alt=""><figcaption>Intervencija je sačuvana.</figcaption></figure>
+</div>
+<div class="warn"><b>Intervencija se posle čuvanja ne može menjati</b>Pre potvrde proveri kvar, lokaciju, šifre delova i opise.</div>
+<ul>
+  <li>Ako neko obavezno polje nije popunjeno, aplikacija javlja šta nedostaje, npr. „Izaberite kvar" ili „Unesite opis posla tehničara".</li>
+  <li><b>Sklopni crtež</b> otvara katalog rezervnih delova za ovaj uređaj. Pre toga izaberi garantni status. Delovi iz kataloga mogu se dodati u korpu i poručiti (poglavlje 9).</li>
+</ul>
+
+<!-- ───────────── 7. ISTORIJA ───────────── -->
+<h2 id="istorija"><span class="num">7</span>Istorija intervencija</h2>
+<p>Na detaljima uređaja dodirni <span class="btn">Istorija</span>. Prvi red je datum kupovine, a ispod su intervencije po datumu. Dodir na intervenciju otvara njene detalje: kvar, lokaciju, broj izlazaka, garanciju, šifre delova, servisni centar, servisera, datum i opise.</p>
+<div class="phones">
+  <figure><img src="mshots/m12-history.png" alt=""><figcaption>Istorija uređaja.</figcaption></figure>
+  <figure><img src="mshots/m13-int-detail.png" alt=""><figcaption>Detalji intervencije.</figcaption></figure>
+</div>
+<p>Dugme <span class="btn primary">Izveštaj</span> pravi PDF izveštaj o intervenciji, koji se može sačuvati ili poslati.</p>
+
+<!-- ───────────── 8. PRETRAGA ───────────── -->
+<h2 id="pretraga"><span class="num">8</span>Pretraga po korisniku</h2>
+<div class="side">
+  <div>
+    <ol class="steps">
+      <li>Na početnom ekranu dodirni <b>Pretraži po korisniku</b>.</li>
+      <li>Upiši početak imena i/ili prezimena kupca (najmanje 2 slova) i dodirni <span class="btn primary">Pretraži</span>.</li>
+      <li>Dodirni kupca u rezultatima da otvoriš detalje uređaja.</li>
+    </ol>
+    <p>Rezultati prikazuju ime i prezime, adresu i serijski broj uređaja. Ako ih ima više, na dnu se pojavljuje <b>Učitaj još</b>.</p>
+  </div>
+  <div class="phones"><figure><img src="mshots/m40-user-search.png" alt=""><figcaption>Pretraga po imenu „Petar".</figcaption></figure></div>
+</div>
+
+<!-- ───────────── 9. KATALOG ───────────── -->
+<h2 id="katalog"><span class="num">9</span>Rezervni delovi i korpa</h2>
+<ol class="steps">
+  <li>Na početnom ekranu dodirni <b>Pretraži po nazivu uređaja</b> i upiši početak naziva ili šifre (npr. „PRIME").</li>
+  <li>Izaberi model, zatim sklop (npr. „SVI DELOVI").</li>
+  <li>Prikazuju se sklopni crtež i spisak rezervnih delova. Crtež se može uvećati sa dva prsta.</li>
+  <li>Dodir na deo prikazuje njegovu šifru i cenu. <b>Dodaj u korpu</b> ga dodaje u korpu.</li>
+</ol>
+<div class="phones">
+  <figure><img src="mshots/m50-catalog-search.png" alt=""><figcaption>Pretraga uređaja po nazivu.</figcaption></figure>
+  <figure><img src="mshots/m52-parts.png" alt=""><figcaption>Sklopni crtež i rezervni delovi.</figcaption></figure>
+  <figure><img src="mshots/m53-part-detail.png" alt=""><figcaption>Šifra i cena dela.</figcaption></figure>
+</div>
+<div class="side">
+  <div>
+    <h3 style="margin-top:0">Korpa i poručivanje</h3>
+    <p>Broj delova u korpi vidi se na ikonici korpe gore desno; dodir na nju otvara korpu. U korpi se količina menja sa <b>−</b> i <b>+</b>, a ispod je ukupna cena.</p>
+    <p><span class="btn primary">Poruči</span> otvara aplikaciju za email na telefonu sa pripremljenom porudžbinom, koju samo pošalješ.</p>
+    <ul>
+      <li>Cene su informativnog karaktera.</li>
+      <li>Na telefonu mora biti podešen email nalog.</li>
+      <li>Korpa se prazni pri odjavi ili ponovnom pokretanju aplikacije.</li>
+    </ul>
+  </div>
+  <div class="phones"><figure><img src="mshots/m55-cart.png" alt=""><figcaption>Korpa sa dva dela.</figcaption></figure></div>
+</div>
+
+<!-- ───────────── 10. MOJE INTERVENCIJE ───────────── -->
+<h2 id="moje"><span class="num">10</span>Moje intervencije</h2>
+<div class="side">
+  <div>
+    <ol class="steps">
+      <li>U meniju dodirni <b>Moje intervencije</b>.</li>
+      <li>Izaberi period (<b>Datum od</b> i <b>Datum do</b>, najviše godinu dana) i dodirni <span class="btn primary">Pretraži</span>.</li>
+      <li>Prikazuju se tvoje intervencije iz perioda, sa datumom, serijskim brojem, adresom i šiframa delova.</li>
+      <li>Označi intervencije koje želiš (ili „Sve") i dodirni <span class="btn primary">Izvezi PDF</span>.</li>
+    </ol>
+    <p>PDF izveštaj sadrži tabelu urađenih intervencija sa ukupnim brojem i može se sačuvati ili poslati.</p>
+  </div>
+  <div class="phones"><figure><img src="mshots/m61-report-results.png" alt=""><figcaption>Intervencije za izabrani period.</figcaption></figure></div>
+</div>
+
+<!-- ───────────── 11. DOKUMENTACIJA ───────────── -->
+<h2 id="dokumentacija"><span class="num">11</span>Dokumentacija</h2>
+<p>Na početnom ekranu dodirni <b>Dokumentacija</b>. Dokumenti su raspoređeni po fasciklama: dodir na fasciklu je otvara, strelica gore levo vraća nazad, a dodir na dokument ga otvara za čitanje.</p>
+<div class="phones two">
+  <figure><img src="mshots/m70-docs.png" alt=""><figcaption>Dokumentacija.</figcaption></figure>
+  <figure><img src="mshots/m71-docs-folder.png" alt=""><figcaption>Sadržaj fascikle.</figcaption></figure>
+</div>
+
+<!-- ───────────── 12. PITANJA ───────────── -->
+<h2 id="pitanja"><span class="num">12</span>Česta pitanja</h2>
+<table>
+  <tr><th style="width:38%">Poruka ili problem</th><th>Šta uraditi</th></tr>
+  <tr><td>„Pogrešan email ili lozinka"</td><td>Proveri podatke. Za novu lozinku obrati se osobi koja upravlja servisnom mrežom.</td></tr>
+  <tr><td>„Nema internet konekcije"</td><td>Uključi mobilne podatke ili Wi-Fi i pokušaj ponovo.</td></tr>
+  <tr><td>Dugme „Pretraži" nije aktivno</td><td>Code mora imati tačno 9 znakova (sa „/"), a Ser.No. tačno 10 cifara.</td></tr>
+  <tr><td>„Uređaj nije pronađen u bazi"</td><td>Proveri Code i Ser.No. sa nalepnice uređaja. Ako su tačni, obrati se osobi koja upravlja servisnom mrežom.</td></tr>
+  <tr><td>„Serijski broj ne sme da sadrži razmake"</td><td>Obriši razmake iz polja.</td></tr>
+  <tr><td>Dugmad „Intervencija" i „Istorija" nisu aktivna</td><td>Uređaj još nije registrovan: prvo dodirni „Dodaj korisnika" (poglavlje 5).</td></tr>
+  <tr><td>„Popunite obavezna polja: …"</td><td>Popuni polja navedena u poruci.</td></tr>
+  <tr><td>Pogrešno uneti podaci o kupcu ili intervenciji</td><td>Posle čuvanja se ne mogu menjati u aplikaciji. Obrati se osobi koja upravlja servisnom mrežom.</td></tr>
+  <tr><td>„Greška pri čuvanju intervencije" / „korisnika"</td><td>Proveri internet vezu i pokušaj ponovo.</td></tr>
+  <tr><td>„Na uređaju nije podešen nalog za e-poštu"</td><td>Podesi email nalog na telefonu pa ponovo dodirni „Poruči".</td></tr>
+  <tr><td>„Aplikacija je zastarela"</td><td>Ažuriraj aplikaciju iz App Store-a ili Google Play-a.</td></tr>
+</table>
+
+</body>
+</html>

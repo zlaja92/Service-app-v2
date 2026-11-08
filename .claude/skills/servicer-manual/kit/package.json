@@ -1,0 +1,13 @@
+{
+  "name": "servicer-manual-kit",
+  "private": true,
+  "type": "commonjs",
+  "description": "Alati za generisanje uputstva za servisere (pokreće se iz kopije u scratchpad-u, ne iz repoa).",
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.2.0",
+    "jsqr": "^1.4.0",
+    "playwright-core": "^1.50.0",
+    "qrcode": "^1.5.4"
+  }
+}

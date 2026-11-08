@@ -1,0 +1,73 @@
+{
+  "_note": "Konfiguracija brenda za generisanje uputstva za servisere. Kopiraj u brands/<brand>.json i popuni za novi brend.",
+  "brandId": "tiki",
+  "appName": "Tiki Servis",
+  "storeSearchName": "Tiki Servis RS",
+  "appStoreUrl": "https://apps.apple.com/rs/app/tiki-servis-rs/id6743663962",
+  "playStoreUrl": "https://play.google.com/store/apps/details?id=rs.Tiki",
+  "firebaseProject": "tiki-service-v2",
+  "tenantId": "tiki-srb",
+  "storageBucket": "tiki-service-v2.firebasestorage.app",
+  "accentColor": "#1578BB",
+  "language": "sr",
+  "contactPerson": {
+    "nominative": "osoba koja upravlja servisnom mrežom",
+    "genitive": "osobe koja upravlja servisnom mrežom",
+    "dative": "osobi koja upravlja servisnom mrežom"
+  },
+  "catalog": {
+    "_note": "Modeli (devices/{id}) za koje se kopiraju sklopovi, delovi, cene i crteži. Biraj 2–3 popularna modela istog tipa.",
+    "models": ["700278", "700279", "736227"],
+    "searchTerm": "PRIME",
+    "searchResultModelName": "PRIME50U",
+    "partNameToOpen": "HEATING ELEMENT",
+    "secondPartName": "SACRIFYING ANODE"
+  },
+  "demo": {
+    "servicer": {
+      "email": "marko.petrovic@primer.rs",
+      "password": "Demo-lozinka-1",
+      "displayName": "Marko Petrović",
+      "company": "Termo Servis d.o.o.",
+      "address": "Bulevar oslobođenja 12",
+      "city": "Novi Sad",
+      "phone": "021 555 0102",
+      "pib": "100000001",
+      "servicerId": "S-014"
+    },
+    "_snNote": "snType=split: code='XXXXXX/VV' (9 zn.), ser = 10 cifara, sn = code bez '/' + ser. snType=single: code=null, ser = ceo SN (snMinLength..snMaxLength).",
+    "registeredDevices": [
+      { "code": "700278/01", "ser": "2405001234", "firstName": "Petar", "lastName": "Jovanović", "streetName": "Kralja Petra", "homeNumber": "15", "city": "Beograd", "postCode": "11000", "phoneNumber": "064 123 4567", "warranty": "in-warranty", "purchase": [2025, 3, 14] },
+      { "code": "700279/01", "ser": "2402008811", "firstName": "Milica", "lastName": "Nikolić", "streetName": "Bulevar Evrope", "homeNumber": "8a", "city": "Novi Sad", "postCode": "21000", "phoneNumber": "063 222 1144", "warranty": "in-warranty", "purchase": [2024, 9, 2] },
+      { "code": "736227/01", "ser": "2311004520", "firstName": "Dragan", "lastName": "Popović", "streetName": "Vojvode Mišića", "homeNumber": "41", "city": "Niš", "postCode": "18000", "phoneNumber": "065 777 3010", "warranty": "out-of-warranty", "purchase": null },
+      { "code": "700278/01", "ser": "2403005567", "firstName": "Jelena", "lastName": "Đorđević", "streetName": "Svetozara Markovića", "homeNumber": "3", "city": "Kragujevac", "postCode": "34000", "phoneNumber": "062 888 1220", "warranty": "in-warranty", "purchase": [2025, 11, 20] },
+      { "code": "700279/01", "ser": "2406002233", "firstName": "Petar", "lastName": "Stanković", "streetName": "Cara Dušana", "homeNumber": "27", "city": "Subotica", "postCode": "24000", "phoneNumber": "061 456 7788", "warranty": "in-warranty", "purchase": [2025, 6, 5] },
+      { "code": "736227/01", "ser": "2408009001", "firstName": "Marija", "lastName": "Pavlović", "streetName": "Njegoševa", "homeNumber": "11", "city": "Čačak", "postCode": "32000", "phoneNumber": "060 135 7924", "warranty": "in-warranty", "purchase": [2026, 1, 10] }
+    ],
+    "_interventionsNote": "Šifre kvara/lokacije MORAJU postojati u config.interventionFaultOptions/interventionLocationOptions[deviceType] (i u bundled prevodima). Delovi moraju postojati u priceList (iz catalog.models).",
+    "interventions": [
+      { "device": 0, "date": [2025, 12, 9, 11, 20], "warranty": "in-warranty", "fault": "fault_boiler_short_circuit", "location": "intervention_location_heater", "visits": "1", "faultDescription": "Bojler ne greje, aktivira se zaštitna sklopka.", "workDescription": "Zamenjen grejač i zaptivka, proverena izolacija i rad termostata.", "parts": ["632814", "580477"], "distance": "18" },
+      { "device": 0, "date": [2026, 10, 28, 9, 5], "warranty": "in-warranty", "fault": "fault_boiler_cannot_turn_on", "location": "intervention_location_indicator_light", "visits": "1", "faultDescription": "Ne svetli kontrolna lampica, bojler greje.", "workDescription": "Zamenjena kontrolna lampica, provera rada.", "parts": ["765230"], "distance": "12" },
+      { "device": 1, "date": [2026, 11, 3, 14, 40], "warranty": "in-warranty", "fault": "fault_boiler_wrong_wiring", "location": "intervention_location_anode", "visits": "2", "faultDescription": "Voda ima neprijatan miris, curi ispod bojlera.", "workDescription": "Zamenjena anoda i zaptivka, očišćen kotlenac iz rezervoara.", "parts": ["102595", "580477"], "distance": "42" },
+      { "device": 2, "date": [2026, 11, 5, 10, 15], "warranty": "out-of-warranty", "fault": "fault_boiler_short_circuit", "location": "intervention_location_thermostat", "visits": "1", "faultDescription": "Voda je prevruća, termostat ne isključuje.", "workDescription": "Zamenjen termoregulator i bimetalni osigurač.", "parts": ["291233", "580434"], "distance": "35" }
+    ],
+    "_flowNote": "Vrednosti koje skripta za snimke unosi kroz aplikaciju.",
+    "flows": {
+      "homeExample": { "code": "700278/01", "ser": "2405001234" },
+      "notFound": { "code": "999999/01", "ser": "2405001234" },
+      "historyDevice": { "code": "700278/01", "ser": "2405001234", "openRowDate": "09.12.2025" },
+      "newCustomer": { "code": "700279/01", "ser": "2409007777", "firstName": "Nikola", "lastName": "Ilić", "streetName": "Branka Radičevića", "homeNumber": "22", "city": "Šabac", "postCode": "15000", "phoneNumber": "064 555 1212", "warrantyOption": "u garanciji", "purchaseDate": "2026-10-15" },
+      "intervention": { "code": "700279/01", "ser": "2402008811", "warrantyOption": "U GARANCIJI", "faultOption": "KRATAK SPOJ", "locationOption": "GREJAČ", "visits": "1", "distance": "24", "parts": ["632814", "580477"], "faultDescription": "Bojler ne greje, aktivira se zaštitna sklopka u razvodnoj tabli.", "workDescription": "Zamenjen grejač i zaptivka. Proverena izolacija i rad termostata, bojler radi ispravno." },
+      "userSearchName": "Petar",
+      "docsFolderToOpen": "Uputstva za upotrebu"
+    },
+    "extraDocuments": [
+      ["Uputstva za upotrebu/Uputstvo za upotrebu - PRIME 50U i 80U.pdf", "Uputstvo za upotrebu", "Električni bojleri PRIME 50U i PRIME 80U"],
+      ["Uputstva za upotrebu/Uputstvo za upotrebu - MINI P 5, 10, 15.pdf", "Uputstvo za upotrebu", "Mali električni bojleri MINI P 5, 10 i 15"],
+      ["Uputstva za montažu/Montaža električnih bojlera.pdf", "Uputstvo za montažu", "Zidna montaža i priključenje na vodovodnu i električnu mrežu"],
+      ["Servisne informacije/Kodovi grešaka i otklanjanje kvarova.pdf", "Servisne informacije", "Kodovi grešaka i postupci otklanjanja kvarova"],
+      ["Servisne informacije/Cenovnik servisnih usluga 2026.pdf", "Cenovnik", "Cenovnik servisnih usluga za 2026. godinu"],
+      ["Obrazac za reklamaciju.pdf", "Obrazac", "Obrazac za prijavu reklamacije"]
+    ]
+  }
+}
