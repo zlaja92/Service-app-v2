@@ -430,6 +430,68 @@ describe('TenantService', () => {
   // isDeviceTypeAllowed()
   // =========================================================================
 
+  describe('getStoragePath()', () => {
+    it('prefixes the path with the tenant folder', () => {
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      expect(service.getStoragePath('Documents/manual.pdf')).toBe('tenant-1/Documents/manual.pdf');
+    });
+
+    it('leaves a path that already starts with the tenant folder unchanged', () => {
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      // Storage listings return full paths; older interventions store signaturePath with the tenant.
+      expect(service.getStoragePath('tenant-1/int-heating/SN1/signatures/s.png'))
+        .toBe('tenant-1/int-heating/SN1/signatures/s.png');
+    });
+
+    it('prefixes a path that only starts with a similar tenant name', () => {
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      expect(service.getStoragePath('tenant-10/Photos/a.png')).toBe('tenant-1/tenant-10/Photos/a.png');
+    });
+
+    it('throws when the tenant is not resolved', () => {
+      expect(() => service.getStoragePath('Documents')).toThrowError(/Tenant not resolved/);
+    });
+  });
+
+  describe('getInterventionStorageFolder()', () => {
+    it('uses the mapped intervention collection and the SN', () => {
+      const cfg = getDefaultConfig();
+      cfg.business.interventionCollections = { 'boiler': 'boiler-interventions', 'default': 'interventions' };
+      mockConfigStore.setConfig(cfg);
+
+      expect(service.getInterventionStorageFolder('boiler', 'SN1')).toBe('boiler-interventions/SN1');
+    });
+
+    it('falls back to the "default" mapping', () => {
+      const cfg = getDefaultConfig();
+      cfg.business.interventionCollections = { 'default': 'default-interventions' };
+      mockConfigStore.setConfig(cfg);
+
+      expect(service.getInterventionStorageFolder('unknown', 'SN2')).toBe('default-interventions/SN2');
+    });
+
+    it('falls back to "interventions" without any mapping', () => {
+      const cfg = getDefaultConfig();
+      cfg.business.interventionCollections = {};
+      mockConfigStore.setConfig(cfg);
+
+      expect(service.getInterventionStorageFolder('unknown', 'SN3')).toBe('interventions/SN3');
+    });
+
+    it('uses the same collection name as the Firestore intervention collection', () => {
+      const cfg = getDefaultConfig();
+      cfg.business.interventionCollections = { 'heat-pump': 'int-heating' };
+      mockConfigStore.setConfig(cfg);
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      expect(service.getInterventionCollectionPath('heat-pump')).toBe('tenants/tenant-1/int-heating');
+      expect(service.getInterventionStorageFolder('heat-pump', 'SN4')).toBe('int-heating/SN4');
+    });
+  });
+
   describe('isDeviceTypeAllowed()', () => {
     it('TC-TS31: returns true when deviceTypes contains the type', () => {
       tenantStore.setTenant('t1', 'servicer', null, ['boiler', 'pump']);

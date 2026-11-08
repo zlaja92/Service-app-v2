@@ -84,7 +84,7 @@ Vizuelna podešavanja aplikacije.
 | `userSearchPageSize` | number | `20` | Broj rezultata po stranici u pretrazi korisnika |
 | `userSearchMinLength` | number | `2` | Minimalan broj karaktera za pretragu korisnika |
 | `partNote` | string | `''` | Napomena koja se prikazuje na detaljima dela |
-| `partPhotoFolder` | string | `''` | Folder u Firebase Storage za fotografije delova |
+| `partPhotoFolder` | string | `''` | Folder za fotografije delova, relativno na folder tenanta u Storage-u (npr. `PartPhotos` → `{tenantId}/PartPhotos`) |
 | `interventionCollections` | Record | `{ default: 'interventions' }` | Mapiranje tip uređaja → ime kolekcije za intervencije |
 
 ---
@@ -122,6 +122,23 @@ Vrednosti su i18n ključevi — prevode se pri prikazu na aktivnom jeziku korisn
 |-------|-----|---------|------|
 | `interventionFaultOptions` | Record&lt;string, string[]&gt; | `{}` | Opisi kvarova po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
 | `interventionErrorOptions` | Record&lt;string, string[]&gt; | `{}` | Kodovi grešaka po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
+
+---
+
+## Firebase Storage — raspored po tenantima
+
+Svi fajlovi su u folderu tenanta. Aplikacija sama dodaje `{tenantId}/` (`StorageService` preko `TenantService.getStoragePath()`), pa se u kodu i konfiguraciji putanje navode relativno.
+
+```
+{tenantId}/
+  Documents/…                                  dokumentacija (sa _folders.txt u svakom folderu)
+  Photos/{naziv}.png                           slike sklopova u katalogu
+  {partPhotoFolder}/{šifra}.png                fotografije delova
+  {kolekcija}/{sn}/{tip}_{datum}_{n}.jpg       fotografije intervencija
+  {kolekcija}/{sn}/signatures/signature_….png  potpisi
+```
+
+`{kolekcija}` je isto ime kao kolekcija intervencija u Firestore-u (`interventionCollections`). `signaturePath` u intervenciji se čuva relativno; stariji zapisi sa `{tenantId}/` na početku i dalje rade.
 
 ---
 

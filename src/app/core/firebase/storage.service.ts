@@ -4,20 +4,28 @@ import { FirebaseStorage } from '@capacitor-firebase/storage';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { getStorage, ref, getDownloadURL, listAll } from 'firebase/storage';
 import { LoggerService } from '../logger/logger.service';
+import { TenantService } from '../tenant/tenant.service';
 
+/**
+ * Firebase Storage access. Every path is relative to the current tenant's
+ * root folder ('{tenantId}/...'), resolved by TenantService — callers never
+ * build tenant prefixes, the same way FirestoreService handles documents.
+ */
 @Injectable({ providedIn: 'root' })
 export class StorageService {
   private logger = inject(LoggerService);
+  private tenantService = inject(TenantService);
   private isNative = Capacitor.isNativePlatform();
 
   async getFileUrl(path: string): Promise<string | null> {
     try {
+      const fullPath = this.tenantService.getStoragePath(path);
       if (this.isNative) {
-        const result = await FirebaseStorage.getDownloadUrl({ path });
+        const result = await FirebaseStorage.getDownloadUrl({ path: fullPath });
         return result.downloadUrl;
       }
       const storage = getStorage();
-      const fileRef = ref(storage, path);
+      const fileRef = ref(storage, fullPath);
       return await getDownloadURL(fileRef);
     } catch (error) {
       this.logger.warn('Storage getFileUrl failed', { path, error: String(error) });
@@ -25,7 +33,8 @@ export class StorageService {
     }
   }
 
-  async listFolder(path: string): Promise<{ folders: string[]; files: { name: string; fullPath: string }[] }> {
+  async listFolder(relativePath: string): Promise<{ folders: string[]; files: { name: string; fullPath: string }[] }> {
+    const path = this.tenantService.getStoragePath(relativePath);
     if (this.isNative) {
       const result = await FirebaseStorage.listFiles({ path });
       const files = result.items
@@ -58,7 +67,8 @@ export class StorageService {
     }
   }
 
-  async uploadFile(storagePath: string, fileUri: string, contentType = 'image/jpeg'): Promise<void> {
+  async uploadFile(relativePath: string, fileUri: string, contentType = 'image/jpeg'): Promise<void> {
+    const storagePath = this.tenantService.getStoragePath(relativePath);
     if (this.isNative) {
       return new Promise<void>((resolve, reject) => {
         FirebaseStorage.uploadFile(

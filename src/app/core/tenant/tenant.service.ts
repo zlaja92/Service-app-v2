@@ -73,9 +73,37 @@ export class TenantService {
    * Path: tenants/{tenantId}/{collectionName}
    */
   getInterventionCollectionPath(deviceType: string): string {
+    return `${this.getTenantDocPath()}/${this.getInterventionCollectionName(deviceType)}`;
+  }
+
+  /**
+   * Resolves a Storage path inside the tenant's root folder: '{tenantId}/{path}'.
+   * Paths that already start with the tenant folder are returned unchanged —
+   * full paths come back from Storage listings and older intervention
+   * documents store signaturePath with the tenant prefix.
+   */
+  getStoragePath(path: string): string {
+    const tenantId = this.tenantStore.tenantId();
+    if (!tenantId) {
+      throw new Error('Tenant not resolved. Call resolveFromAuthToken() first.');
+    }
+    const root = `${tenantId}/`;
+    return path.startsWith(root) ? path : `${root}${path}`;
+  }
+
+  /**
+   * Storage folder of a device's intervention files (photos, signatures),
+   * relative to the tenant root: '{collectionName}/{sn}'. Uses the same
+   * collection name as the intervention documents in Firestore.
+   */
+  getInterventionStorageFolder(deviceType: string, sn: string): string {
+    return `${this.getInterventionCollectionName(deviceType)}/${sn}`;
+  }
+
+  /** Intervention collection name from config (interventionCollections), 'interventions' by default. */
+  private getInterventionCollectionName(deviceType: string): string {
     const mapping = this.configStore.business()?.interventionCollections ?? {};
-    const collectionName = mapping[deviceType] ?? mapping['default'] ?? 'interventions';
-    return `${this.getTenantDocPath()}/${collectionName}`;
+    return mapping[deviceType] ?? mapping['default'] ?? 'interventions';
   }
 
   /**
