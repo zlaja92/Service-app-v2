@@ -11,9 +11,11 @@ import { addIcons } from 'ionicons';
 import { searchOutline, downloadOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ServicerReportStore } from './servicer-report.store';
+import { ServicerReportService } from './services/servicer-report.service';
 import { ServicerReportFilter } from './models/servicer-report.model';
 import { InterventionType } from '../device-management/models/intervention.model';
 import { ConfigStore } from '../../core/config/config.store';
+import { DatePickerDirective } from '../../shared/directives/date-picker.directive';
 
 @Component({
   selector: 'app-servicer-report',
@@ -28,6 +30,7 @@ import { ConfigStore } from '../../core/config/config.store';
     IonMenuButton, IonSpinner, IonSelect, IonSelectOption, IonNote,
     IonFooter, IonInput, IonSkeletonText,
     TranslocoModule,
+    DatePickerDirective,
   ],
 })
 export class ServicerReportPage {
@@ -35,6 +38,7 @@ export class ServicerReportPage {
   private readonly toastCtrl = inject(ToastController);
   private readonly transloco = inject(TranslocoService);
   private readonly configStore = inject(ConfigStore);
+  private readonly reportService = inject(ServicerReportService);
 
   /** mode2 (BusinessConfig.appMode) hides the type filter — all types always shown. */
   protected get isMode2(): boolean {
@@ -50,14 +54,17 @@ export class ServicerReportPage {
   /** Currently selected intervention types for the multi-select. Default: all. */
   protected selectedTypes: string[] = [];
 
-  /** All intervention types as multi-select options with generic (device-agnostic) labels. */
-  protected readonly interventionTypeOptions: { value: string; labelKey: string }[] = [
+  /**
+   * Intervention types as multi-select options with generic (device-agnostic)
+   * labels — only those that exist for the device types allowed to the user.
+   */
+  protected readonly interventionTypeOptions = this.reportService.filterAvailableInterventionTypes([
     { value: InterventionType.COMMISSIONING, labelKey: 'servicer_report_type_commissioning' },
     { value: InterventionType.ANNUAL_SERVICE, labelKey: 'servicer_report_type_annual_service' },
     { value: InterventionType.INTERVENTION_REPAIR, labelKey: 'servicer_report_type_repair' },
     { value: InterventionType.INTERVENTION_NOISE, labelKey: 'servicer_report_type_noise' },
     { value: InterventionType.INTERVENTION_REPLACE, labelKey: 'servicer_report_type_replace' },
-  ];
+  ]);
 
   /** Placeholder rows for the loading skeleton. */
   protected readonly skeletonRows = [0, 1, 2, 3, 4, 5];

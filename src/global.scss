@@ -86,6 +86,12 @@ ion-button.md {
   --border-radius: 12px;
 }
 
+/* App-wide: disabled buttons less faded than Ionic's default (opacity 0.5),
+ * so their label stays readable. Document styles win over Ionic's :host rule. */
+ion-button.button-disabled {
+  opacity: 0.7;
+}
+
 /*
  * Language select popover: make it stand out from the side menu behind it
  * (an elevated grey surface in dark mode, plus a subtle border in both modes).
@@ -356,4 +362,15 @@ ion-content.ion-padding {
 ion-input::part(native-input),
 input[type="date"] {
   accent-color: var(--ion-color-primary);
+}
+
+// Draw the date input (its calendar icon and segments) for the app's theme, not
+// the phone's: index.html declares color-scheme "light dark", so a dark-mode
+// phone showing the light app theme got a white, invisible calendar icon.
+ion-input[type="date"]::part(native-input) {
+  color-scheme: light;
+}
+
+.ion-palette-dark ion-input[type="date"]::part(native-input) {
+  color-scheme: dark;
 }

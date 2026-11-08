@@ -43,12 +43,23 @@ import { FilesystemWeb } from '@capacitor/filesystem/dist/esm/web';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { StorageService } from './storage.service';
 import { LoggerService } from '../logger/logger.service';
+import { TenantService } from '../tenant/tenant.service';
 import { createMockLoggerService } from '../../testing/mock-factories';
 import { environment } from '../../../environments/environment';
 
 // ---------------------------------------------------------------------------
 // Helper: create mock upload event
 // ---------------------------------------------------------------------------
+/**
+ * Tenant path resolution is TenantService's job (covered in its own spec);
+ * here it passes paths through unchanged so the Storage calls stay visible.
+ */
+function createPassThroughTenantService(): jasmine.SpyObj<TenantService> {
+  const mock = jasmine.createSpyObj<TenantService>('TenantService', ['getStoragePath']);
+  mock.getStoragePath.and.callFake((path: string) => path);
+  return mock;
+}
+
 function createUploadEvent(completed: boolean): {
   progress: number;
   bytesTransferred: number;
@@ -93,6 +104,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -111,6 +123,18 @@ describe('StorageService', () => {
         await service.getFileUrl('some/path/file.jpg');
 
         expect(spy).toHaveBeenCalledOnceWith({ path: 'some/path/file.jpg' });
+      });
+
+      it('TC-ST01b: resolves the path into the tenant folder via TenantService', async () => {
+        const tenant = TestBed.inject(TenantService) as jasmine.SpyObj<TenantService>;
+        tenant.getStoragePath.and.callFake((path: string) => `tenant-a/${path}`);
+        const spy = spyOn(FirebaseStorageWeb.prototype, 'getDownloadUrl')
+          .and.resolveTo({ downloadUrl: 'https://example.com/file.pdf' });
+
+        await service.getFileUrl('Documents/manual.pdf');
+
+        expect(tenant.getStoragePath).toHaveBeenCalledWith('Documents/manual.pdf');
+        expect(spy).toHaveBeenCalledOnceWith({ path: 'tenant-a/Documents/manual.pdf' });
       });
 
       it('TC-ST02: returns the downloadUrl string from native response', async () => {
@@ -395,6 +419,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -545,6 +570,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -659,6 +685,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLog },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -702,6 +729,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLog },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -745,6 +773,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLog },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -790,6 +819,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: nativeLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -838,6 +868,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLog },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -880,6 +911,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -946,6 +978,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLogger },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 
@@ -1100,6 +1133,7 @@ describe('StorageService', () => {
         providers: [
           StorageService,
           { provide: LoggerService, useValue: mockLog },
+          { provide: TenantService, useValue: createPassThroughTenantService() },
         ],
       });
 

@@ -94,6 +94,10 @@ export interface BusinessConfig {
    *  and concatenated with Ser.No. to form the DB serial number.
    *  Unset/other → the default single SN input. */
   snType?: string;
+  /** Device types offered in the type dropdown when the device catalog is off
+   *  (feature flag deviceCatalog = false), e.g. ['heat-pump', 'pellet-boiler'].
+   *  Filtered by the types allowed in the user's claims; empty → the allowed types. */
+  supportedDeviceTypes?: string[];
 }
 
 export function getDefaultFeatures(): FeatureFlags {

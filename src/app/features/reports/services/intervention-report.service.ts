@@ -166,7 +166,7 @@ export class InterventionReportService {
     if (typeof data['callAccepted'] === 'boolean') {
       return data['callAccepted'] as boolean;
     }
-    if (device.type !== DeviceType.GAS_BOILER && device.type !== DeviceType.HEAT_PUMP) {
+    if (!this.hasServiceConsent(device.type)) {
       return null;
     }
     try {
@@ -185,10 +185,17 @@ export class InterventionReportService {
     if (deviceType === DeviceType.BOILER) {
       return { type: 'boiler-disclaimer', accepted: null };
     }
-    if (deviceType === DeviceType.GAS_BOILER || deviceType === DeviceType.HEAT_PUMP) {
+    if (this.hasServiceConsent(deviceType)) {
       return { type: 'service-consent', accepted: callAccepted };
     }
     return undefined;
+  }
+
+  /** Device types with annual service, whose report asks for the "contact me for next service" consent. */
+  private hasServiceConsent(deviceType: DeviceType): boolean {
+    return deviceType === DeviceType.GAS_BOILER
+      || deviceType === DeviceType.HEAT_PUMP
+      || deviceType === DeviceType.PELLET_BOILER;
   }
 
   private str(value: unknown): string {

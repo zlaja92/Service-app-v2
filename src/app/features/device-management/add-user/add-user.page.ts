@@ -15,6 +15,7 @@ import { DeviceRegistrationService } from '../services/device-registration.servi
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { toLatinUpperCase } from '../../../shared/utils/transliterate';
+import { DatePickerDirective } from '../../../shared/directives/date-picker.directive';
 
 @Component({
   selector: 'app-add-user',
@@ -27,6 +28,7 @@ import { toLatinUpperCase } from '../../../shared/utils/transliterate';
     IonMenuButton, IonLabel, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
     IonSpinner,
     TranslocoModule,
+    DatePickerDirective,
   ],
 })
 export class AddUserPage implements ViewWillEnter {
@@ -40,6 +42,9 @@ export class AddUserPage implements ViewWillEnter {
   private readonly transloco = inject(TranslocoService);
   protected sn = '';
   private connectedSn = '';
+  /** No-catalog mode: models entered on the device page, one per unit. */
+  private deviceModel = '';
+  private connectedDeviceModel = '';
 
   protected form = new FormGroup({
     firstName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -63,6 +68,8 @@ export class AddUserPage implements ViewWillEnter {
   ionViewWillEnter(): void {
     this.sn = this.route.snapshot.paramMap.get('sn') ?? '';
     this.connectedSn = this.route.snapshot.queryParamMap.get('connectedSn') ?? '';
+    this.deviceModel = this.route.snapshot.queryParamMap.get('deviceModel') ?? '';
+    this.connectedDeviceModel = this.route.snapshot.queryParamMap.get('connectedDeviceModel') ?? '';
     this.form.reset();
   }
 
@@ -101,10 +108,14 @@ export class AddUserPage implements ViewWillEnter {
     );
     if (!confirmed) return;
 
+    // No-catalog mode: each unit's model goes into its own registration.
+    if (this.deviceModel) data['deviceModel'] = this.deviceModel;
+
     const success = await this.loadingAlert.wrap(async () => {
       if (this.connectedSn) {
         const mainData = { ...data, connectedDevice: this.connectedSn };
-        const connectedData = { ...data, connectedDevice: this.sn };
+        const connectedData: Record<string, unknown> = { ...data, connectedDevice: this.sn };
+        if (this.connectedDeviceModel) connectedData['deviceModel'] = this.connectedDeviceModel;
         return this.registrationService.registerBatch([
           { sn: this.sn, device, dynamicFields: mainData },
           { sn: this.connectedSn, device, dynamicFields: connectedData },

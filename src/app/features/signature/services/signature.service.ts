@@ -3,7 +3,6 @@ import { ModalController, ToastController } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { ConfigStore } from '../../../core/config/config.store';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { SignatureModalComponent } from '../components/signature-modal/signature-modal.component';
@@ -21,7 +20,6 @@ export class SignatureService {
   private readonly transloco = inject(TranslocoService);
   private readonly storageService = inject(StorageService);
   private readonly tenantService = inject(TenantService);
-  private readonly configStore = inject(ConfigStore);
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly logger = inject(LoggerService);
 
@@ -61,10 +59,10 @@ export class SignatureService {
   }
 
   private buildStoragePath(ctx: SignatureUploadContext): string {
-    const tenantId = this.tenantService.getCurrentTenantId();
-    const mapping = this.configStore.business()?.interventionCollections ?? {};
-    const collection = mapping[ctx.deviceType] ?? mapping['default'] ?? 'interventions';
-    return `${tenantId}/${collection}/${ctx.sn}/signatures/signature_${Date.now()}.png`;
+    // Stored in the intervention as signaturePath, relative to the tenant root
+    // (StorageService adds the tenant folder); older documents keep the full path.
+    const folder = this.tenantService.getInterventionStorageFolder(ctx.deviceType, ctx.sn);
+    return `${folder}/signatures/signature_${Date.now()}.png`;
   }
 
   private async showError(): Promise<void> {

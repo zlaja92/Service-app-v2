@@ -97,6 +97,8 @@ export function createMockTenantService(): jasmine.SpyObj<TenantService> {
     'getCollectionPath',
     'getCurrentTenantId',
     'getInterventionCollectionPath',
+    'getStoragePath',
+    'getInterventionStorageFolder',
     'isDeviceTypeAllowed',
     'getAllowedDeviceTypes',
   ]);
@@ -108,8 +110,14 @@ export function createMockTenantService(): jasmine.SpyObj<TenantService> {
   mock.getInterventionCollectionPath.and.callFake(
     (_deviceType: string) => 'tenants/mock-tenant/interventions',
   );
+  mock.getStoragePath.and.callFake((path: string) =>
+    path.startsWith('mock-tenant/') ? path : `mock-tenant/${path}`,
+  );
+  mock.getInterventionStorageFolder.and.callFake(
+    (_deviceType: string, sn: string) => `interventions/${sn}`,
+  );
   mock.isDeviceTypeAllowed.and.returnValue(true);
-  mock.getAllowedDeviceTypes.and.returnValue(['gas-boiler', 'heat-pump', 'boiler', 'air-condition']);
+  mock.getAllowedDeviceTypes.and.returnValue(['gas-boiler', 'heat-pump', 'boiler', 'air-condition', 'pellet-boiler']);
 
   return mock;
 }

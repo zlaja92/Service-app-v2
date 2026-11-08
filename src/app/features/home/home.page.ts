@@ -105,15 +105,32 @@ export class HomePage {
       return;
     }
 
+    // The SN is a Firestore document ID, where '/' is a path separator.
+    if (sn.includes('/')) {
+      const toast = await this.toastCtrl.create({
+        message: this.translocoService.translate('home_sn_no_slash'),
+        duration: 3000,
+        color: 'warning',
+        position: 'bottom',
+      });
+      await toast.present();
+      return;
+    }
+
     if (!sn) return;
 
     const device = await this.lookupService.lookup(sn);
+    const status = this.lookupService.registrationStatus;
 
-    if (device) {
+    // No-catalog mode: an unregistered SN opens the device page, where the
+    // device type is picked before the user is added.
+    if (device || status === 'unregistered') {
       this.router.navigate(['/device-management', sn]);
     } else {
       const toast = await this.toastCtrl.create({
-        message: this.translocoService.translate('home_device_not_found'),
+        message: this.translocoService.translate(
+          status === 'not-allowed' ? 'home_device_type_not_allowed' : 'home_device_not_found',
+        ),
         duration: 3000,
         color: 'warning',
         position: 'bottom',
@@ -137,9 +154,11 @@ export class HomePage {
       const code = (error as { code?: string })?.code ?? '';
       if (code === 'OS-PLUG-BARC-0006') return; // user cancelled
 
+      // OS-PLUG-BARC-0007: camera access denied — tell the user how to fix it.
+      const cameraDenied = code === 'OS-PLUG-BARC-0007';
       const toast = await this.toastCtrl.create({
-        message: this.translocoService.translate('home_scan_error'),
-        duration: 3000,
+        message: this.translocoService.translate(cameraDenied ? 'scan_camera_denied' : 'home_scan_error'),
+        duration: cameraDenied ? 5000 : 3000,
         color: 'danger',
         position: 'bottom',
       });

@@ -1,12 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActionSheetController, ModalController } from '@ionic/angular/standalone';
+import { ActionSheetController, ModalController, ToastController } from '@ionic/angular/standalone';
+import { CameraSource } from '@capacitor/camera';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import { PhotoUploadPage } from './photo-upload.page';
 import { PhotoService } from './services/photo.service';
 import { CapturedPhoto } from './models/photo.model';
 import { PhotoRequirement } from '../../core/config/config.model';
-import { createMockModalController } from '../../testing/mock-factories';
+import { createMockModalController, createMockToastController } from '../../testing/mock-factories';
+import { CameraPermissionDeniedError } from './services/camera.service';
 
 // ─── Helper factories ─────────────────────────────────────────────────────────
 
@@ -95,11 +97,13 @@ describe('PhotoUploadPage', () => {
   let mockPhotoService: MockPhotoService;
   let mockModalCtrl: jasmine.SpyObj<ModalController>;
   let mockActionSheetCtrl: jasmine.SpyObj<ActionSheetController>;
+  let mockToastCtrl: jasmine.SpyObj<ToastController>;
 
   beforeEach(async () => {
     mockPhotoService = createMockPhotoService();
     mockModalCtrl = createMockModalController();
     mockActionSheetCtrl = createMockActionSheetController();
+    mockToastCtrl = createMockToastController();
 
     await TestBed.configureTestingModule({
       imports: [
@@ -114,6 +118,7 @@ describe('PhotoUploadPage', () => {
         { provide: PhotoService, useValue: mockPhotoService },
         { provide: ModalController, useValue: mockModalCtrl },
         { provide: ActionSheetController, useValue: mockActionSheetCtrl },
+        { provide: ToastController, useValue: mockToastCtrl },
       ],
     }).compileComponents();
 
@@ -398,6 +403,45 @@ describe('PhotoUploadPage', () => {
       await component.onAddPhoto();
 
       expect(mockActionSheetCtrl.create).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  // ─── Camera / gallery access denied → toast ──────────────────────────────────
+
+  describe('access denied', () => {
+    async function pressButton(icon: string): Promise<void> {
+      await component.onAddPhoto();
+      const createArgs = mockActionSheetCtrl.create.calls.mostRecent().args[0] as {
+        buttons: Array<{ icon: string; handler?: () => void }>;
+      };
+      createArgs.buttons.find(b => b.icon === icon)!.handler!();
+      await new Promise(resolve => setTimeout(resolve));
+    }
+
+    it('shows scan_camera_denied when camera access was denied', async () => {
+      mockPhotoService.takePhoto.and.rejectWith(new CameraPermissionDeniedError(CameraSource.Camera));
+
+      await pressButton('camera-outline');
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ color: 'danger', duration: 5000 }),
+      );
+    });
+
+    it('shows photo_gallery_denied when photo library access was denied', async () => {
+      mockPhotoService.pickFromGallery.and.rejectWith(new CameraPermissionDeniedError(CameraSource.Photos));
+
+      await pressButton('image-outline');
+
+      expect(mockToastCtrl.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows no toast when the capture simply returns (e.g. cancelled)', async () => {
+      mockPhotoService.takePhoto.and.resolveTo(false);
+
+      await pressButton('camera-outline');
+
+      expect(mockToastCtrl.create).not.toHaveBeenCalled();
     });
   });
 });

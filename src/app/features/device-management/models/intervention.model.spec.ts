@@ -244,7 +244,7 @@ describe('COMMISSIONING_TYPES', () => {
   });
 
   // ─── Parameterizovani testovi za COMMISSIONING_TYPES ─────────────────────
-  const commissioningDefinedTypes: DeviceType[] = [DeviceType.GAS_BOILER, DeviceType.HEAT_PUMP];
+  const commissioningDefinedTypes: DeviceType[] = [DeviceType.GAS_BOILER, DeviceType.HEAT_PUMP, DeviceType.PELLET_BOILER];
   const commissioningUndefinedTypes: DeviceType[] = [DeviceType.BOILER, DeviceType.AIR_CONDITION];
 
   commissioningDefinedTypes.forEach((deviceType) => {

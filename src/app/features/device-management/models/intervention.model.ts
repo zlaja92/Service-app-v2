@@ -49,11 +49,13 @@ export interface InterventionTypeOption {
 export const COMMISSIONING_TYPES: Partial<Record<DeviceType, InterventionTypeOption>> = {
   [DeviceType.GAS_BOILER]: { key: InterventionType.COMMISSIONING, label: 'intervention_type_commissioning_gas_boiler' },
   [DeviceType.HEAT_PUMP]: { key: InterventionType.COMMISSIONING, label: 'intervention_type_commissioning_heat_pump' },
+  [DeviceType.PELLET_BOILER]: { key: InterventionType.COMMISSIONING, label: 'intervention_type_commissioning_pellet_boiler' },
 };
 
 export const ANNUAL_SERVICE_TYPES: Partial<Record<DeviceType, InterventionTypeOption>> = {
   [DeviceType.GAS_BOILER]: { key: InterventionType.ANNUAL_SERVICE, label: 'intervention_type_annual_gas_boiler' },
   [DeviceType.HEAT_PUMP]: { key: InterventionType.ANNUAL_SERVICE, label: 'intervention_type_annual_heat_pump' },
+  [DeviceType.PELLET_BOILER]: { key: InterventionType.ANNUAL_SERVICE, label: 'intervention_type_annual_pellet_boiler' },
 };
 
 export const INTERVENTION_OPTIONS: Partial<Record<DeviceType, InterventionTypeOption[]>> = {
@@ -70,6 +72,9 @@ export const INTERVENTION_OPTIONS: Partial<Record<DeviceType, InterventionTypeOp
   ],
   [DeviceType.AIR_CONDITION]: [
     { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_air_condition' },
+  ],
+  [DeviceType.PELLET_BOILER]: [
+    { key: InterventionType.INTERVENTION_REPAIR, label: 'intervention_type_repair_pellet_boiler' },
   ],
 };
 /** Maximum spare parts per intervention. */
@@ -190,6 +195,9 @@ export const FAULT_DESCRIPTIONS: Record<DeviceType, string[]> = {
     'NEISPRAVAN REED RELEJ',
     'NEISPRAVAN MERAČ PROTOKA',
     'NEISPAVAN ULOŽAK TROKRAKOG',
+  ],
+  [DeviceType.PELLET_BOILER]: [
+    'KVAR KOTLA NA PELET',
   ],
 };
 
@@ -334,4 +342,5 @@ export const ERROR_CODES: Record<DeviceType, string[]> = {
   [DeviceType.GAS_BOILER]: BOILER_GAS_AC_ERRORS,
   [DeviceType.AIR_CONDITION]: BOILER_GAS_AC_ERRORS,
   [DeviceType.HEAT_PUMP]: HEAT_PUMP_ERRORS,
+  [DeviceType.PELLET_BOILER]: BOILER_GAS_AC_ERRORS,
 };

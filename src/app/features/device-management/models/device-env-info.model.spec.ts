@@ -36,7 +36,7 @@ describe('requiresEnvInfo()', () => {
 
   // ─── Parameterizovani testovi za requiresEnvInfo ──────────────────────────
   const envInfoRequiredTypes: DeviceType[] = [DeviceType.HEAT_PUMP, DeviceType.GAS_BOILER];
-  const envInfoNotRequiredTypes: DeviceType[] = [DeviceType.BOILER, DeviceType.AIR_CONDITION];
+  const envInfoNotRequiredTypes: DeviceType[] = [DeviceType.BOILER, DeviceType.AIR_CONDITION, DeviceType.PELLET_BOILER];
 
   envInfoRequiredTypes.forEach((deviceType) => {
     it(`requiresEnvInfo(${deviceType}) should return true`, () => {
@@ -69,9 +69,9 @@ describe('requiresEnvInfo()', () => {
     expect(trueCount).toBe(2);
   });
 
-  it('requiresEnvInfo returns false for exactly 2 device types', () => {
+  it('requiresEnvInfo returns false for exactly 3 device types', () => {
     const falseCount = Object.values(DeviceType).filter((dt) => !requiresEnvInfo(dt)).length;
-    expect(falseCount).toBe(2);
+    expect(falseCount).toBe(3);
   });
 });
 

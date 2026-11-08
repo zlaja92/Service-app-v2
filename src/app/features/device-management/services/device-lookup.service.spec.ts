@@ -462,4 +462,165 @@ describe('DeviceLookupService', () => {
       expect(service.device).toBeNull();
     });
   });
+
+  // ── No-catalog mode (deviceCatalog = false) ────────────────────────────────
+
+  describe('no-catalog mode', () => {
+    const SN = 'ANYSN123';
+    let users: Record<string, Record<string, unknown>>;
+    let devices: Record<string, Record<string, unknown>>;
+
+    beforeEach(() => {
+      const cfg = buildAppConfig(0, 7);
+      cfg.features.deviceCatalog = false;
+      mockConfigStore.setConfig(cfg);
+
+      users = {};
+      devices = {
+        'heat-pump': buildDeviceDoc({ deviceName: 'Toplotna pumpa', deviceType: 'heat-pump', connectedDevice: true }),
+        'pellet-boiler': buildDeviceDoc({ deviceName: 'Kotao na pelet', deviceType: 'pellet-boiler' }),
+      };
+      mockFirestore.getTenantDocument.and.callFake(((collection: string, id: string) =>
+        Promise.resolve((collection === 'users' ? users[id] : devices[id]) ?? null)) as never);
+      mockTenantService.isDeviceTypeAllowed.and.returnValue(true);
+    });
+
+    it('resolves a registered SN via users/{sn}.deviceType and devices/{deviceType}', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.type).toBe(DeviceType.HEAT_PUMP);
+      expect(result?.connectedDevice).toBeTrue();
+      expect(service.device).toBe(result);
+      expect(service.registrationStatus).toBe('registered');
+      expect(mockFirestore.getTenantDocument).toHaveBeenCalledWith('users', SN);
+      expect(mockFirestore.getTenantDocument).toHaveBeenCalledWith('devices', 'heat-pump');
+    });
+
+    it('takes the name from the registration model, not from devices/{deviceType}', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('NIMBUS 80');
+    });
+
+    it('has an empty name when the registration has no model', async () => {
+      users[SN] = { deviceType: 'heat-pump' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('');
+    });
+
+    it('does not read the model code from the SN', async () => {
+      users[SN] = { deviceType: 'heat-pump' };
+
+      await service.lookup(SN);
+
+      expect(mockFirestore.getTenantDocument).not.toHaveBeenCalledWith('devices', 'ANYSN12');
+    });
+
+    it('takes the type from the document ID when the devices doc has no deviceType field', async () => {
+      users[SN] = { deviceType: 'pellet-boiler' };
+      delete devices['pellet-boiler']['deviceType'];
+
+      const result = await service.lookup(SN);
+
+      expect(result?.type).toBe(DeviceType.PELLET_BOILER);
+    });
+
+    it('returns null with status "unregistered" when users/{sn} does not exist', async () => {
+      const result = await service.lookup(SN);
+
+      expect(result).toBeNull();
+      expect(service.registrationStatus).toBe('unregistered');
+    });
+
+    it('returns status "not-allowed" when the registered type is not allowed for the user', async () => {
+      users[SN] = { deviceType: 'heat-pump' };
+      mockTenantService.isDeviceTypeAllowed.and.returnValue(false);
+
+      const result = await service.lookup(SN);
+
+      expect(result).toBeNull();
+      expect(service.registrationStatus).toBe('not-allowed');
+    });
+
+    it('returns status "error" (never "unregistered") when the registration has no deviceType', async () => {
+      users[SN] = { firstName: 'Petar' };
+
+      await service.lookup(SN);
+
+      expect(service.registrationStatus).toBe('error');
+    });
+
+    it('returns status "error" when devices/{deviceType} does not exist', async () => {
+      users[SN] = { deviceType: 'gas-boiler' };
+
+      await service.lookup(SN);
+
+      expect(service.registrationStatus).toBe('error');
+    });
+
+    it('returns status "error" (never "unregistered") when Firestore throws', async () => {
+      mockFirestore.getTenantDocument.and.rejectWith(new Error('offline'));
+
+      const result = await service.lookup(SN);
+
+      expect(result).toBeNull();
+      expect(service.registrationStatus).toBe('error');
+      expect(service.isLoading).toBeFalse();
+    });
+
+    it('lookupSilent() resolves via registration without changing service state', async () => {
+      users[SN] = { deviceType: 'heat-pump' };
+
+      const result = await service.lookupSilent(SN);
+
+      expect(result?.type).toBe(DeviceType.HEAT_PUMP);
+      expect(service.device).toBeNull();
+      expect(service.registrationStatus).toBeNull();
+    });
+
+    it('keeps registrationStatus null in catalog mode', async () => {
+      mockConfigStore.setConfig(buildAppConfig(0, 7));
+      mockFirestore.getTenantDocument.and.resolveTo(buildDeviceDoc());
+
+      await service.lookup('GENUS24ABC');
+
+      expect(service.registrationStatus).toBeNull();
+    });
+
+    it('getSelectableDevices() uses supportedDeviceTypes filtered by allowed types and skips types without a document', async () => {
+      const cfg = buildAppConfig(0, 7);
+      cfg.features.deviceCatalog = false;
+      cfg.business.supportedDeviceTypes = ['heat-pump', 'pellet-boiler', 'gas-boiler', 'boiler'];
+      mockConfigStore.setConfig(cfg);
+      mockTenantService.getAllowedDeviceTypes.and.returnValue(['heat-pump', 'pellet-boiler', 'gas-boiler']);
+      mockTenantService.isDeviceTypeAllowed.and.callFake(t => ['heat-pump', 'pellet-boiler', 'gas-boiler'].includes(t));
+
+      const result = await service.getSelectableDevices();
+
+      // 'boiler' is not allowed; 'gas-boiler' has no devices document.
+      expect(result.map(d => d.type)).toEqual([DeviceType.HEAT_PUMP, DeviceType.PELLET_BOILER]);
+    });
+
+    it('getSelectableDevices() falls back to all allowed types when supportedDeviceTypes is not set', async () => {
+      mockTenantService.getAllowedDeviceTypes.and.returnValue(['pellet-boiler']);
+
+      const result = await service.getSelectableDevices();
+
+      expect(result.map(d => d.name)).toEqual(['Kotao na pelet']);
+    });
+
+    it('clear() resets registrationStatus', async () => {
+      await service.lookup(SN);
+
+      service.clear();
+
+      expect(service.registrationStatus).toBeNull();
+    });
+  });
 });

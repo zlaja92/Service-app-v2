@@ -105,12 +105,10 @@ describe('SignatureService', () => {
       modalCtrl.create.and.resolveTo(makeModalFake({ dataUrl }, 'save'));
       storageService.uploadDataUrl.and.resolveTo();
 
-      // Use default config so 'gas-boiler' falls back through default → 'interventions'
-      configStore.loadDefaults();
-
       const result = await service.captureAndUpload({ sn: 'SN001', deviceType: 'gas-boiler' });
 
-      expect(result).toMatch(/^mock-tenant\/interventions\/SN001\/signatures\/signature_\d+\.png$/);
+      // Stored as signaturePath, relative to the tenant root.
+      expect(result).toMatch(/^interventions\/SN001\/signatures\/signature_\d+\.png$/);
     });
 
     it('TC-CAU-02: calls loadingAlert.wrap when upload proceeds', async () => {
@@ -345,83 +343,24 @@ describe('SignatureService', () => {
   // buildStoragePath — indirect testing via captureAndUpload
   // ═══════════════════════════════════════════════════════════════════════════
 
-  describe('buildStoragePath — collection resolution (indirect)', () => {
+  describe('buildStoragePath — folder from TenantService (indirect)', () => {
     beforeEach(() => {
       storageService.uploadDataUrl.and.resolveTo();
     });
 
-    it('TC-BSP-01: uses mapped collection when deviceType exists in interventionCollections', async () => {
-      const cfg = getDefaultConfig();
-      cfg.business.interventionCollections = {
-        'gas-boiler': 'gas-boiler-interventions',
-        default: 'interventions',
-      };
-      configStore.setConfig(cfg);
-
+    // Collection name resolution (interventionCollections) lives in TenantService
+    // and is covered by its spec; the signature service only asks for the folder.
+    it('TC-BSP-01: asks TenantService for the intervention folder of the device type and SN', async () => {
+      tenantService.getInterventionStorageFolder.and.returnValue('gas-boiler-interventions/SN100');
       modalCtrl.create.and.resolveTo(
         makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
       );
 
       await service.captureAndUpload({ sn: 'SN100', deviceType: 'gas-boiler' });
 
+      expect(tenantService.getInterventionStorageFolder).toHaveBeenCalledWith('gas-boiler', 'SN100');
       expect(storageService.uploadDataUrl).toHaveBeenCalledWith(
-        jasmine.stringMatching(/^mock-tenant\/gas-boiler-interventions\/SN100\/signatures\/signature_\d+\.png$/),
-        jasmine.any(String),
-        'image/png',
-      );
-    });
-
-    it('TC-BSP-02: falls back to "default" collection when deviceType has no specific mapping', async () => {
-      const cfg = getDefaultConfig();
-      cfg.business.interventionCollections = {
-        default: 'default-collection',
-      };
-      configStore.setConfig(cfg);
-
-      modalCtrl.create.and.resolveTo(
-        makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
-      );
-
-      await service.captureAndUpload({ sn: 'SN200', deviceType: 'heat-pump' });
-
-      expect(storageService.uploadDataUrl).toHaveBeenCalledWith(
-        jasmine.stringMatching(/^mock-tenant\/default-collection\/SN200\/signatures\/signature_\d+\.png$/),
-        jasmine.any(String),
-        'image/png',
-      );
-    });
-
-    it('TC-BSP-03: falls back to hardcoded "interventions" when no deviceType mapping and no default', async () => {
-      const cfg = getDefaultConfig();
-      cfg.business.interventionCollections = {};
-      configStore.setConfig(cfg);
-
-      modalCtrl.create.and.resolveTo(
-        makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
-      );
-
-      await service.captureAndUpload({ sn: 'SN300', deviceType: 'unknown-type' });
-
-      expect(storageService.uploadDataUrl).toHaveBeenCalledWith(
-        jasmine.stringMatching(/^mock-tenant\/interventions\/SN300\/signatures\/signature_\d+\.png$/),
-        jasmine.any(String),
-        'image/png',
-      );
-    });
-
-    it('TC-BSP-04: uses "interventions" (DEFAULT_BUSINESS default) when configStore.business() returns undefined (no config set)', async () => {
-      // configStore.config signal is null → business computed returns undefined
-      // buildStoragePath: mapping = undefined ?? {} = {} → collection = 'interventions'
-      configStore.config.set(null);
-
-      modalCtrl.create.and.resolveTo(
-        makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
-      );
-
-      await service.captureAndUpload({ sn: 'SN400', deviceType: 'gas-boiler' });
-
-      expect(storageService.uploadDataUrl).toHaveBeenCalledWith(
-        jasmine.stringMatching(/^mock-tenant\/interventions\/SN400\/signatures\/signature_\d+\.png$/),
+        jasmine.stringMatching(/^gas-boiler-interventions\/SN100\/signatures\/signature_\d+\.png$/),
         jasmine.any(String),
         'image/png',
       );
@@ -434,7 +373,7 @@ describe('SignatureService', () => {
       storageService.uploadDataUrl.and.resolveTo();
     });
 
-    it('TC-BSP-05: path matches format {tenantId}/{collection}/{sn}/signatures/signature_{timestamp}.png', async () => {
+    it('TC-BSP-05: path matches format {collection}/{sn}/signatures/signature_{timestamp}.png (relative to the tenant root)', async () => {
       modalCtrl.create.and.resolveTo(
         makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
       );
@@ -442,12 +381,11 @@ describe('SignatureService', () => {
       await service.captureAndUpload({ sn: 'SN-MYSERIAL', deviceType: 'gas-boiler' });
 
       const pathArg = (storageService.uploadDataUrl.calls.mostRecent().args)[0] as string;
-      const pattern = /^mock-tenant\/interventions\/SN-MYSERIAL\/signatures\/signature_\d+\.png$/;
+      const pattern = /^interventions\/SN-MYSERIAL\/signatures\/signature_\d+\.png$/;
       expect(pattern.test(pathArg)).toBeTrue();
     });
 
-    it('TC-BSP-06: path uses tenantId from tenantService.getCurrentTenantId()', async () => {
-      tenantService.getCurrentTenantId.and.returnValue('custom-tenant-id');
+    it('TC-BSP-06: path does not contain the tenant (StorageService resolves it)', async () => {
       modalCtrl.create.and.resolveTo(
         makeModalFake({ dataUrl: 'data:image/png;base64,x' }, 'save'),
       );
@@ -455,7 +393,7 @@ describe('SignatureService', () => {
       await service.captureAndUpload({ sn: 'SN-XYZ', deviceType: 'gas-boiler' });
 
       const pathArg = (storageService.uploadDataUrl.calls.mostRecent().args)[0] as string;
-      expect(pathArg).toMatch(/^custom-tenant-id\//);
+      expect(pathArg).not.toContain('mock-tenant');
     });
 
     it('TC-BSP-07: path uses the sn from the context', async () => {
@@ -490,7 +428,7 @@ describe('SignatureService', () => {
 
       const pathArg = (storageService.uploadDataUrl.calls.mostRecent().args)[0] as string;
       const segments = pathArg.split('/');
-      // Expected: ['mock-tenant', 'interventions', 'SN001', 'signatures', 'signature_NNN.png']
+      // Expected: ['interventions', 'SN001', 'signatures', 'signature_NNN.png']
       expect(segments[segments.length - 2]).toBe('signatures');
     });
   });
