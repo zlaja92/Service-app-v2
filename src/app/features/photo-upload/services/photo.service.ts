@@ -3,7 +3,6 @@ import { CapturedPhoto, INTERVENTION_TYPE_SHORT } from '../models/photo.model';
 import { CameraService } from './camera.service';
 import { StorageService } from '../../../core/firebase/storage.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { PhotoRequirement } from '../../../core/config/config.model';
 import { Clearable } from '../../../core/session/clearable';
@@ -13,7 +12,6 @@ export class PhotoService implements Clearable {
   private readonly cameraService = inject(CameraService);
   private readonly storageService = inject(StorageService);
   private readonly tenantService = inject(TenantService);
-  private readonly configStore = inject(ConfigStore);
   private readonly logger = inject(LoggerService);
 
   photos: CapturedPhoto[] = [];
@@ -68,15 +66,14 @@ export class PhotoService implements Clearable {
   async uploadPhotos(sn: string, deviceType: string, interventionType: string): Promise<void> {
     if (this.photos.length === 0) return;
 
-    const tenantId = this.tenantService.getCurrentTenantId();
-    const collectionMapping = this.configStore.business()?.interventionCollections ?? {};
-    const collectionName = collectionMapping[deviceType] ?? collectionMapping['default'] ?? 'interventions';
+    // Relative to the tenant root; StorageService adds the tenant folder.
+    const folder = this.tenantService.getInterventionStorageFolder(deviceType, sn);
     const shortType = INTERVENTION_TYPE_SHORT[interventionType] ?? interventionType;
-    const date = this.formatDate();
+    const timestamp = this.formatTimestamp();
 
     for (let i = 0; i < this.photos.length; i++) {
-      const fileName = `${shortType}_${date}_${i + 1}.jpg`;
-      const storagePath = `${tenantId}/${collectionName}/${sn}/${fileName}`;
+      const fileName = `${shortType}_${timestamp}_${i + 1}.jpg`;
+      const storagePath = `${folder}/${fileName}`;
 
       try {
         await this.storageService.uploadFile(storagePath, this.photos[i].uri);
@@ -92,10 +89,15 @@ export class PhotoService implements Clearable {
     this.requirement = null;
   }
 
-  private formatDate(): string {
+  /**
+   * 'DD-MM-YYYY_HH-mm-ss'. The time keeps file names unique when several
+   * interventions of the same type are saved for one SN on the same day —
+   * with the date alone, a later upload overwrote the earlier photos.
+   */
+  private formatTimestamp(): string {
     const d = new Date();
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}-${month}-${d.getFullYear()}`;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
+      + `_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
   }
 }

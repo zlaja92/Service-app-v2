@@ -270,11 +270,8 @@ describe('PhotoService', () => {
   // =========================================================================
 
   describe('uploadPhotos()', () => {
-    it('TC-PS14: constructs storage path with tenantId/collection/sn/fileName', async () => {
-      const cfg = getDefaultConfig();
-      cfg.business.interventionCollections = { default: 'interventions', boiler: 'boiler-interventions' };
-      mockConfigStore.setConfig(cfg);
-      mockTenant.getCurrentTenantId.and.returnValue('acme-corp');
+    it('TC-PS14: constructs storage path from the TenantService folder and the file name', async () => {
+      mockTenant.getInterventionStorageFolder.and.returnValue('boiler-interventions/SN12345');
 
       service.setRequirement(makePhotoRequirement());
       mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
@@ -282,13 +279,12 @@ describe('PhotoService', () => {
 
       await service.uploadPhotos('SN12345', 'boiler', 'interventionRepair');
 
-      const callArgs = mockStorage.uploadFile.calls.mostRecent().args;
-      const storagePath = callArgs[0];
-      // path: acme-corp/boiler-interventions/SN12345/repair_DD-MM-YYYY_1.jpg
-      expect(storagePath).toContain('acme-corp/');
-      expect(storagePath).toContain('/boiler-interventions/');
-      expect(storagePath).toContain('/SN12345/');
-      expect(storagePath).toContain('repair_');
+      const storagePath = mockStorage.uploadFile.calls.mostRecent().args[0];
+      // Relative to the tenant root (StorageService adds the tenant folder):
+      // boiler-interventions/SN12345/repair_DD-MM-YYYY_HH-mm-ss_1.jpg
+      expect(mockTenant.getInterventionStorageFolder).toHaveBeenCalledWith('boiler', 'SN12345');
+      expect(storagePath).toMatch(/^boiler-interventions\/SN12345\/repair_\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}_1\.jpg$/);
+      expect(storagePath).not.toContain('mock-tenant');
     });
 
     it('TC-PS15: uses INTERVENTION_TYPE_SHORT mapping in file name', async () => {
@@ -380,20 +376,29 @@ describe('PhotoService', () => {
       expect(mockStorage.uploadFile).not.toHaveBeenCalled();
     });
 
-    it('TC-PS21: falls back to "interventions" collection when no mapping found', async () => {
-      const cfg = getDefaultConfig();
-      cfg.business.interventionCollections = {};
-      mockConfigStore.setConfig(cfg);
+    it('gives photos of two same-day interventions on one SN different names', async () => {
+      jasmine.clock().install();
+      try {
+        jasmine.clock().mockDate(new Date(2026, 10, 8, 9, 15, 0));
+        service.setRequirement(makePhotoRequirement());
+        mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
+        await service.takePhoto();
+        await service.uploadPhotos('SN-SAME', 'boiler', 'interventionRepair');
+        const first = mockStorage.uploadFile.calls.mostRecent().args[0];
 
-      service.setRequirement(makePhotoRequirement());
-      mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
-      await service.takePhoto();
+        jasmine.clock().mockDate(new Date(2026, 10, 8, 14, 40, 5));
+        await service.uploadPhotos('SN-SAME', 'boiler', 'interventionRepair');
+        const second = mockStorage.uploadFile.calls.mostRecent().args[0];
 
-      await service.uploadPhotos('SN-FB', 'unknown', 'annual_service');
-
-      const storagePath = mockStorage.uploadFile.calls.mostRecent().args[0];
-      expect(storagePath).toContain('/interventions/');
+        expect(first).toBe('interventions/SN-SAME/repair_08-11-2026_09-15-00_1.jpg');
+        expect(second).toBe('interventions/SN-SAME/repair_08-11-2026_14-40-05_1.jpg');
+      } finally {
+        jasmine.clock().uninstall();
+      }
     });
+
+    // TC-PS21: collection fallback ('interventions') moved to TenantService and is
+    // covered by its spec (getInterventionStorageFolder).
 
     it('TC-PS22: passes photo uri to uploadFile', async () => {
       service.setRequirement(makePhotoRequirement());
