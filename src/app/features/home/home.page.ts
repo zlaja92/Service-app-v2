@@ -154,9 +154,11 @@ export class HomePage {
       const code = (error as { code?: string })?.code ?? '';
       if (code === 'OS-PLUG-BARC-0006') return; // user cancelled
 
+      // OS-PLUG-BARC-0007: camera access denied — tell the user how to fix it.
+      const cameraDenied = code === 'OS-PLUG-BARC-0007';
       const toast = await this.toastCtrl.create({
-        message: this.translocoService.translate('home_scan_error'),
-        duration: 3000,
+        message: this.translocoService.translate(cameraDenied ? 'scan_camera_denied' : 'home_scan_error'),
+        duration: cameraDenied ? 5000 : 3000,
         color: 'danger',
         position: 'bottom',
       });

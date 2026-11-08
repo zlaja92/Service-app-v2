@@ -38,6 +38,8 @@ export const hr: Translation = {
   home_search: 'Pretraži',
   home_scan_barcode: 'Skeniraj barkod',
   home_scan_error: 'Pogreška pri skeniranju barkoda',
+  scan_camera_denied: 'Aplikacija nema dopuštenje za kameru. Omogućite ga u Postavkama telefona.',
+  photo_gallery_denied: 'Aplikacija nema dopuštenje za galeriju. Omogućite ga u Postavkama telefona.',
   home_device_not_found: 'Uređaj nije pronađen u bazi',
   home_sn_no_spaces: 'Serijski broj ne smije sadržavati razmake',
   home_sn_no_slash: 'Serijski broj ne smije sadržavati kosu crtu (/)',

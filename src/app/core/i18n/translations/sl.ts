@@ -38,6 +38,8 @@ export const sl: Translation = {
   home_search: 'Išči',
   home_scan_barcode: 'Skeniraj črtno kodo',
   home_scan_error: 'Napaka pri skeniranju črtne kode',
+  scan_camera_denied: 'Aplikacija nima dovoljenja za kamero. Omogočite ga v Nastavitvah telefona.',
+  photo_gallery_denied: 'Aplikacija nima dovoljenja za galerijo. Omogočite ga v Nastavitvah telefona.',
   home_device_not_found: 'Naprava ni najdena v bazi',
   home_sn_no_spaces: 'Serijska številka ne sme vsebovati presledkov',
   home_sn_no_slash: 'Serijska številka ne sme vsebovati poševnice (/)',

@@ -20,7 +20,8 @@
 
 import { TestBed } from '@angular/core/testing';
 import { CameraWeb } from '@capacitor/camera/dist/esm/web';
-import { CameraService } from './camera.service';
+import { CameraSource } from '@capacitor/camera';
+import { CameraService, CameraPermissionDeniedError } from './camera.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { createMockLoggerService, createMockConfigStore } from '../../../testing/mock-factories';
@@ -315,13 +316,13 @@ describe('CameraService', () => {
     });
 
     it('should log warning with error message on gallery failure', async () => {
-      getPhotoSpy.and.rejectWith(new Error('Gallery access denied'));
+      getPhotoSpy.and.rejectWith(new Error('Gallery unavailable'));
 
       await service.pickFromGallery();
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Camera cancelled or failed',
-        jasmine.objectContaining({ error: jasmine.stringContaining('Gallery access denied') }),
+        jasmine.objectContaining({ error: jasmine.stringContaining('Gallery unavailable') }),
       );
     });
   });
@@ -330,11 +331,39 @@ describe('CameraService', () => {
   // EXPANSION — takePhoto error message variations
   // =========================================================================
 
+  // =========================================================================
+  // Permission denied — must not be swallowed like a cancel
+  // =========================================================================
+
+  describe('permission denied', () => {
+    it('takePhoto() throws CameraPermissionDeniedError (Camera source) on "User denied access to camera"', async () => {
+      getPhotoSpy.and.rejectWith(new Error('User denied access to camera'));
+
+      await expectAsync(service.takePhoto()).toBeRejectedWith(jasmine.any(CameraPermissionDeniedError));
+      await expectAsync(service.takePhoto()).toBeRejectedWith(
+        jasmine.objectContaining({ source: CameraSource.Camera }),
+      );
+    });
+
+    it('pickFromGallery() throws CameraPermissionDeniedError (Photos source) on "User denied access to photos"', async () => {
+      getPhotoSpy.and.rejectWith(new Error('User denied access to photos'));
+
+      await expectAsync(service.pickFromGallery()).toBeRejectedWith(
+        jasmine.objectContaining({ source: CameraSource.Photos }),
+      );
+    });
+
+    it('treats an Android permission message as a denial', async () => {
+      getPhotoSpy.and.rejectWith(new Error("Couldn't access camera. Check your camera permissions and try again."));
+
+      await expectAsync(service.takePhoto()).toBeRejectedWith(jasmine.any(CameraPermissionDeniedError));
+    });
+  });
+
   describe('takePhoto() — error message variations', () => {
     const errorMessages = [
       'User cancelled photos app',
       'Camera not available',
-      'Permission denied',
       'Hardware not available',
       'Camera busy',
       'Unknown error',

@@ -3,6 +3,13 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ConfigStore } from '../../../core/config/config.store';
 
+/** Thrown when the user denied camera or photo library access. */
+export class CameraPermissionDeniedError extends Error {
+  constructor(readonly source: CameraSource) {
+    super(`Permission denied for ${source}`);
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class CameraService {
   private readonly logger = inject(LoggerService);
@@ -40,6 +47,13 @@ export class CameraService {
 
       return { webPath, uri };
     } catch (error) {
+      // The plugin rejects with "User denied access to camera/photos" (iOS) or a
+      // permission message (Android); a cancel must stay silent, a denial must not.
+      const message = (error as { message?: string })?.message ?? String(error);
+      if (/denied|permission/i.test(message)) {
+        this.logger.warn('Camera permission denied', { source, error: message });
+        throw new CameraPermissionDeniedError(source);
+      }
       this.logger.warn('Camera cancelled or failed', { error: String(error) });
       return null;
     }

@@ -38,6 +38,8 @@ export const en: Translation = {
   home_search: 'Search',
   home_scan_barcode: 'Scan barcode',
   home_scan_error: 'Barcode scan error',
+  scan_camera_denied: 'The app has no camera permission. Enable it in the phone Settings.',
+  photo_gallery_denied: 'The app has no photo library permission. Enable it in the phone Settings.',
   home_device_not_found: 'Device not found in database',
   home_sn_no_spaces: 'Serial number must not contain spaces',
   home_sn_no_slash: 'Serial number must not contain a slash (/)',

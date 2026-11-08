@@ -66,6 +66,7 @@ const translocoLangs = {
     home_scan_error: 'home_scan_error',
     home_sn_no_spaces: 'home_sn_no_spaces',
     home_sn_no_slash: 'home_sn_no_slash',
+    scan_camera_denied: 'scan_camera_denied',
     home_device_type_not_allowed: 'home_device_type_not_allowed',
   },
 };
@@ -494,6 +495,17 @@ describe('HomePage', () => {
     expect(mockLookupService.lookup).toHaveBeenCalledWith(sn2);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/device-management', sn2]);
     expect(mockToastCtrl.create).not.toHaveBeenCalled();
+  });
+
+  it('scanBarcode — camera access denied (OS-PLUG-BARC-0007) shows scan_camera_denied', async () => {
+    createAndDetect();
+    spyScanBarcodeReject({ code: 'OS-PLUG-BARC-0007', message: 'Camera access denied' });
+
+    await component.scanBarcode();
+
+    expect(mockToastCtrl.create).toHaveBeenCalledWith(
+      jasmine.objectContaining({ message: 'scan_camera_denied', color: 'danger' }),
+    );
   });
 
   // ─── TC-14 (bonus): scanBarcode — error without code property → toast ─────────

@@ -240,7 +240,10 @@ export class DeviceDetailPage implements ViewWillEnter {
       const code = (error as { code?: string })?.code ?? '';
       if (code === 'OS-PLUG-BARC-0006') return;
 
-      await this.showToast(this.transloco.translate('home_scan_error'));
+      // OS-PLUG-BARC-0007: camera access denied — tell the user how to fix it.
+      await this.showToast(this.transloco.translate(
+        code === 'OS-PLUG-BARC-0007' ? 'scan_camera_denied' : 'home_scan_error',
+      ));
     }
   }
 

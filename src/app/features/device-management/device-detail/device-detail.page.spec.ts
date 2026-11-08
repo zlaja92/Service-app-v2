@@ -535,6 +535,28 @@ describe('DeviceDetailPage', () => {
       );
     });
 
+    it('TC-DD-32b: camera access denied (OS-PLUG-BARC-0007) shows scan_camera_denied', async () => {
+      mockTransloco.translate.and.callFake(((key: string) => key) as never);
+      spyOn(CapacitorBarcodeScanner, 'scanBarcode').and.rejectWith({ code: 'OS-PLUG-BARC-0007' });
+
+      await component.scanConnectedBarcode();
+
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'scan_camera_denied' }),
+      );
+    });
+
+    it('TC-DD-32c: other scan errors keep the generic home_scan_error message', async () => {
+      mockTransloco.translate.and.callFake(((key: string) => key) as never);
+      spyOn(CapacitorBarcodeScanner, 'scanBarcode').and.rejectWith({ code: 'OS-PLUG-BARC-0004' });
+
+      await component.scanConnectedBarcode();
+
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'home_scan_error' }),
+      );
+    });
+
     it('TC-DD-33: empty ScanResult does not update connectedSnInput', async () => {
       (component as unknown as { connectedSnInput: string }).connectedSnInput = 'ORIGINAL';
       spyOn(CapacitorBarcodeScanner, 'scanBarcode').and.resolveTo({
