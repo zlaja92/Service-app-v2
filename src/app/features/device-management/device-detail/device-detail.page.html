@@ -107,6 +107,7 @@
               <p class="connected-label">{{ 'device_detail_model' | transloco }}</p>
               <ion-item class="connected-input">
                 <ion-input [(ngModel)]="modelInput"
+                           autocapitalize="sentences"
                            [attr.aria-label]="'device_detail_model' | transloco"
                            [placeholder]="'device_detail_model_placeholder' | transloco"
                            [clearInput]="true" />
@@ -136,6 +137,7 @@
                 <p class="connected-label">{{ 'device_detail_connected_model' | transloco }}</p>
                 <ion-item class="connected-input">
                   <ion-input [(ngModel)]="connectedModelInput"
+                             autocapitalize="sentences"
                              [attr.aria-label]="'device_detail_connected_model' | transloco"
                              [placeholder]="'device_detail_model_placeholder' | transloco"
                              [clearInput]="true" />

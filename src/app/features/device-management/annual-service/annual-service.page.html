@@ -69,7 +69,7 @@
       <ion-card>
         <ion-item>
           <ion-label position="stacked">{{ 'annual_service_note_label' | transloco }}</ion-label>
-          <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
+          <ion-textarea formControlName="note" maxlength="1000" [rows]="7" autocapitalize="sentences"
                         [placeholder]="'annual_service_note_placeholder' | transloco" />
         </ion-item>
       </ion-card>

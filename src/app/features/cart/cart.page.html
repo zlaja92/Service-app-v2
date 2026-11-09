@@ -52,6 +52,7 @@
     @if (configStore.isFeatureEnabled('cartNote')) {
       <div class="note-section">
         <ion-textarea
+          autocapitalize="sentences"
           [placeholder]="'cart_note_placeholder' | transloco"
           [autoGrow]="false"
           rows="4"
