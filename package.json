@@ -22,6 +22,8 @@
     "build:tiki:ios": "node scripts/build-brand.js tiki ios",
     "build:thermo-servis:android": "node scripts/build-brand.js thermo-servis android",
     "build:thermo-servis:ios": "node scripts/build-brand.js thermo-servis ios",
+    "build:agt:android": "node scripts/build-brand.js agt android",
+    "build:agt:ios": "node scripts/build-brand.js agt ios",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "npx playwright test --config=e2e/playwright.config.ts",

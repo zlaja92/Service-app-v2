@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "105111043809",
+    "project_id": "agtbaza-v2",
+    "storage_bucket": "agtbaza-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:105111043809:android:27d7b8c9a39dabc663c1a0",
+        "android_client_info": {
+          "package_name": "rs.agtbaza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-L28D7-ERYMmuPHUMpH19FwiTW9cUxNA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
