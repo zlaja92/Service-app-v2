@@ -1,0 +1,12 @@
+{
+  "id": "agt",
+  "displayName": "AGT Baza",
+  "appId": "rs.agtbaza",
+  "androidPackage": "rs.agtbaza",
+  "iosBundleId": "rs.agtbaza",
+  "customUrlScheme": "rs.agtbaza",
+  "keystoreFile": "brands/agt/release.keystore",
+  "splashBackgroundLight": "#FFFFFF",
+  "splashBackgroundDark": "#FFFFFF",
+  "primaryColor": "#E6A800"
+}

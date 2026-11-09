@@ -14,14 +14,14 @@
   <div class="search-section">
     <ion-item lines="full">
       <ion-label position="stacked">{{ 'user_search_first_name' | transloco }}</ion-label>
-      <ion-input [(ngModel)]="firstName"
+      <ion-input [(ngModel)]="firstName" autocapitalize="words"
                  [placeholder]="'user_search_first_name_placeholder' | transloco"
                  />
     </ion-item>
 
     <ion-item lines="full">
       <ion-label position="stacked">{{ 'user_search_last_name' | transloco }}</ion-label>
-      <ion-input [(ngModel)]="lastName"
+      <ion-input [(ngModel)]="lastName" autocapitalize="words"
                  [placeholder]="'user_search_last_name_placeholder' | transloco"
                  />
     </ion-item>

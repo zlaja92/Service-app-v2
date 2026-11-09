@@ -11,7 +11,8 @@ pomešati Firebase jednog sa ikonicom drugog klijenta.
 |----|-------------|-----------|-----------------|
 | `ariston-srb` | Ariston Service | `io.ionic.Ariston` | ✅ postavljen |
 | `tiki` | Tiki Servis | `rs.Tiki` | ⚠️ nedostaje (vidi `.MISSING` fajlove) |
-| `thermo-servis` | Thermo Service | `rs.agtbaza` | ⚠️ nedostaje (vidi `.MISSING` fajlove) |
+| `thermo-servis` | Thermo Service | `rs.agtbaza` — ⚠️ menja se | ⚠️ treba novi za novi bundle ID (`thermo-service-6d86e`) |
+| `agt` | AGT Baza | `rs.agtbaza` | ✅ postavljen (`agtbaza-v2`) |
 
 ## Sadržaj brand foldera
 

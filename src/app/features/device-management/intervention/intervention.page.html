@@ -148,7 +148,7 @@
         <ion-card>
           <ion-item>
             <ion-label position="stacked">{{ 'fault_description_label' | transloco }}</ion-label>
-            <ion-textarea formControlName="faultDescription" maxlength="1000" [rows]="7"
+            <ion-textarea formControlName="faultDescription" maxlength="1000" [rows]="7" autocapitalize="sentences"
                           [placeholder]="'fault_description_placeholder' | transloco" />
           </ion-item>
         </ion-card>
@@ -157,7 +157,7 @@
         <ion-card>
           <ion-item>
             <ion-label position="stacked">{{ 'intervention_note_label' | transloco }}</ion-label>
-            <ion-textarea formControlName="note" maxlength="1000" [rows]="7"
+            <ion-textarea formControlName="note" maxlength="1000" [rows]="7" autocapitalize="sentences"
                           [placeholder]="'intervention_note_placeholder' | transloco" />
           </ion-item>
         </ion-card>
@@ -168,7 +168,7 @@
         <ion-card>
           <ion-item>
             <ion-label position="stacked">{{ 'intervention_work_description_label' | transloco }}</ion-label>
-            <ion-textarea formControlName="workDescription" maxlength="1000" [rows]="7"
+            <ion-textarea formControlName="workDescription" maxlength="1000" [rows]="7" autocapitalize="sentences"
                           [placeholder]="'intervention_work_description_placeholder' | transloco" />
           </ion-item>
         </ion-card>
