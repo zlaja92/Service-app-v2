@@ -16,11 +16,9 @@ import { ReportService } from './report.service';
 /**
  * Assembles the intervention-report context and opens the PDF. Shared by the
  * intervention-detail page (manual "Report" button) and the save flows
- * (auto-open after saving). `data` is the intervention document/data object —
- * it must carry the same fields a saved intervention has, including `envInfo`
- * (and, when available, `addedBy`). When `addedBy` is absent (a just-saved
- * intervention), the company header falls back to the current servicer, which
- * is the person performing the save — the correct author in that moment.
+ * (auto-open after saving, via openSaved() which reads the stored document).
+ * `data` is the intervention document. When `addedBy` is absent (e.g. legacy
+ * data), the company header falls back to the current servicer.
  *
  * Layering: this is the domain "assembler"; the generic rendering/output engine
  * is ReportService (which it delegates to via generate()).
@@ -43,6 +41,22 @@ export class InterventionReportService {
    * concern and avoids overwriting the single shared loader reference (which
    * would orphan the caller's spinner).
    */
+  /**
+   * Opens the report of a just-saved intervention from the stored document, so it
+   * matches the database (server addedDate, addedBy) and the report opened from
+   * the history. The save itself already succeeded: a failed read only skips the
+   * report (with the usual report error toast).
+   */
+  async openSaved(sn: string, device: Device, docId: string): Promise<void> {
+    const data = await this.interventionService.getInterventionById(docId, device.type);
+    if (!data) {
+      this.logger.warn('Saved intervention not found for the report', { sn, docId });
+      await this.showError();
+      return;
+    }
+    await this.open(sn, device, data);
+  }
+
   async open(sn: string, device: Device, data: Record<string, unknown>): Promise<void> {
     try {
       const servicerEmail = this.str(data['addedBy']);

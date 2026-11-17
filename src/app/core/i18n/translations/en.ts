@@ -568,6 +568,9 @@ export const en: Translation = {
   connected_device_same_model: 'Connected device cannot be the same model',
   connected_device_same_sn: 'The connected device cannot have the same serial number as the main device',
   connected_device_already_registered: 'Connected device is already registered',
+  connected_device_skip_message: 'The connected unit SN has not been entered. Continue only if the device has no connected unit (e.g. monoblock).',
+  connected_device_skip_continue: 'Continue',
+  connected_device_skip_back: 'Back',
   connected_device_sn_too_short: 'Connected device serial number is too short ({{min}} characters required)',
   connected_device_sn_no_spaces: 'Connected device serial number must not contain spaces',
   loading_please_wait: 'Please wait...',
@@ -698,6 +701,7 @@ export const en: Translation = {
   fault_boiler_missing_instructions: 'MISSING USAGE AND/OR CONNECTION INSTRUCTIONS',
   fault_boiler_inadequate_space_temp: 'INADEQUATE SPACE / AMBIENT TEMPERATURE / INSTALLATION',
   fault_boiler_customer_education: 'CUSTOMER EDUCATION',
+  fault_boiler_descaling: 'DESCALING',
 
   // ─── Fault descriptions: GAS_BOILER / HEAT_PUMP / AIR_CONDITION ───
   fault_common_noise_heating: 'NOISE DURING HEATING',

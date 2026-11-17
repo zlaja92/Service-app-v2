@@ -254,12 +254,28 @@ export class DeviceDetailPage implements ViewWillEnter {
     }
 
     if (this.needsConnectedDevice) {
-      const valid = await this.validateConnectedDevice();
-      if (!valid) return;
+      if (this.isNoCatalogMode && !this.connectedSnInput.trim()) {
+        // No-catalog mode: one device type covers units with and without a
+        // connected unit (e.g. heat-pump split vs monoblock), so the connected
+        // unit is optional. The confirmation only guards against skipping it by
+        // mistake; nothing extra is written to the registration.
+        const proceed = await this.confirmService.confirm(
+          'common_warning_title',
+          'connected_device_skip_message',
+          'connected_device_skip_continue',
+          'connected_device_skip_back',
+        );
+        if (!proceed) return;
+        // Drop a connected SN validated earlier and cleared afterwards.
+        this.connectedSn = '';
+      } else {
+        const valid = await this.validateConnectedDevice();
+        if (!valid) return;
 
-      if (this.canPickType && !this.connectedModelInput.trim()) {
-        await this.showToast(this.transloco.translate('device_detail_connected_model_required'));
-        return;
+        if (this.canPickType && !this.connectedModelInput.trim()) {
+          await this.showToast(this.transloco.translate('device_detail_connected_model_required'));
+          return;
+        }
       }
     }
 

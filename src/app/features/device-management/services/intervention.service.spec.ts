@@ -368,7 +368,7 @@ describe('InterventionService', () => {
   // ─── saveInterventionBatch() ─────────────────────────────────────────────────
 
   describe('saveInterventionBatch()', () => {
-    it('TC-IS-25: should write batch atomically and return true on success', async () => {
+    it('TC-IS-25: should write batch atomically and return the new doc IDs in entry order', async () => {
       mockFirestoreService.generateId.and.returnValues('id-a', 'id-b');
       mockFirestoreService.buildInterventionReference.and.callFake(
         (deviceType: string, docId: string) => `tenants/tenant1/${deviceType}/${docId}`,
@@ -382,7 +382,12 @@ describe('InterventionService', () => {
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(true);
+      expect(result).toEqual(['id-a', 'id-b']);
+      const batchOps = mockFirestoreService.writeBatch.calls.mostRecent().args[0] as Array<{ reference: string }>;
+      expect(batchOps.map(op => op.reference)).toEqual([
+        'tenants/tenant1/gas-boiler/id-a',
+        'tenants/tenant1/heat-pump/id-b',
+      ]);
       expect(mockFirestoreService.writeBatch).toHaveBeenCalledTimes(1);
       expect(mockLoggerService.info).toHaveBeenCalledWith(
         'Intervention batch saved',
@@ -403,11 +408,11 @@ describe('InterventionService', () => {
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(true);
+      expect(result).toEqual(['id-x']);
       expect(mockFirestoreService.writeBatch).toHaveBeenCalledTimes(1);
     });
 
-    it('TC-IS-27: should return false when Firestore writeBatch throws error', async () => {
+    it('TC-IS-27: should return null when Firestore writeBatch throws error', async () => {
       mockFirestoreService.generateId.and.returnValue('id-fail');
       mockFirestoreService.buildInterventionReference.and.returnValue('tenants/t1/interventions/id-fail');
       mockFirestoreService.writeBatch.and.rejectWith(new Error('Batch failed'));
@@ -418,7 +423,7 @@ describe('InterventionService', () => {
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         'Intervention batch save failed',
         jasmine.objectContaining({}),
@@ -472,7 +477,7 @@ describe('InterventionService', () => {
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(true);
+      expect(result).toEqual(['id-1', 'id-2', 'id-3']);
       const batchOps = mockFirestoreService.writeBatch.calls.mostRecent().args[0] as unknown[];
       expect(batchOps.length).toBe(3);
       expect(mockFirestoreService.generateId).toHaveBeenCalledTimes(3);
@@ -615,7 +620,7 @@ describe('InterventionService', () => {
       const entries = [{ sn: 'SN-EP', device: createMockDevice(), formData: { parts: [] } }];
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(true);
+      expect(result).toEqual(['id-ep']);
       const batchOps = mockFirestoreService.writeBatch.calls.mostRecent().args[0] as Array<{
         data: Record<string, unknown>;
       }>;

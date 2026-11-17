@@ -451,6 +451,19 @@ describe('TenantService', () => {
       expect(service.getStoragePath('tenant-10/Photos/a.png')).toBe('tenant-1/tenant-10/Photos/a.png');
     });
 
+    it('does not prefix twice a full path with a leading slash (Android listing)', () => {
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      // The Android plugin reports listed items as '/tenant-1/...'; iOS without the slash.
+      expect(service.getStoragePath('/tenant-1/Documents/manual.pdf')).toBe('tenant-1/Documents/manual.pdf');
+    });
+
+    it('strips a leading slash from a relative path before prefixing', () => {
+      tenantStore.setTenant('tenant-1', 'servicer', null, []);
+
+      expect(service.getStoragePath('/Documents/manual.pdf')).toBe('tenant-1/Documents/manual.pdf');
+    });
+
     it('throws when the tenant is not resolved', () => {
       expect(() => service.getStoragePath('Documents')).toThrowError(/Tenant not resolved/);
     });

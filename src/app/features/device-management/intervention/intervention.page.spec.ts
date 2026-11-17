@@ -56,6 +56,8 @@ import { PhotoService } from '../../photo-upload/services/photo.service';
 import { SignatureService } from '../../signature/services/signature.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { InterventionReportService } from '../../reports/services/intervention-report.service';
+import { ReportPreferenceService } from '../../reports/services/report-preference.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { AppConfig, getDefaultConfig, PhotoRequirement } from '../../../core/config/config.model';
 import {
@@ -625,6 +627,38 @@ describe('InterventionPage', () => {
 
         // showToast() creates the toast without a color property (only message, duration, position)
         expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ message: jasmine.any(String) }));
+      });
+
+      describe('auto-open report', () => {
+        let report: InterventionReportService;
+
+        beforeEach(() => {
+          const current = mockConfigStore.config()!;
+          mockConfigStore.setConfig({ ...current, features: { ...current.features, pdfReports: true } });
+          TestBed.inject(ReportPreferenceService).autoOpen.set(true);
+          report = TestBed.inject(InterventionReportService);
+          spyOn(report, 'openSaved').and.resolveTo();
+          spyOn(report, 'open').and.resolveTo();
+        });
+
+        it('opens the report from the saved document (server date), not the in-memory data', async () => {
+          await component.onSave();
+
+          expect(report.openSaved).toHaveBeenCalledWith(
+            'SN001',
+            jasmine.objectContaining({ type: DeviceType.BOILER }),
+            'doc-001',
+          );
+          expect(report.open).not.toHaveBeenCalled();
+        });
+
+        it('does not open the report when the save fails', async () => {
+          mockInterventionService.saveIntervention.and.resolveTo(null);
+
+          await component.onSave();
+
+          expect(report.openSaved).not.toHaveBeenCalled();
+        });
       });
 
       it('TC-IP-28: calls photoService.clear after successful save', async () => {

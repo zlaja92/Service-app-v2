@@ -1300,6 +1300,91 @@ describe('DeviceDetailPage', () => {
         );
         expect(router.navigate).not.toHaveBeenCalled();
       });
+
+      describe('skipped (e.g. monoblock)', () => {
+        let confirmService: jasmine.SpyObj<ConfirmService>;
+
+        beforeEach(() => {
+          confirmService = TestBed.inject(ConfirmService) as jasmine.SpyObj<ConfirmService>;
+          page().canPickType = true;
+          page().modelInput = 'NIMBUS MONO';
+          page().connectedSnInput = '   ';
+        });
+
+        it('asks for confirmation instead of rejecting an empty connected SN', async () => {
+          await component.onAddUser();
+
+          expect(confirmService.confirm).toHaveBeenCalledWith(
+            'common_warning_title',
+            'connected_device_skip_message',
+            'connected_device_skip_continue',
+            'connected_device_skip_back',
+          );
+          expect(mockToastController.create).not.toHaveBeenCalledWith(
+            jasmine.objectContaining({ message: 'connected_device_sn_placeholder' }),
+          );
+        });
+
+        it('stays on the page when the user goes back', async () => {
+          confirmService.confirm.and.resolveTo(false);
+
+          await component.onAddUser();
+
+          expect(router.navigate).not.toHaveBeenCalled();
+        });
+
+        it('continues to add-user with only the main unit when confirmed', async () => {
+          confirmService.confirm.and.resolveTo(true);
+
+          await component.onAddUser();
+
+          expect(mockInterventionService.getRegistration).not.toHaveBeenCalled();
+          expect(router.navigate).toHaveBeenCalledWith(
+            ['/device-management', TEST_SN, 'add-user'],
+            { queryParams: { deviceModel: 'NIMBUS MONO' } },
+          );
+        });
+
+        it('drops a connected SN validated earlier and cleared afterwards', async () => {
+          confirmService.confirm.and.resolveTo(true);
+          (component as unknown as { connectedSn: string }).connectedSn = 'CONNECTED123456789012';
+
+          await component.onAddUser();
+
+          expect(router.navigate).toHaveBeenCalledWith(
+            ['/device-management', TEST_SN, 'add-user'],
+            { queryParams: { deviceModel: 'NIMBUS MONO' } },
+          );
+        });
+
+        it('does not ask for the connected unit model', async () => {
+          confirmService.confirm.and.resolveTo(true);
+
+          await component.onAddUser();
+
+          expect(mockToastController.create).not.toHaveBeenCalledWith(
+            jasmine.objectContaining({ message: 'device_detail_connected_model_required' }),
+          );
+        });
+      });
+    });
+  });
+
+  describe('connected unit required (catalog mode)', () => {
+    it('rejects an empty connected SN without offering to skip it', async () => {
+      mockTransloco.translate.and.callFake(((key: string) => key) as never);
+      (mockLookupService as unknown as { device: Device | null }).device = buildDevice({ connectedDevice: true });
+      (mockRegistrationService as unknown as { isRegistered: boolean | null }).isRegistered = false;
+      (component as unknown as { sn: string; connectedSnInput: string }).sn = TEST_SN;
+      (component as unknown as { connectedSnInput: string }).connectedSnInput = '';
+
+      await component.onAddUser();
+
+      expect(TestBed.inject(ConfirmService).confirm).not.toHaveBeenCalled();
+      expect(mockToastController.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'connected_device_sn_placeholder' }),
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
     });
   });
 

@@ -103,38 +103,33 @@ export class InterventionService implements Clearable {
   /**
    * Saves two interventions atomically using batch write.
    * Both succeed or both fail - no partial writes.
+   * Returns the new document IDs in the order of `entries`, or null on failure.
    */
   async saveInterventionBatch(
     entries: { sn: string; device: Device; formData: Record<string, unknown> }[],
-  ): Promise<boolean> {
+  ): Promise<string[] | null> {
     this.isSaving = true;
 
     try {
-      const operations = await Promise.all(
-        entries.map(async (entry) => {
-          const data: Record<string, unknown> = {
-            sn: entry.sn,
-            ...entry.formData,
-            addedBy: this.authStore.userEmail(),
-            addedDate: FieldValue.serverTimestamp(),
-            exported: false,
-          };
-
-          const docId = this.firestoreService.generateId();
-          return {
-            type: 'set' as const,
-            reference: this.firestoreService.buildInterventionReference(entry.device.type, docId),
-            data,
-          };
-        }),
-      );
+      const docIds = entries.map(() => this.firestoreService.generateId());
+      const operations = entries.map((entry, i) => ({
+        type: 'set' as const,
+        reference: this.firestoreService.buildInterventionReference(entry.device.type, docIds[i]),
+        data: {
+          sn: entry.sn,
+          ...entry.formData,
+          addedBy: this.authStore.userEmail(),
+          addedDate: FieldValue.serverTimestamp(),
+          exported: false,
+        } as Record<string, unknown>,
+      }));
 
       await this.firestoreService.writeBatch(operations);
       this.logger.info('Intervention batch saved', { count: entries.length });
-      return true;
+      return docIds;
     } catch (error) {
       this.logger.error('Intervention batch save failed', { error: String(error) });
-      return false;
+      return null;
     } finally {
       this.isSaving = false;
     }

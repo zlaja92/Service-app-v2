@@ -477,7 +477,7 @@ describe('InterventionService — EXPANSION: saveInterventionBatch size variatio
 
       const result = await service.saveInterventionBatch(entries);
 
-      expect(result).toBe(true);
+      expect(result?.length).toBe(size);
       expect(mockFirestoreService.writeBatch).toHaveBeenCalledTimes(1);
       const batchOps = mockFirestoreService.writeBatch.calls.mostRecent().args[0] as unknown[];
       expect(batchOps.length).toBe(size);
@@ -501,7 +501,7 @@ describe('InterventionService — EXPANSION: saveInterventionBatch size variatio
       }));
 
       const result = await service.saveInterventionBatch(entries);
-      expect(result).toBe(true);
+      expect(result?.length).toBe(types.length);
       expect(mockFirestoreService.generateId).toHaveBeenCalledTimes(types.length);
     });
   });

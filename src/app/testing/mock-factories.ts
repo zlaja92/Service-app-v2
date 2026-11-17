@@ -531,8 +531,9 @@ export function createMockLoadingAlertService(): jasmine.SpyObj<LoadingAlertServ
  * Default: open() resolves void (no real report rendering).
  */
 export function createMockInterventionReportService(): jasmine.SpyObj<InterventionReportService> {
-  const mock = jasmine.createSpyObj<InterventionReportService>('InterventionReportService', ['open']);
+  const mock = jasmine.createSpyObj<InterventionReportService>('InterventionReportService', ['open', 'openSaved']);
   mock.open.and.resolveTo();
+  mock.openSaved.and.resolveTo();
   return mock;
 }
 

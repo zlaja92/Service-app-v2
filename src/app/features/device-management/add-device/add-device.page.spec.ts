@@ -901,7 +901,7 @@ describe('AddDevicePage', () => {
       page = createPage({ device, sn: 'SN-MAIN', connectedSn: 'SN-CONNECTED' });
 
       mockConfirmService.confirm.and.resolveTo(true);
-      mockInterventionService.saveInterventionBatch.and.resolveTo(true);
+      mockInterventionService.saveInterventionBatch.and.resolveTo(['doc-main', 'doc-connected']);
       mockRouter.navigate.and.resolveTo(true);
 
       page.ionViewWillEnter();
@@ -921,7 +921,7 @@ describe('AddDevicePage', () => {
       page = createPage({ device, sn: 'SN-MAIN', connectedSn: 'SN-CONNECTED' });
 
       mockConfirmService.confirm.and.resolveTo(true);
-      mockInterventionService.saveInterventionBatch.and.resolveTo(true);
+      mockInterventionService.saveInterventionBatch.and.resolveTo(['doc-main', 'doc-connected']);
       mockRouter.navigate.and.resolveTo(true);
 
       page.ionViewWillEnter();
@@ -937,7 +937,7 @@ describe('AddDevicePage', () => {
       page = createPage({ device, sn: 'SN-MAIN', connectedSn: 'SN-CONNECTED' });
 
       mockConfirmService.confirm.and.resolveTo(true);
-      mockInterventionService.saveInterventionBatch.and.resolveTo(false);
+      mockInterventionService.saveInterventionBatch.and.resolveTo(null);
 
       page.ionViewWillEnter();
       fillValidForm(page);
@@ -946,6 +946,69 @@ describe('AddDevicePage', () => {
 
       expect(mockToastCtrl.create).toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── onSave — auto-open report from the stored document ──────────────────────
+
+  describe('onSave() — auto-open report', () => {
+    beforeEach(() => {
+      const cfg = getDefaultConfig();
+      cfg.features.pdfReports = true;
+      mockConfigStore.setConfig(cfg);
+      (mockReportPreference.autoOpen as ReturnType<typeof import('@angular/core').signal<boolean>>).set(true);
+      mockConfirmService.confirm.and.resolveTo(true);
+      mockRouter.navigate.and.resolveTo(true);
+    });
+
+    it('opens the report of the saved document (single unit)', async () => {
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      page = createPage({ device, sn: 'SN-MAIN' });
+      mockInterventionService.saveIntervention.and.resolveTo('doc-single');
+
+      page.ionViewWillEnter();
+      fillValidForm(page);
+      await page.onSave();
+
+      expect(mockInterventionReport.openSaved).toHaveBeenCalledWith('SN-MAIN', device, 'doc-single');
+      expect(mockInterventionReport.open).not.toHaveBeenCalled();
+    });
+
+    it('opens the report of the main unit when saved in a batch', async () => {
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      page = createPage({ device, sn: 'SN-MAIN', connectedSn: 'SN-CONNECTED' });
+      mockInterventionService.saveInterventionBatch.and.resolveTo(['doc-main', 'doc-connected']);
+
+      page.ionViewWillEnter();
+      fillValidForm(page);
+      await page.onSave();
+
+      expect(mockInterventionReport.openSaved).toHaveBeenCalledWith('SN-MAIN', device, 'doc-main');
+    });
+
+    it('does not open the report when the save fails', async () => {
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      page = createPage({ device, sn: 'SN-MAIN' });
+      mockInterventionService.saveIntervention.and.resolveTo(null);
+
+      page.ionViewWillEnter();
+      fillValidForm(page);
+      await page.onSave();
+
+      expect(mockInterventionReport.openSaved).not.toHaveBeenCalled();
+    });
+
+    it('does not open the report when auto-open is off', async () => {
+      (mockReportPreference.autoOpen as ReturnType<typeof import('@angular/core').signal<boolean>>).set(false);
+      const device = createMockDevice({ type: DeviceType.BOILER });
+      page = createPage({ device, sn: 'SN-MAIN' });
+      mockInterventionService.saveIntervention.and.resolveTo('doc-single');
+
+      page.ionViewWillEnter();
+      fillValidForm(page);
+      await page.onSave();
+
+      expect(mockInterventionReport.openSaved).not.toHaveBeenCalled();
     });
   });
 

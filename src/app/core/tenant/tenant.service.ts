@@ -87,8 +87,11 @@ export class TenantService {
     if (!tenantId) {
       throw new Error('Tenant not resolved. Call resolveFromAuthToken() first.');
     }
+    // Android's native plugin reports item paths with a leading '/'
+    // ('/agt/Documents/x.pdf'), iOS without one — normalize before the prefix check.
+    const clean = path.replace(/^\/+/, '');
     const root = `${tenantId}/`;
-    return path.startsWith(root) ? path : `${root}${path}`;
+    return clean.startsWith(root) ? clean : `${root}${clean}`;
   }
 
   /**

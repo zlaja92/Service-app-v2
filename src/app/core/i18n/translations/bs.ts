@@ -568,6 +568,9 @@ export const bs: Translation = {
   connected_device_same_model: 'Povezani uređaj ne može biti istog modela',
   connected_device_same_sn: 'Povezani uređaj ne može imati isti serijski broj kao glavni',
   connected_device_already_registered: 'Povezani uređaj je već registrovan',
+  connected_device_skip_message: 'SN povezane jedinice nije unesen. Nastavite samo ako uređaj nema povezanu jedinicu (npr. monoblok).',
+  connected_device_skip_continue: 'Nastavi',
+  connected_device_skip_back: 'Nazad',
   connected_device_sn_too_short: 'Serijski broj povezanog uređaja je prekratak (potrebno je {{min}} karaktera)',
   connected_device_sn_no_spaces: 'Serijski broj ne smije da sadrži razmake',
   loading_please_wait: 'Molimo sačekajte...',
@@ -698,6 +701,7 @@ export const bs: Translation = {
   fault_boiler_missing_instructions: 'NEDOSTAJU UPUTSTVA ZA UPOTREBU I/ILI PRIKLJUČENJE',
   fault_boiler_inadequate_space_temp: 'NEODGOVARAJUĆI PROSTOR / TEMPERATURA OKRUŽENJA / UGRADNJA',
   fault_boiler_customer_education: 'POUČAVANJE STRANKE',
+  fault_boiler_descaling: 'ČIŠĆENJE KAMENCA',
 
   // ─── Fault descriptions: GAS_BOILER / HEAT_PUMP / AIR_CONDITION ───
   fault_common_noise_heating: 'BUKA PRILIKOM ZAGRIJAVANJA',

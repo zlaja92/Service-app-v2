@@ -143,7 +143,7 @@ export class AnnualServicePage implements ViewWillEnter {
 
     await this.saveForConnectedDevice(device, data);
 
-    await this.maybeAutoOpenReport(device, data);
+    await this.maybeAutoOpenReport(device, docId);
 
     void this.router.navigate(['/device-management', this.sn]).then(() => {
       void this.loadingAlert.hide();
@@ -155,11 +155,12 @@ export class AnnualServicePage implements ViewWillEnter {
    * Opens the report automatically after a successful save, only when the report
    * feature is enabled AND the side-menu "auto-open" toggle is on. Reuses the
    * save loader (the report service does not create its own), so the spinner
-   * stays up through generation and is hidden after navigation.
+   * stays up through generation and is hidden after navigation. Reads the stored
+   * document (see openSaved), so the report carries the server date.
    */
-  private async maybeAutoOpenReport(device: Device, data: Record<string, unknown>): Promise<void> {
+  private async maybeAutoOpenReport(device: Device, docId: string): Promise<void> {
     if (this.configStore.isFeatureEnabled('pdfReports') && this.reportPreference.autoOpen()) {
-      await this.interventionReportService.open(this.sn, device, data);
+      await this.interventionReportService.openSaved(this.sn, device, docId);
     }
   }
 

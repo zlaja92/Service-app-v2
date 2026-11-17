@@ -162,20 +162,22 @@ export class AddDevicePage implements ViewWillEnter {
       await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.COMMISSIONING);
     }
 
-    let success: boolean;
+    let docId: string | null;
 
     if (this.connectedSn) {
-      success = await this.interventionService.saveInterventionBatch([
+      const docIds = await this.interventionService.saveInterventionBatch([
         { sn: this.sn, device, formData: data },
         { sn: this.connectedSn, device, formData: data },
       ]);
+      // The report covers the main device (first entry).
+      docId = docIds?.[0] ?? null;
     } else {
-      success = !!(await this.interventionService.saveIntervention(this.sn, device, data));
+      docId = await this.interventionService.saveIntervention(this.sn, device, data);
     }
 
-    if (success) {
+    if (docId) {
       this.photoService.clear();
-      await this.maybeAutoOpenReport(device, data);
+      await this.maybeAutoOpenReport(device, docId);
       void this.router.navigate(['/device-management', this.sn]).then(() => {
         void this.loadingAlert.hide();
         void this.showToast(this.transloco.translate('commissioning_success'));
@@ -190,11 +192,12 @@ export class AddDevicePage implements ViewWillEnter {
    * Opens the report automatically after a successful save, only when the report
    * feature is enabled AND the side-menu "auto-open" toggle is on. Reuses the
    * save loader; reports the main device (connected device, if any, is saved
-   * in the same batch).
+   * in the same batch). Reads the stored document (see openSaved), so the report
+   * carries the server date.
    */
-  private async maybeAutoOpenReport(device: Device, data: Record<string, unknown>): Promise<void> {
+  private async maybeAutoOpenReport(device: Device, docId: string): Promise<void> {
     if (this.configStore.isFeatureEnabled('pdfReports') && this.reportPreference.autoOpen()) {
-      await this.interventionReportService.open(this.sn, device, data);
+      await this.interventionReportService.openSaved(this.sn, device, docId);
     }
   }
 

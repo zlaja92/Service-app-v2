@@ -1126,7 +1126,7 @@ describe('AnnualServicePage', () => {
       mockInterventionService.getRegistration.and.resolveTo(null);
     }
 
-    it('AS-AUTO-01: pdfReports enabled + autoOpen true → interventionReportService.open called with (sn, device, data)', async () => {
+    it('AS-AUTO-01: pdfReports enabled + autoOpen true → openSaved called with (sn, device, saved docId)', async () => {
       const cfg = getDefaultConfig();
       cfg.features.pdfReports = true;
       mockConfigStore.setConfig(cfg);
@@ -1136,11 +1136,13 @@ describe('AnnualServicePage', () => {
 
       await component.onSave();
 
-      expect(mockInterventionReport.open).toHaveBeenCalledWith(
+      // The report is built from the stored document (server addedDate), not the in-memory data.
+      expect(mockInterventionReport.openSaved).toHaveBeenCalledWith(
         TEST_SN,
         jasmine.objectContaining({ type: DeviceType.GAS_BOILER }),
-        jasmine.objectContaining({ interventionType: InterventionType.ANNUAL_SERVICE }),
+        'doc-auto-open',
       );
+      expect(mockInterventionReport.open).not.toHaveBeenCalled();
     });
 
     it('AS-AUTO-02: pdfReports enabled + autoOpen false → interventionReportService.open NOT called', async () => {
@@ -1153,7 +1155,7 @@ describe('AnnualServicePage', () => {
 
       await component.onSave();
 
-      expect(mockInterventionReport.open).not.toHaveBeenCalled();
+      expect(mockInterventionReport.openSaved).not.toHaveBeenCalled();
     });
 
     it('AS-AUTO-03: pdfReports disabled → interventionReportService.open NOT called even when autoOpen true', async () => {
@@ -1165,7 +1167,7 @@ describe('AnnualServicePage', () => {
 
       await component.onSave();
 
-      expect(mockInterventionReport.open).not.toHaveBeenCalled();
+      expect(mockInterventionReport.openSaved).not.toHaveBeenCalled();
     });
   });
 });

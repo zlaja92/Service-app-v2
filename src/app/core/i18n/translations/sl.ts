@@ -568,6 +568,9 @@ export const sl: Translation = {
   connected_device_same_model: 'Povezana naprava ne more biti istega modela',
   connected_device_same_sn: 'Povezana naprava ne more imeti iste serijske številke kot glavna',
   connected_device_already_registered: 'Povezana naprava je že registrirana',
+  connected_device_skip_message: 'SN povezane enote ni vnesen. Nadaljujte samo, če naprava nima povezane enote (npr. monoblok).',
+  connected_device_skip_continue: 'Nadaljuj',
+  connected_device_skip_back: 'Nazaj',
   connected_device_sn_too_short: 'Serijska številka povezane naprave je prekratka (potrebnih je {{min}} znakov)',
   connected_device_sn_no_spaces: 'Serijska številka ne sme vsebovati presledkov',
   loading_please_wait: 'Prosimo počakajte...',
@@ -698,6 +701,7 @@ export const sl: Translation = {
   fault_boiler_missing_instructions: 'MANJKAJO NAVODILA ZA UPORABO IN/ALI PRIKLJUČITEV',
   fault_boiler_inadequate_space_temp: 'NEUSTREZEN PROSTOR / TEMPERATURA OKOLICE / VGRADNJA',
   fault_boiler_customer_education: 'POUČEVANJE STRANKE',
+  fault_boiler_descaling: 'ČIŠČENJE VODNEGA KAMNA',
 
   // ─── Fault descriptions: GAS_BOILER / HEAT_PUMP / AIR_CONDITION ───
   fault_common_noise_heating: 'HRUP MED SEGREVANJEM',

@@ -275,7 +275,7 @@ export class InterventionPage implements ViewWillEnter {
 
     if (docId) {
       this.photoService.clear();
-      await this.maybeAutoOpenReport(device, data);
+      await this.maybeAutoOpenReport(device, docId);
       void this.router.navigate(['/device-management', this.sn]).then(() => {
         void this.loadingAlert.hide();
         void this.showToast(this.transloco.translate('intervention_save_success'));
@@ -291,12 +291,12 @@ export class InterventionPage implements ViewWillEnter {
   /**
    * Opens the report automatically after a successful save, but only when the
    * report feature is enabled AND the side-menu "auto-open" toggle is on.
-   * Uses the just-saved in-memory data (carries envInfo); addedBy is absent here
-   * so the report falls back to the current servicer (the person saving) — correct.
+   * Reads the stored document (see openSaved), so the report carries the server
+   * date and matches the report opened from the history.
    */
-  private async maybeAutoOpenReport(device: Device, data: Record<string, unknown>): Promise<void> {
+  private async maybeAutoOpenReport(device: Device, docId: string): Promise<void> {
     if (this.configStore.isFeatureEnabled('pdfReports') && this.reportPreference.autoOpen()) {
-      await this.interventionReportService.open(this.sn, device, data);
+      await this.interventionReportService.openSaved(this.sn, device, docId);
     }
   }
 

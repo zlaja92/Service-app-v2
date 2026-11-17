@@ -67,8 +67,10 @@ function createMockInterventionService(): jasmine.SpyObj<InterventionService> {
     'getRegistration',
     'getInterventionLabel',
     'getInterventionsBySn',
+    'getInterventionById',
   ]);
   mock.getRegistration.and.resolveTo(null);
+  mock.getInterventionById.and.resolveTo(null);
   mock.getInterventionLabel.and.returnValue(null);
   mock.getInterventionsBySn.and.resolveTo([]);
   return mock;
@@ -781,6 +783,38 @@ describe('InterventionReportService', () => {
       const device = createMockDevice({ type: DeviceType.GAS_BOILER });
       await service.open('SN1', device, baseData({ callAccepted: false }));
       expect(capturedCtx!.consent).toEqual({ type: 'service-consent', accepted: false });
+    });
+  });
+
+  // ===========================================================================
+  // openSaved — report of a just-saved intervention from the stored document
+  // ===========================================================================
+
+  describe('openSaved()', () => {
+    it('reads the stored document and builds the report from it (server addedDate)', async () => {
+      const device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      mockInterventionService.getInterventionById.and.resolveTo(baseData({
+        addedDate: { toDate: () => new Date(2026, 10, 16) },
+      }));
+
+      await service.openSaved('SN1', device, 'doc-1');
+
+      expect(mockInterventionService.getInterventionById).toHaveBeenCalledWith('doc-1', DeviceType.GAS_BOILER);
+      expect(mockReportService.generate).toHaveBeenCalledTimes(1);
+      expect(capturedCtx!.intervention.date).toBe('16.11.2026.');
+    });
+
+    it('skips the report and shows the report error when the document is not found', async () => {
+      mockInterventionService.getInterventionById.and.resolveTo(null);
+
+      await service.openSaved('SN1', createMockDevice(), 'missing');
+
+      expect(mockReportService.generate).not.toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'Saved intervention not found for the report',
+        jasmine.objectContaining({ docId: 'missing' }),
+      );
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(jasmine.objectContaining({ color: 'danger' }));
     });
   });
 });
