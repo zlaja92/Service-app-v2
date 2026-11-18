@@ -1,7 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { ToastController } from '@ionic/angular/standalone';
+import { ModalController, ToastController } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { AnnualServicePage } from './annual-service.page';
@@ -15,6 +15,7 @@ import { ConfigStore } from '../../../core/config/config.store';
 import { LoggerService } from '../../../core/logger/logger.service';
 import { ReportPreferenceService } from '../../reports/services/report-preference.service';
 import { InterventionReportService } from '../../reports/services/intervention-report.service';
+import { PhotoService } from '../../photo-upload/services/photo.service';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import {
   InterventionType,
@@ -22,7 +23,7 @@ import {
   ANNUAL_SERVICE_DESCRIPTION,
   DEFAULT_DISTANCE,
 } from '../models/intervention.model';
-import { getDefaultConfig } from '../../../core/config/config.model';
+import { getDefaultConfig, PhotoRequirement } from '../../../core/config/config.model';
 import {
   createMockConfigStore,
   createMockReportPreferenceService,
@@ -125,6 +126,8 @@ describe('AnnualServicePage', () => {
   let mockReportPreference: ReturnType<typeof createMockReportPreferenceService>;
   let mockInterventionReport: jasmine.SpyObj<InterventionReportService>;
   let router: Router;
+  let mockPhotoService: jasmine.SpyObj<PhotoService> & { photos: unknown[] };
+  let mockModalCtrl: jasmine.SpyObj<ModalController>;
 
   const TEST_SN = 'SN-TEST-001';
 
@@ -142,6 +145,12 @@ describe('AnnualServicePage', () => {
     mockConfigStore = createMockConfigStore();
     mockReportPreference = createMockReportPreferenceService();
     mockInterventionReport = createMockInterventionReportService();
+    mockPhotoService = Object.assign(
+      jasmine.createSpyObj<PhotoService>('PhotoService', ['setRequirement', 'clear', 'uploadPhotos']),
+      { photos: [] as unknown[] },
+    );
+    mockPhotoService.uploadPhotos.and.resolveTo({ uploaded: [], failed: 0 });
+    mockModalCtrl = jasmine.createSpyObj<ModalController>('ModalController', ['create']);
     // Ensure signatureCapture feature flag is OFF by default so signature step is skipped
     // (getDefaultFeatures() returns signatureCapture: false, so no override needed)
 
@@ -161,6 +170,8 @@ describe('AnnualServicePage', () => {
         { provide: ConfigStore, useValue: mockConfigStore },
         { provide: ReportPreferenceService, useValue: mockReportPreference },
         { provide: InterventionReportService, useValue: mockInterventionReport },
+        { provide: PhotoService, useValue: mockPhotoService },
+        { provide: ModalController, useValue: mockModalCtrl },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -1168,6 +1179,93 @@ describe('AnnualServicePage', () => {
       await component.onSave();
 
       expect(mockInterventionReport.openSaved).not.toHaveBeenCalled();
+    });
+  });
+  // ─── Photos ───────────────────────────────────────────────────────────────
+
+  describe('photos', () => {
+    const requirement: PhotoRequirement = { requiredPhotos: 1, maxPhotos: 3, requireSparePartPhotos: false, description: '' };
+
+    function enterWith(req: PhotoRequirement | null, photosFlag = true): void {
+      const cfg = getDefaultConfig();
+      cfg.features.interventionPhotos = photosFlag;
+      cfg.interventionPhotoConfig = req ? { [DeviceType.GAS_BOILER]: { [InterventionType.ANNUAL_SERVICE]: req } } : {};
+      mockConfigStore.setConfig(cfg);
+      (mockLookupService as unknown as { device: Device | null }).device = createMockDevice({ type: DeviceType.GAS_BOILER });
+      component.ionViewWillEnter();
+      (component as any).form.patchValue({ callAccepted: true });
+      mockEnvInfoService.getLastEnvInfo.and.resolveTo(null);
+      mockEnvInfoService.collectEnvInfo.and.resolveTo({ gasType: 'val' });
+      mockInterventionService.saveIntervention.and.resolveTo('doc-1');
+      mockInterventionService.getRegistration.and.resolveTo(null);
+    }
+
+    it('shows the photos card for an in-warranty annual_service requirement', () => {
+      enterWith(requirement);
+
+      expect((component as any).showPhotosButton).toBeTrue();
+      expect(mockPhotoService.setRequirement).toHaveBeenCalledWith(requirement);
+    });
+
+    it('hides the photos card when the requirement is out of warranty only', () => {
+      enterWith({ ...requirement, inWarranty: false, outOfWarranty: true });
+
+      expect((component as any).showPhotosButton).toBeFalse();
+      expect(mockPhotoService.clear).toHaveBeenCalled();
+    });
+
+    it('hides the photos card when the interventionPhotos flag is off', () => {
+      enterWith(requirement, false);
+
+      expect((component as any).showPhotosButton).toBeFalse();
+    });
+
+    it('blocks saving with fewer photos than required', async () => {
+      enterWith(requirement);
+      mockPhotoService.photos = [];
+
+      await component.onSave();
+
+      expect(mockToastCtrl.create).toHaveBeenCalledWith(
+        jasmine.objectContaining({ message: 'intervention_validation_photos_required' }),
+      );
+      expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
+    });
+
+    it('asks before saving without photos when none are required', async () => {
+      enterWith({ ...requirement, requiredPhotos: 0 });
+      mockPhotoService.photos = [];
+      mockConfirmService.confirm.and.resolveTo(false);
+
+      await component.onSave();
+
+      expect(mockConfirmService.confirm).toHaveBeenCalledWith(
+        'photo_no_photos_title', 'photo_no_photos_message', 'photo_no_photos_continue', 'photo_no_photos_cancel',
+      );
+      expect(mockInterventionService.saveIntervention).not.toHaveBeenCalled();
+    });
+
+    it('uploads the photos and stores their paths in the annual service', async () => {
+      enterWith(requirement);
+      mockPhotoService.photos = [{ id: 'p1', webPath: '/p1', uri: 'file:///p1' }];
+      mockPhotoService.uploadPhotos.and.resolveTo({ uploaded: ['int-heating/SN/annual_1.jpg'], failed: 0 });
+
+      await component.onSave();
+
+      expect(mockPhotoService.uploadPhotos).toHaveBeenCalledWith(TEST_SN, DeviceType.GAS_BOILER, InterventionType.ANNUAL_SERVICE);
+      const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+      expect(data['photoPaths']).toEqual(['int-heating/SN/annual_1.jpg']);
+      expect(mockPhotoService.clear).toHaveBeenCalled();
+    });
+
+    it('does not upload and writes no photo fields without a requirement', async () => {
+      enterWith(null);
+
+      await component.onSave();
+
+      expect(mockPhotoService.uploadPhotos).not.toHaveBeenCalled();
+      const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+      expect('photoPaths' in data).toBeFalse();
     });
   });
 });

@@ -91,6 +91,7 @@ describe('featureGuard', () => {
         cartNote: false,
         deviceManagement: false,
         interventionPhotos: false,
+        interventionPhotoPreview: false,
         signatureCapture: false,
         servicerReport: false,
       },
@@ -225,7 +226,7 @@ describe('featureGuard', () => {
       allDisabled.features = {
         cart: false, documentation: false, deviceCatalog: false, bugReport: false,
         pdfReports: false, emailOrders: false, partPhoto: false, cartNote: false,
-        deviceManagement: false, interventionPhotos: false, signatureCapture: false, servicerReport: false,
+        deviceManagement: false, interventionPhotos: false, interventionPhotoPreview: false, signatureCapture: false, servicerReport: false,
       };
       store.setConfig(allDisabled);
 

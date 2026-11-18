@@ -25,6 +25,8 @@ export interface FeatureFlags {
   cartNote: boolean;
   deviceManagement: boolean;
   interventionPhotos: boolean;
+  /** Intervention photos (photoPaths) shown in the intervention detail of the history. */
+  interventionPhotoPreview: boolean;
   signatureCapture: boolean;
   servicerReport: boolean;
 }
@@ -41,6 +43,10 @@ export interface PhotoRequirement {
   requiredPhotos: number;
   requireSparePartPhotos: boolean;
   description: string;
+  /** Photos for in-warranty interventions. Optional, default true. */
+  inWarranty?: boolean;
+  /** Photos for out-of-warranty interventions. Optional, default false. */
+  outOfWarranty?: boolean;
 }
 
 export interface ThemeConfig {
@@ -112,6 +118,7 @@ export function getDefaultFeatures(): FeatureFlags {
     cartNote: false,
     deviceManagement: true,
     interventionPhotos: false,
+    interventionPhotoPreview: false,
     signatureCapture: false,
     servicerReport: false,
   };

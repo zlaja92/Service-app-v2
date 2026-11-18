@@ -40,6 +40,21 @@
           </ion-label>
         </ion-item>
       }
+
+      <!-- interventionPhotoPreview: one more field, same label and divider as the others. -->
+      @if (photoPaths.length > 0 || photoUploadFailed > 0) {
+        <ion-item class="photos-item">
+          <ion-label class="ion-text-wrap">
+            <h3>{{ 'history_detail_photos' | transloco }} ({{ photoPaths.length }})</h3>
+            @if (photoPaths.length > 0) {
+              <app-photo-gallery class="photos-gallery" [urls]="photoUrls" [loading]="photosLoading" [count]="photoPaths.length" />
+            }
+            @if (photoUploadFailed > 0) {
+              <p class="photos-failed">{{ 'history_detail_photos_failed' | transloco: { count: photoUploadFailed } }}</p>
+            }
+          </ion-label>
+        </ion-item>
+      }
     </ion-list>
 
     @if (canReport) {

@@ -6,9 +6,11 @@ import {
   IonButton, IonItem, IonInput, IonTextarea, IonSelect, IonSelectOption,
   IonMenuButton, IonLabel, IonCard,
   IonGrid, IonRow, IonCol,
-  IonSpinner,
-  ViewWillEnter, ToastController,
+  IonSpinner, IonIcon, IonNote,
+  ViewWillEnter, ToastController, ModalController,
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { cameraOutline } from 'ionicons/icons';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DeviceLookupService } from '../services/device-lookup.service';
 import { InterventionService } from '../services/intervention.service';
@@ -20,6 +22,10 @@ import { ConfigStore } from '../../../core/config/config.store';
 import { ReportPreferenceService } from '../../reports/services/report-preference.service';
 import { InterventionReportService } from '../../reports/services/intervention-report.service';
 import { LoggerService } from '../../../core/logger/logger.service';
+import { PhotoRequirement } from '../../../core/config/config.model';
+import { PhotoService } from '../../photo-upload/services/photo.service';
+import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
+import { applyPhotoUploadResult, resolvePhotoRequirement } from '../../photo-upload/models/photo.model';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { requiresEnvInfo } from '../models/device-env-info.model';
 import {
@@ -40,7 +46,7 @@ import {
     IonButton, IonItem, IonInput, IonTextarea, IonSelect, IonSelectOption,
     IonMenuButton, IonLabel, IonCard,
     IonGrid, IonRow, IonCol,
-    IonSpinner,
+    IonSpinner, IonIcon, IonNote,
     TranslocoModule,
   ],
 })
@@ -59,12 +65,24 @@ export class AnnualServicePage implements ViewWillEnter {
   private readonly configStore = inject(ConfigStore);
   private readonly reportPreference = inject(ReportPreferenceService);
   private readonly interventionReportService = inject(InterventionReportService);
+  private readonly modalCtrl = inject(ModalController);
+  protected readonly photoService = inject(PhotoService);
 
   protected sn = '';
   protected noDevice = false;
   protected isSaving = false;
   protected serviceType: InterventionTypeOption | null = null;
   protected readonly todayFormatted = this.formatToday();
+  protected photoRequirement: PhotoRequirement | null = null;
+
+  constructor() {
+    addIcons({ cameraOutline });
+  }
+
+  get showPhotosButton(): boolean {
+    return this.configStore.isFeatureEnabled('interventionPhotos')
+      && this.photoRequirement !== null;
+  }
 
   protected form = new FormGroup({
     callAccepted: new FormControl<boolean | null>(null),
@@ -94,7 +112,28 @@ export class AnnualServicePage implements ViewWillEnter {
       void this.showToast(this.transloco.translate('annual_service_no_type'));
     }
 
+    this.photoRequirement = null;
+    if (this.configStore.isFeatureEnabled('interventionPhotos')) {
+      // The annual-service page is always in warranty (out of warranty goes through the intervention page).
+      this.photoRequirement = resolvePhotoRequirement(
+        this.configStore.config()?.interventionPhotoConfig, device.type, InterventionType.ANNUAL_SERVICE, 'in-warranty',
+      );
+    }
+    if (this.photoRequirement) {
+      this.photoService.setRequirement(this.photoRequirement);
+    } else {
+      this.photoService.clear();
+    }
+
     this.resetForm();
+  }
+
+  async onAddPhotos(): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: PhotoUploadPage,
+      cssClass: 'fullscreen-modal',
+    });
+    await modal.present();
   }
 
   async onSave(): Promise<void> {
@@ -112,6 +151,11 @@ export class AnnualServicePage implements ViewWillEnter {
       distance: formValue.distance,
       note: formValue.note,
     };
+
+    if (this.showPhotosButton && this.photoService.photos.length === 0) {
+      const proceed = await this.showNoPhotosAlert();
+      if (!proceed) return;
+    }
 
     if (requiresEnvInfo(device.type)) {
       await this.loadingAlert.show();
@@ -133,6 +177,13 @@ export class AnnualServicePage implements ViewWillEnter {
     }
 
     await this.loadingAlert.show();
+
+    if (this.showPhotosButton && this.photoService.photos.length > 0) {
+      // saveForConnectedDevice reuses `data`, so a connected unit gets the same photo paths.
+      const upload = await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.ANNUAL_SERVICE);
+      applyPhotoUploadResult(data, upload);
+    }
+
     const docId = await this.interventionService.saveIntervention(this.sn, device, data);
 
     if (!docId) {
@@ -141,6 +192,7 @@ export class AnnualServicePage implements ViewWillEnter {
       return;
     }
 
+    this.photoService.clear();
     await this.saveForConnectedDevice(device, data);
 
     await this.maybeAutoOpenReport(device, docId);
@@ -194,7 +246,24 @@ export class AnnualServicePage implements ViewWillEnter {
       return false;
     }
 
+    const requiredPhotos = this.showPhotosButton ? (this.photoRequirement?.requiredPhotos ?? 0) : 0;
+    if (this.photoService.photos.length < requiredPhotos) {
+      void this.showToast(
+        this.transloco.translate('intervention_validation_photos_required', { required: requiredPhotos }),
+      );
+      return false;
+    }
+
     return true;
+  }
+
+  private showNoPhotosAlert(): Promise<boolean> {
+    return this.confirmService.confirm(
+      'photo_no_photos_title',
+      'photo_no_photos_message',
+      'photo_no_photos_continue',
+      'photo_no_photos_cancel',
+    );
   }
 
   private showConfirmAlert(): Promise<boolean> {

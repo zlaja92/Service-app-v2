@@ -108,14 +108,14 @@ export class AddUserPage implements ViewWillEnter {
     );
     if (!confirmed) return;
 
-    // No-catalog mode: each unit's model goes into its own registration.
-    if (this.deviceModel) data['deviceModel'] = this.deviceModel;
+    // No-catalog mode: each unit's model goes into its own registration, as deviceName.
+    if (this.deviceModel) data['deviceName'] = this.deviceModel;
 
     const success = await this.loadingAlert.wrap(async () => {
       if (this.connectedSn) {
         const mainData = { ...data, connectedDevice: this.connectedSn };
         const connectedData: Record<string, unknown> = { ...data, connectedDevice: this.sn };
-        if (this.connectedDeviceModel) connectedData['deviceModel'] = this.connectedDeviceModel;
+        if (this.connectedDeviceModel) connectedData['deviceName'] = this.connectedDeviceModel;
         return this.registrationService.registerBatch([
           { sn: this.sn, device, dynamicFields: mainData },
           { sn: this.connectedSn, device, dynamicFields: connectedData },

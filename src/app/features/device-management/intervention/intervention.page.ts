@@ -21,6 +21,7 @@ import { PhotoRequirement } from '../../../core/config/config.model';
 import { Device, DeviceType } from '../../../shared/models/device.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
 import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
+import { applyPhotoUploadResult, resolvePhotoRequirement } from '../../photo-upload/models/photo.model';
 import { DeviceRegistrationService } from '../services/device-registration.service';
 import { CartService } from '../../cart/cart.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
@@ -176,12 +177,14 @@ export class InterventionPage implements ViewWillEnter {
   updatePhotoRequirement(): void {
     const intType = this.form.controls.interventionType.value;
     const warranty = this.form.controls.warrantyStatus.value;
-    if (!this.deviceType || !intType || warranty === 'out-of-warranty') {
+    if (!this.deviceType || !intType) {
       this.photoRequirement = null;
       return;
     }
-    const photoConfig = this.configStore.config()?.interventionPhotoConfig ?? {};
-    this.photoRequirement = photoConfig[this.deviceType]?.[intType] ?? null;
+    // The requirement's inWarranty/outOfWarranty decide whether this warranty status asks for photos.
+    this.photoRequirement = resolvePhotoRequirement(
+      this.configStore.config()?.interventionPhotoConfig, this.deviceType, intType, warranty,
+    );
 
     if (this.photoRequirement) {
       this.photoService.setRequirement(this.photoRequirement);
@@ -268,7 +271,8 @@ export class InterventionPage implements ViewWillEnter {
     await this.loadingAlert.show();
 
     if (this.photoService.photos.length > 0) {
-      await this.photoService.uploadPhotos(this.sn, device.type, formValue.interventionType);
+      const upload = await this.photoService.uploadPhotos(this.sn, device.type, formValue.interventionType);
+      applyPhotoUploadResult(data, upload);
     }
 
     const docId = await this.interventionService.saveIntervention(this.sn, device, data);

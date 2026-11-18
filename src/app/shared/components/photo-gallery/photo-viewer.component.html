@@ -1,0 +1,23 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>{{ current + 1 }} / {{ urls.length }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()" [attr.aria-label]="'photo_viewer_close' | transloco">
+        <ion-icon slot="icon-only" name="close-outline" />
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="viewer-content" [scrollY]="false">
+  <!-- init="false": initialized in ngAfterViewInit, once the start slide is set. -->
+  <swiper-container #swiper init="false" (swiperslidechange)="onSlideChange($event)">
+    @for (url of urls; track $index) {
+      <swiper-slide>
+        <div class="swiper-zoom-container">
+          <img [src]="url" alt="" />
+        </div>
+      </swiper-slide>
+    }
+  </swiper-container>
+</ion-content>

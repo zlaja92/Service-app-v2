@@ -312,6 +312,10 @@ export const sr: Translation = {
   history_detail_created_at: 'Kreirano',
   history_detail_registered_by: 'Registrovao',
   history_detail_registered_at: 'Datum registracije',
+  history_detail_photos: 'Fotografije',
+  history_detail_photos_failed: 'Nije poslato fotografija: {{count}}',
+  photo_viewer_close: 'Zatvori',
+  photo_gallery_unavailable: 'Fotografija nije dostupna',
 
   add_user_title: 'Dodaj korisnika',
   add_user_subtitle: 'Podaci o korisniku',

@@ -27,6 +27,7 @@ import { ConfigStore } from '../../../core/config/config.store';
 import { PhotoRequirement } from '../../../core/config/config.model';
 import { PhotoService } from '../../photo-upload/services/photo.service';
 import { PhotoUploadPage } from '../../photo-upload/photo-upload.page';
+import { applyPhotoUploadResult, resolvePhotoRequirement } from '../../photo-upload/models/photo.model';
 
 @Component({
   selector: 'app-add-device',
@@ -94,8 +95,12 @@ export class AddDevicePage implements ViewWillEnter {
     }
 
     if (this.configStore.isFeatureEnabled('interventionPhotos')) {
-      const photoConfig = this.configStore.config()?.interventionPhotoConfig ?? {};
-      this.photoRequirement = device ? (photoConfig[device.type]?.['commissioning'] ?? null) : null;
+      // Commissioning is always in warranty.
+      this.photoRequirement = device
+        ? resolvePhotoRequirement(
+          this.configStore.config()?.interventionPhotoConfig, device.type, InterventionType.COMMISSIONING, 'in-warranty',
+        )
+        : null;
 
       if (this.photoRequirement) {
         this.photoService.setRequirement(this.photoRequirement);
@@ -159,7 +164,9 @@ export class AddDevicePage implements ViewWillEnter {
     await this.loadingAlert.show();
 
     if (this.configStore.isFeatureEnabled('interventionPhotos') && this.photoService.photos.length > 0) {
-      await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.COMMISSIONING);
+      // The batch below reuses `data`, so a connected unit gets the same photo paths.
+      const upload = await this.photoService.uploadPhotos(this.sn, device.type, InterventionType.COMMISSIONING);
+      applyPhotoUploadResult(data, upload);
     }
 
     let docId: string | null;

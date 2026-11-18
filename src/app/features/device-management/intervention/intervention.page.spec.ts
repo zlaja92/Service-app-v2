@@ -169,7 +169,7 @@ describe('InterventionPage', () => {
       'setRequirement',
     ]);
     mockPhotoService.clear.and.stub();
-    mockPhotoService.uploadPhotos.and.resolveTo();
+    mockPhotoService.uploadPhotos.and.resolveTo({ uploaded: [], failed: 0 });
     mockPhotoService.setRequirement.and.stub();
     (mockPhotoService as any).photos = [];
 
@@ -405,11 +405,53 @@ describe('InterventionPage', () => {
       ));
       setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
       component.ionViewWillEnter();
+      // The requirement applies per warranty status (in warranty by default).
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
 
       component.updatePhotoRequirement();
 
       expect((component as any).photoRequirement).toEqual(requirement);
+    });
+
+    describe('warranty status', () => {
+      const requirement: PhotoRequirement = { maxPhotos: 3, requiredPhotos: 1, requireSparePartPhotos: false, description: '' };
+
+      function setup(req: PhotoRequirement, warranty: string): void {
+        mockConfigStore.setConfig(buildConfigWithPhotoConfig(DeviceType.GAS_BOILER, InterventionType.INTERVENTION_REPAIR, req));
+        setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
+        component.ionViewWillEnter();
+        (component as any).form.controls.warrantyStatus.setValue(warranty);
+        (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
+        component.updatePhotoRequirement();
+      }
+
+      it('asks for no photos out of warranty by default', () => {
+        setup(requirement, 'out-of-warranty');
+        expect((component as any).photoRequirement).toBeNull();
+      });
+
+      it('asks for photos out of warranty when outOfWarranty is set', () => {
+        const req = { ...requirement, outOfWarranty: true };
+        setup(req, 'out-of-warranty');
+        expect((component as any).photoRequirement).toEqual(req);
+      });
+
+      it('asks for no photos in warranty when inWarranty is false', () => {
+        setup({ ...requirement, inWarranty: false, outOfWarranty: true }, 'in-warranty');
+        expect((component as any).photoRequirement).toBeNull();
+      });
+
+      it('out-of-warranty annual service uses the annual_service requirement with outOfWarranty', () => {
+        const req = { ...requirement, inWarranty: false, outOfWarranty: true };
+        mockConfigStore.setConfig(buildConfigWithPhotoConfig(DeviceType.GAS_BOILER, InterventionType.ANNUAL_SERVICE, req));
+        setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
+        component.ionViewWillEnter();
+        (component as any).form.controls.warrantyStatus.setValue('out-of-warranty');
+        (component as any).form.controls.interventionType.setValue(InterventionType.ANNUAL_SERVICE);
+        component.updatePhotoRequirement();
+        expect((component as any).photoRequirement).toEqual(req);
+      });
     });
 
     it('TC-IP-12: sets photoRequirement to null when no interventionType selected', () => {
@@ -436,6 +478,8 @@ describe('InterventionPage', () => {
       ));
       setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
       component.ionViewWillEnter();
+      // The requirement applies per warranty status (in warranty by default).
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
 
       component.updatePhotoRequirement();
@@ -602,6 +646,27 @@ describe('InterventionPage', () => {
           DeviceType.BOILER,
           InterventionType.INTERVENTION_REPAIR,
         );
+      });
+
+      it('stores the uploaded photo paths and the failure count in the intervention', async () => {
+        setPhotos([{ id: 'photo-1', webPath: '/path/1', uri: 'file:///1' }, { id: 'photo-2', webPath: '/path/2', uri: 'file:///2' }]);
+        mockPhotoService.uploadPhotos.and.resolveTo({ uploaded: ['interventions/SN001/repair_1.jpg'], failed: 1 });
+
+        await component.onSave();
+
+        const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+        expect(data['photoPaths']).toEqual(['interventions/SN001/repair_1.jpg']);
+        expect(data['photoUploadFailed']).toBe(1);
+      });
+
+      it('writes no photo fields when there are no photos', async () => {
+        setPhotos([]);
+
+        await component.onSave();
+
+        const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+        expect('photoPaths' in data).toBeFalse();
+        expect('photoUploadFailed' in data).toBeFalse();
       });
 
       it('TC-IP-25: calls interventionService.saveIntervention with correct sn and device', async () => {
@@ -887,6 +952,8 @@ describe('InterventionPage', () => {
       setDevice(createMockDevice({ type: DeviceType.BOILER }));
       component.ionViewWillEnter();
 
+      // The requirement applies per warranty status (in warranty by default).
+      (component as any).form.controls.warrantyStatus.setValue('in-warranty');
       (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
       component.updatePhotoRequirement();
       expect((component as any).photoRequirement).toEqual(req1);
@@ -1166,6 +1233,7 @@ describe('InterventionPage', () => {
           mockConfigStore.setConfig(cfg);
           setDevice(createMockDevice({ type: deviceType }));
           component.ionViewWillEnter();
+          (component as any).form.controls.warrantyStatus.setValue('in-warranty');
           (component as any).form.controls.interventionType.setValue(intType);
 
           component.updatePhotoRequirement();
@@ -1530,6 +1598,7 @@ describe('InterventionPage', () => {
         mockConfigStore.setConfig(cfg);
         setDevice(createMockDevice({ type: DeviceType.GAS_BOILER }));
         component.ionViewWillEnter();
+        (component as any).form.controls.warrantyStatus.setValue('in-warranty');
         (component as any).form.controls.interventionType.setValue(InterventionType.INTERVENTION_REPAIR);
 
         component.updatePhotoRequirement();

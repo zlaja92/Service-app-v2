@@ -343,6 +343,16 @@ describe('interventionReceiptDefault', () => {
         expect(hasText(result, key)).toBeTrue();
       });
     });
+
+    it('trims values, so a trailing space does not wrap the last letter onto a new line', () => {
+      // pdfMake sizes the 'auto' value column without the trailing space but wraps on it.
+      const result = interventionReceiptDefault(buildCtx({ user: { city: ' Smederevo ' } }), t);
+
+      const cityRow = flattenContent(result.content).find(
+        n => Array.isArray(n['columns']) && (n['columns'] as AnyNode[])[0]?.['text'] === 'report_city',
+      );
+      expect((cityRow!['columns'] as AnyNode[])[1]['text']).toBe('Smederevo');
+    });
   });
 
   // =========================================================================

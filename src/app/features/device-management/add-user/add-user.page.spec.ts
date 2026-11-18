@@ -1175,11 +1175,11 @@ describe('AddUserPage', () => {
       expect(mockRegistrationService.registerBatch).toHaveBeenCalledWith([
         jasmine.objectContaining({
           sn: 'MAIN-SN',
-          dynamicFields: jasmine.objectContaining({ deviceModel: 'NIMBUS 80', connectedDevice: 'CONN-SN' }),
+          dynamicFields: jasmine.objectContaining({ deviceName: 'NIMBUS 80', connectedDevice: 'CONN-SN' }),
         }),
         jasmine.objectContaining({
           sn: 'CONN-SN',
-          dynamicFields: jasmine.objectContaining({ deviceModel: 'NIMBUS EXT', connectedDevice: 'MAIN-SN' }),
+          dynamicFields: jasmine.objectContaining({ deviceName: 'NIMBUS EXT', connectedDevice: 'MAIN-SN' }),
         }),
       ]);
     });
@@ -1191,15 +1191,17 @@ describe('AddUserPage', () => {
       await page.onSave();
 
       const data = mockRegistrationService.register.calls.mostRecent().args[2];
-      expect(data['deviceModel']).toBe('PELLET 25');
+      expect(data['deviceName']).toBe('PELLET 25');
+      expect('deviceModel' in data).toBeFalse();
     });
 
-    it('does not write deviceModel in catalog mode (no model passed)', async () => {
+    it('does not write deviceName in catalog mode (no model passed)', async () => {
       prepare();
 
       await page.onSave();
 
       const data = mockRegistrationService.register.calls.mostRecent().args[2];
+      expect('deviceName' in data).toBeFalse();
       expect('deviceModel' in data).toBeFalse();
     });
   });
