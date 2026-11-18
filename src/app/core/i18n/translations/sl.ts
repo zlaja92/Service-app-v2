@@ -488,7 +488,7 @@ export const sl: Translation = {
   env_info_max_gas_boiler_power: 'Maksimalna moč kotla',
   env_info_expansion_pressure: 'Tlak v raztezni posodi',
   env_info_sys_pressure: 'Tlak v ogrevalni instalaciji',
-  env_info_tested_on_gas_leakage: 'Plinska instalacija preizkušena na puščanje',
+  env_info_tested_on_gas_leakage: 'Plinska instalacija je preizkušena in ni znakov puščanja',
   env_info_gas_hose_replaced: 'Zamenjana plinska cev',
   env_info_according_manufacturer: 'Kotel nameščen po navodilih proizvajalca',
   env_info_ready_for_use: 'Naprava tehnično brezhibna za uporabo',

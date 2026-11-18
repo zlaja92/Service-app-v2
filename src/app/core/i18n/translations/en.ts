@@ -488,7 +488,7 @@ export const en: Translation = {
   env_info_max_gas_boiler_power: 'Maximum boiler power',
   env_info_expansion_pressure: 'Expansion pressure',
   env_info_sys_pressure: 'Heating system pressure',
-  env_info_tested_on_gas_leakage: 'Gas installation tested for leakage',
+  env_info_tested_on_gas_leakage: 'Gas installation has been tested and shows no signs of leakage',
   env_info_gas_hose_replaced: 'Gas hose replaced',
   env_info_according_manufacturer: 'Boiler installed according to manufacturer instructions',
   env_info_ready_for_use: 'Device technically ready for use',

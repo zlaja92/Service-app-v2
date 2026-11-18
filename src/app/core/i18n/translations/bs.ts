@@ -488,7 +488,7 @@ export const bs: Translation = {
   env_info_max_gas_boiler_power: 'Maksimalna snaga kotla',
   env_info_expansion_pressure: 'Pritisak u ekspanziji',
   env_info_sys_pressure: 'Pritisak u instalaciji grijanja',
-  env_info_tested_on_gas_leakage: 'Gasna instalacija ispitana na curenje',
+  env_info_tested_on_gas_leakage: 'Gasna instalacija je ispitana i nema znakova curenja',
   env_info_gas_hose_replaced: 'Zamijenjeno gasno crijevo',
   env_info_according_manufacturer: 'Kotao postavljen po uputstvu proizvođača',
   env_info_ready_for_use: 'Uređaj tehnički ispravan za upotrebu',

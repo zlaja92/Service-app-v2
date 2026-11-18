@@ -291,6 +291,62 @@ describe('interventionReceiptDefault', () => {
       expect(line).toBeDefined();
     });
 
+    // Line breaks typed in the servicer data are kept as they are; none are added.
+    // pdfMake drops a line break inside noWrap text, so each line must be its own node.
+    const headerTexts = (company: Record<string, unknown>): unknown[] =>
+      flattenContent(interventionReceiptDefault(buildCtx({ company }), t).content).map(n => n['text']);
+
+    it('phone with a line break → the email stays on the last phone line', () => {
+      const texts = headerTexts({ ...fullCompany, phone: '018-111\n064-222' });
+
+      const first = texts.indexOf('report_phone_short: 018-111');
+      expect(first).toBeGreaterThan(-1);
+      expect(texts[first + 1]).toBe('064-222, report_email_short: servis@frigo.rs');
+      expect(texts.some(x => typeof x === 'string' && x.includes('\n'))).toBeFalse();
+    });
+
+    it('phone ending with a line break → the email starts a new line, without a comma', () => {
+      const texts = headerTexts({ ...fullCompany, phone: '018-111\r\n064-222 \n' });
+
+      const first = texts.indexOf('report_phone_short: 018-111');
+      expect(texts[first + 1]).toBe('064-222');
+      expect(texts[first + 2]).toBe('report_email_short: servis@frigo.rs');
+    });
+
+    it('phone starting with a line break → the number goes under the label', () => {
+      const texts = headerTexts({ ...fullCompany, phone: '\n018-111' });
+
+      const label = texts.indexOf('report_phone_short:');
+      expect(label).toBeGreaterThan(-1);
+      expect(texts[label + 1]).toBe('018-111, report_email_short: servis@frigo.rs');
+    });
+
+    it('several phone lines without email → the header ends after the last number', () => {
+      const { email: _email, ...companyNoEmail } = fullCompany;
+      const texts = headerTexts({ ...companyNoEmail, phone: '018-111\n064-222' });
+
+      // The next node after the last phone line is the '= = =' divider.
+      const last = texts.indexOf('064-222');
+      expect(last).toBeGreaterThan(-1);
+      expect(String(texts[last + 1]).startsWith('=')).toBeTrue();
+    });
+
+    it('address with a line break → one line each, the city joins the last line', () => {
+      const company = { ...fullCompany, address: 'Poslovni centar\nCara Dušana 5' };
+      const nodes = flattenContent(interventionReceiptDefault(buildCtx({ company }), t).content);
+
+      expect(nodes.find(n => n['text'] === 'Poslovni centar')?.['noWrap']).toBeTrue();
+      expect(nodes.find(n => n['text'] === 'Cara Dušana 5, Niš')?.['noWrap']).toBeTrue();
+    });
+
+    it('address ending with a line break → the city goes on its own line', () => {
+      const texts = headerTexts({ ...fullCompany, address: 'Cara Dušana 5\n' });
+
+      const address = texts.indexOf('Cara Dušana 5');
+      expect(address).toBeGreaterThan(-1);
+      expect(texts[address + 1]).toBe('Niš');
+    });
+
     it('PIB is not rendered (removed for now)', () => {
       const result = interventionReceiptDefault(buildCtx({ company: fullCompany }), t);
       expect(hasText(result, 'report_tax_id')).toBeFalse();
