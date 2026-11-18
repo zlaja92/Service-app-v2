@@ -1,0 +1,21 @@
+<div class="photo-grid">
+  @if (loading) {
+    @for (i of skeletons; track i) {
+      <div class="tile">
+        <ion-skeleton-text [animated]="true" />
+      </div>
+    }
+  } @else {
+    @for (url of urls; track $index) {
+      @if (url) {
+        <button type="button" class="tile" (click)="open($index)">
+          <img [src]="url" alt="" loading="lazy" />
+        </button>
+      } @else {
+        <div class="tile tile-missing" [attr.aria-label]="'photo_gallery_unavailable' | transloco">
+          <ion-icon name="image-outline" />
+        </div>
+      }
+    }
+  }
+</div>

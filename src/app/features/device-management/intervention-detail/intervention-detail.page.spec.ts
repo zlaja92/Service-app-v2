@@ -34,8 +34,9 @@ import { InterventionReportService } from '../../reports/services/intervention-r
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { getDefaultConfig } from '../../../core/config/config.model';
-import { ToastController } from '@ionic/angular/standalone';
+import { ModalController, ToastController } from '@ionic/angular/standalone';
 import { ServicerService } from '../../../core/servicer/servicer.service';
+import { PhotoService } from '../../photo-upload/services/photo.service';
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ describe('InterventionDetailPage', () => {
   let mockToastCtrl: jasmine.SpyObj<ToastController>;
   let mockServicerService: jasmine.SpyObj<ServicerService>;
   let mockConfigStore: MockConfigStore;
+  let mockPhotoService: jasmine.SpyObj<PhotoService>;
 
   function setup(
     routeParams: Record<string, string | null> = { sn: 'SN001', id: 'intervention-uuid' },
@@ -142,6 +144,8 @@ describe('InterventionDetailPage', () => {
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: ConfigStore, useValue: mockConfigStore },
         { provide: ServicerService, useValue: mockServicerService },
+        { provide: PhotoService, useValue: mockPhotoService },
+        { provide: ModalController, useValue: jasmine.createSpyObj<ModalController>('ModalController', ['create']) },
       ],
     });
 
@@ -164,6 +168,8 @@ describe('InterventionDetailPage', () => {
     mockServicerService = jasmine.createSpyObj<ServicerService>('ServicerService', ['getByEmail']);
     mockServicerService.getByEmail.and.resolveTo(null);
     mockConfigStore = createMockConfigStore();
+    mockPhotoService = jasmine.createSpyObj<PhotoService>('PhotoService', ['getPhotoUrls']);
+    mockPhotoService.getPhotoUrls.and.callFake(async (paths: string[]) => paths.map(p => `https://storage/${p}`));
     // Report feature ON by default so canReport reflects the non-registration case;
     // individual tests flip pdfReports to assert the feature-flag gating.
     const cfg = getDefaultConfig();
@@ -620,6 +626,8 @@ describe('InterventionDetailPage', () => {
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: ConfigStore, useValue: mockConfigStore },
         { provide: ServicerService, useValue: mockServicerService },
+        { provide: PhotoService, useValue: mockPhotoService },
+        { provide: ModalController, useValue: jasmine.createSpyObj<ModalController>('ModalController', ['create']) },
       ],
     });
 
@@ -1205,6 +1213,85 @@ describe('InterventionDetailPage', () => {
       setup({ sn: 'SN001', id: 'registration' });
       await component.ionViewWillEnter();
       expect((component as unknown as { canReport: boolean }).canReport).toBeFalse();
+    });
+  });
+  // ─── Photo preview (interventionPhotoPreview) ───────────────────────────────
+
+  describe('photo preview', () => {
+    type PhotoState = { photoUrls: (string | null)[]; photoUploadFailed: number; photosLoading: boolean };
+    const state = () => component as unknown as PhotoState;
+
+    function enablePreview(enabled = true): void {
+      const cfg = getDefaultConfig();
+      cfg.features.pdfReports = true;
+      cfg.features.interventionPhotoPreview = enabled;
+      mockConfigStore.setConfig(cfg);
+    }
+
+    async function enter(): Promise<void> {
+      component.ionViewWillEnter();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    it('resolves the photo URLs of photoPaths when the flag is on', async () => {
+      enablePreview();
+      mockInterventionService.getInterventionById.and.resolveTo({
+        interventionType: 'interventionRepair',
+        photoPaths: ['int-heating/SN001/repair_1.jpg', 'int-heating/SN001/repair_2.jpg'],
+      });
+      setup();
+
+      await enter();
+
+      expect(mockPhotoService.getPhotoUrls).toHaveBeenCalledWith(['int-heating/SN001/repair_1.jpg', 'int-heating/SN001/repair_2.jpg']);
+      expect(state().photoUrls).toEqual(['https://storage/int-heating/SN001/repair_1.jpg', 'https://storage/int-heating/SN001/repair_2.jpg']);
+      expect(state().photosLoading).toBeFalse();
+      expect(fixture.nativeElement.querySelector('app-photo-gallery')).not.toBeNull();
+    });
+
+    it('shows no photos when the flag is off', async () => {
+      enablePreview(false);
+      mockInterventionService.getInterventionById.and.resolveTo({ photoPaths: ['a.jpg'], photoUploadFailed: 2 });
+      setup();
+
+      await enter();
+
+      expect(mockPhotoService.getPhotoUrls).not.toHaveBeenCalled();
+      expect(fixture.nativeElement.querySelector('.photos-section')).toBeNull();
+    });
+
+    it('shows no section for an intervention without photos', async () => {
+      enablePreview();
+      mockInterventionService.getInterventionById.and.resolveTo({ interventionType: 'interventionRepair' });
+      setup();
+
+      await enter();
+
+      expect(mockPhotoService.getPhotoUrls).not.toHaveBeenCalled();
+      expect(fixture.nativeElement.querySelector('.photos-section')).toBeNull();
+    });
+
+    it('shows the failed-upload note, also when no photo was uploaded', async () => {
+      enablePreview();
+      mockInterventionService.getInterventionById.and.resolveTo({ photoUploadFailed: 2 });
+      setup();
+
+      await enter();
+
+      expect(state().photoUploadFailed).toBe(2);
+      expect(fixture.nativeElement.querySelector('.photos-failed')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('app-photo-gallery')).toBeNull();
+    });
+
+    it('ignores photos on the registration page', async () => {
+      enablePreview();
+      mockInterventionService.getRegistration.and.resolveTo({ firstName: 'A', photoPaths: ['a.jpg'] });
+      setup({ sn: 'SN001', id: 'registration' });
+
+      await enter();
+
+      expect(mockPhotoService.getPhotoUrls).not.toHaveBeenCalled();
     });
   });
 });

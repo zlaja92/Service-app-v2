@@ -67,12 +67,22 @@ export class StorageService {
     }
   }
 
-  async uploadFile(relativePath: string, fileUri: string, contentType = 'image/jpeg'): Promise<void> {
+  /**
+   * Uploads a file to the tenant folder. `cacheControl` is served as the
+   * Cache-Control header on download — set it for files that never change.
+   */
+  async uploadFile(
+    relativePath: string,
+    fileUri: string,
+    contentType = 'image/jpeg',
+    cacheControl?: string,
+  ): Promise<void> {
     const storagePath = this.tenantService.getStoragePath(relativePath);
+    const metadata = cacheControl ? { contentType, cacheControl } : { contentType };
     if (this.isNative) {
       return new Promise<void>((resolve, reject) => {
         FirebaseStorage.uploadFile(
-          { path: storagePath, uri: fileUri, metadata: { contentType } },
+          { path: storagePath, uri: fileUri, metadata },
           (event, error) => {
             if (error) {
               this.logger.error('Storage upload error', { storagePath, error: String(error) });
@@ -92,7 +102,7 @@ export class StorageService {
     const blob = await response.blob();
     return new Promise<void>((resolve, reject) => {
       FirebaseStorage.uploadFile(
-        { path: storagePath, blob, metadata: { contentType } },
+        { path: storagePath, blob, metadata },
         (event, error) => {
           if (error) {
             this.logger.error('Storage upload error', { storagePath, error: String(error) });

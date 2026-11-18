@@ -219,8 +219,10 @@ export class DeviceLookupService implements Clearable {
     if (!doc) return { status: 'error', device: null };
 
     // devices/{deviceType} holds only the per-type parameters; the model is
-    // entered per SN at registration, so the name comes from the registration.
-    const device = { ...this.mapTypeDevice(deviceType, doc), name: String(registration['deviceModel'] ?? '') };
+    // entered per SN at registration, so the name comes from the registration
+    // (deviceName; deviceModel in registrations saved before the rename).
+    const name = registration['deviceName'] ?? registration['deviceModel'] ?? '';
+    const device = { ...this.mapTypeDevice(deviceType, doc), name: String(name) };
     return { status: 'registered', device };
   }
 

@@ -1,19 +1,19 @@
 import { getDefaultConfig, getDefaultFeatures, getDefaultTheme, FeatureFlags } from './config.model';
 
 describe('getDefaultFeatures()', () => {
-  it('should return an object with exactly 12 keys', () => {
+  it('should return an object with exactly 13 keys', () => {
     const result = getDefaultFeatures();
-    expect(Object.keys(result).length).toBe(12);
+    expect(Object.keys(result).length).toBe(13);
   });
 
-  it('should return correct default values for all 12 feature flags', () => {
+  it('should return correct default values for all 13 feature flags', () => {
     const result = getDefaultFeatures();
 
     // TRUE by default (2)
     expect(result.deviceManagement).toBe(true);
     expect(result.deviceCatalog).toBe(true);
 
-    // FALSE by default (10)
+    // FALSE by default (11)
     expect(result.cart).toBe(false);
     expect(result.documentation).toBe(false);
     expect(result.bugReport).toBe(false);
@@ -22,6 +22,7 @@ describe('getDefaultFeatures()', () => {
     expect(result.partPhoto).toBe(false);
     expect(result.cartNote).toBe(false);
     expect(result.interventionPhotos).toBe(false);
+    expect(result.interventionPhotoPreview).toBe(false);
     expect(result.signatureCapture).toBe(false);
     expect(result.servicerReport).toBe(false);
   });

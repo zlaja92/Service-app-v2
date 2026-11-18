@@ -45,10 +45,12 @@ export function interventionReceiptDefault(
     margin: [0, 0, 0, 3],
   });
 
+  // Values are trimmed: pdfMake sizes an 'auto' column without a trailing space
+  // but still wraps on it, so 'Smederevo ' would break into 'Smederev' + 'o'.
   const row = (label: string, value?: string): Content => ({
     columns: [
       { text: label, bold: true, width: '*' },
-      { text: value && value.trim() ? value : '', width: 'auto', alignment: 'right' },
+      { text: value?.trim() ?? '', width: 'auto', alignment: 'right' },
     ],
     margin: [0, 0, 0, 2],
   });
@@ -59,7 +61,7 @@ export function interventionReceiptDefault(
   const paramRow = (label: string, value?: string): Content => ({
     columns: [
       { text: label, bold: true, width: paramLabelWidth },
-      { text: value && value.trim() ? value : '', width: '*', alignment: 'right' },
+      { text: value?.trim() ?? '', width: '*', alignment: 'right' },
     ],
     margin: [0, 0, 0, 3],
   });
@@ -68,7 +70,8 @@ export function interventionReceiptDefault(
   // long free-text fields like the servicer note that don't fit beside the label.
   const stacked = (label: string, value?: string): Content[] => {
     const out: Content[] = [{ text: label, bold: true, margin: [0, 0, 0, 0] }];
-    if (value && value.trim()) out.push({ text: value, margin: [0, 0, 0, 2] });
+    const text = value?.trim();
+    if (text) out.push({ text, margin: [0, 0, 0, 2] });
     return out;
   };
 

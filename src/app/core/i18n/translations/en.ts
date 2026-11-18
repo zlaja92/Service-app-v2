@@ -312,6 +312,10 @@ export const en: Translation = {
   history_detail_created_at: 'Created at',
   history_detail_registered_by: 'Registered by',
   history_detail_registered_at: 'Registration date',
+  history_detail_photos: 'Photos',
+  history_detail_photos_failed: 'Photos not uploaded: {{count}}',
+  photo_viewer_close: 'Close',
+  photo_gallery_unavailable: 'Photo unavailable',
 
   add_user_title: 'Add User',
   add_user_subtitle: 'User information',

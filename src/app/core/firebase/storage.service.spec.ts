@@ -403,6 +403,22 @@ describe('StorageService', () => {
         const options = uploadSpy.calls.first().args[0] as { metadata: { contentType: string } };
         expect(options.metadata.contentType).toBe('image/jpeg');
       });
+
+      it('passes cacheControl in the metadata only when given', async () => {
+        const uploadSpy = spyOn(FirebaseStorageWeb.prototype, 'uploadFile')
+          .and.callFake((_options: UploadFileOptions, callback: (event: UploadFileCallbackEvent | null, error: unknown) => void) => {
+            callback(createUploadEvent(true), undefined);
+            return Promise.resolve('task-id');
+          });
+
+        await service.uploadFile('a.jpg', 'file:///a.jpg', 'image/jpeg', 'private, max-age=31536000');
+        await service.uploadFile('b.jpg', 'file:///b.jpg');
+
+        const withCache = uploadSpy.calls.argsFor(0)[0] as unknown as { metadata: Record<string, string> };
+        const without = uploadSpy.calls.argsFor(1)[0] as unknown as { metadata: Record<string, string> };
+        expect(withCache.metadata).toEqual({ contentType: 'image/jpeg', cacheControl: 'private, max-age=31536000' });
+        expect(without.metadata).toEqual({ contentType: 'image/jpeg' });
+      });
     });
   });
 

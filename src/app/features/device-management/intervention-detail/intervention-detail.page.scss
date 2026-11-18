@@ -34,3 +34,14 @@ ion-item.field-uppercase p {
 .env-info-button {
   margin: 16px;
 }
+
+// Photos field: the grid gets a slightly larger side margin than the label.
+.photos-gallery {
+  display: block;
+  margin: 8px 6px 4px;
+}
+
+ion-item p.photos-failed {
+  font-size: 14px;
+  color: var(--ion-color-warning-shade);
+}

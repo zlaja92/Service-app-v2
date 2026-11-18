@@ -54,7 +54,7 @@ function createMockPhotoService(overrides: Partial<MockPhotoService> = {}): Mock
     pickFromGallery: jasmine.createSpy('pickFromGallery').and.resolveTo(true),
     removePhoto: jasmine.createSpy('removePhoto').and.stub(),
     setRequirement: jasmine.createSpy('setRequirement').and.stub(),
-    uploadPhotos: jasmine.createSpy('uploadPhotos').and.resolveTo(),
+    uploadPhotos: jasmine.createSpy('uploadPhotos').and.resolveTo({ uploaded: [], failed: 0 }),
     clear: jasmine.createSpy('clear').and.stub(),
     ...overrides,
   };

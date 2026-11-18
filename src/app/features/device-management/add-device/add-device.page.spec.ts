@@ -115,7 +115,7 @@ function createMockPhotoService(photos: any[] = []): jasmine.SpyObj<PhotoService
     'clear',
   ]);
   (mock as any).photos = photos;
-  mock.uploadPhotos.and.resolveTo();
+  mock.uploadPhotos.and.resolveTo({ uploaded: [], failed: 0 });
   return mock;
 }
 
@@ -775,6 +775,68 @@ describe('AddDevicePage', () => {
         DeviceType.BOILER,
         InterventionType.COMMISSIONING,
       );
+    });
+
+    describe('photo paths in the intervention', () => {
+      const photos = [{ id: 'p1', webPath: '/p1', uri: 'file://p1' }, { id: 'p2', webPath: '/p2', uri: 'file://p2' }];
+
+      function enablePhotos(): void {
+        const cfg = getDefaultConfig();
+        cfg.features.interventionPhotos = true;
+        cfg.interventionPhotoConfig = {
+          [DeviceType.BOILER]: { commissioning: createPhotoRequirement({ requiredPhotos: 0, maxPhotos: 5 }) },
+        };
+        mockConfigStore.setConfig(cfg);
+        mockConfirmService.confirm.and.resolveTo(true);
+        mockRouter.navigate.and.resolveTo(true);
+      }
+
+      it('stores the uploaded paths and the failure count', async () => {
+        page = createPage({ device: createMockDevice({ type: DeviceType.BOILER }), photos });
+        enablePhotos();
+        const photoSvc = TestBed.inject(PhotoService) as jasmine.SpyObj<PhotoService>;
+        photoSvc.uploadPhotos.and.resolveTo({ uploaded: ['interventions/SN/comm_1.jpg'], failed: 1 });
+        mockInterventionService.saveIntervention.and.resolveTo('doc-ok');
+
+        page.ionViewWillEnter();
+        fillValidForm(page);
+        await page.onSave();
+
+        const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+        expect(data['photoPaths']).toEqual(['interventions/SN/comm_1.jpg']);
+        expect(data['photoUploadFailed']).toBe(1);
+      });
+
+      it('stores the same paths in both units of a batch', async () => {
+        page = createPage({ device: createMockDevice({ type: DeviceType.BOILER }), sn: 'SN-MAIN', connectedSn: 'SN-CONNECTED', photos });
+        enablePhotos();
+        const photoSvc = TestBed.inject(PhotoService) as jasmine.SpyObj<PhotoService>;
+        photoSvc.uploadPhotos.and.resolveTo({ uploaded: ['a.jpg', 'b.jpg'], failed: 0 });
+        mockInterventionService.saveInterventionBatch.and.resolveTo(['doc-main', 'doc-connected']);
+
+        page.ionViewWillEnter();
+        fillValidForm(page);
+        await page.onSave();
+
+        const entries = mockInterventionService.saveInterventionBatch.calls.mostRecent().args[0];
+        expect(entries[0].formData['photoPaths']).toEqual(['a.jpg', 'b.jpg']);
+        expect(entries[1].formData['photoPaths']).toEqual(['a.jpg', 'b.jpg']);
+        expect('photoUploadFailed' in entries[0].formData).toBeFalse();
+      });
+
+      it('writes no photo fields without photos', async () => {
+        page = createPage({ device: createMockDevice({ type: DeviceType.BOILER }), photos: [] });
+        enablePhotos();
+        mockInterventionService.saveIntervention.and.resolveTo('doc-ok');
+
+        page.ionViewWillEnter();
+        fillValidForm(page);
+        await page.onSave();
+
+        const data = mockInterventionService.saveIntervention.calls.mostRecent().args[2];
+        expect('photoPaths' in data).toBeFalse();
+        expect('photoUploadFailed' in data).toBeFalse();
+      });
     });
 
     it('TC-AD-45: does not upload when photos array is empty', async () => {

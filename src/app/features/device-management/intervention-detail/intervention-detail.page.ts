@@ -15,6 +15,8 @@ import { ServicerService } from '../../../core/servicer/servicer.service';
 import { LoadingAlertService } from '../../../shared/services/loading-alert.service';
 import { ConfigStore } from '../../../core/config/config.store';
 import { toDate } from '../../../core/firebase/timestamp.utils';
+import { PhotoService } from '../../photo-upload/services/photo.service';
+import { PhotoGalleryComponent } from '../../../shared/components/photo-gallery/photo-gallery.component';
 import {
   INTERVENTION_DISPLAY_FIELDS,
   REGISTRATION_DISPLAY_FIELDS,
@@ -66,6 +68,7 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonButton, IonMenuButton, IonList, IonItem, IonLabel, IonTextarea, IonSkeletonText,
     TranslocoModule,
+    PhotoGalleryComponent,
   ],
 })
 export class InterventionDetailPage implements ViewWillEnter {
@@ -77,6 +80,7 @@ export class InterventionDetailPage implements ViewWillEnter {
   private readonly servicerService = inject(ServicerService);
   private readonly loadingAlert = inject(LoadingAlertService);
   private readonly configStore = inject(ConfigStore);
+  private readonly photoService = inject(PhotoService);
 
   protected sn = '';
   protected pageTitleKey = '';
@@ -85,6 +89,12 @@ export class InterventionDetailPage implements ViewWillEnter {
   protected notFound = false;
   protected hasEnvInfo = false;
   protected canReport = false;
+  /** interventionPhotoPreview: stored photos of the intervention (photoPaths). */
+  protected photoPaths: string[] = [];
+  protected photoUrls: (string | null)[] = [];
+  protected photosLoading = false;
+  /** photoUploadFailed — photos that never reached the storage. */
+  protected photoUploadFailed = 0;
   private envInfoData: Record<string, string> | null = null;
   private interventionData: Record<string, unknown> | null = null;
   private isRegistration = false;
@@ -105,6 +115,9 @@ export class InterventionDetailPage implements ViewWillEnter {
   private async loadDetail(id: string): Promise<void> {
     this.isLoading = true;
     this.notFound = false;
+    this.photoPaths = [];
+    this.photoUrls = [];
+    this.photoUploadFailed = 0;
 
     let data: Record<string, unknown> | null;
     this.isRegistration = false;
@@ -151,6 +164,22 @@ export class InterventionDetailPage implements ViewWillEnter {
     }
 
     this.isLoading = false;
+
+    if (!this.isRegistration && this.configStore.isFeatureEnabled('interventionPhotoPreview')) {
+      // After isLoading: the fields show right away, the photos fill in when resolved.
+      await this.loadPhotos(data);
+    }
+  }
+
+  private async loadPhotos(data: Record<string, unknown>): Promise<void> {
+    const paths = data['photoPaths'];
+    this.photoPaths = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string') : [];
+    this.photoUploadFailed = Number(data['photoUploadFailed']) || 0;
+    if (this.photoPaths.length === 0) return;
+
+    this.photosLoading = true;
+    this.photoUrls = await this.photoService.getPhotoUrls(this.photoPaths);
+    this.photosLoading = false;
   }
 
   /**

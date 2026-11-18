@@ -45,7 +45,7 @@ function createMockCameraService(): jasmine.SpyObj<CameraService> {
 }
 
 function createMockStorageService(): jasmine.SpyObj<StorageService> {
-  const mock = jasmine.createSpyObj<StorageService>('StorageService', ['uploadFile']);
+  const mock = jasmine.createSpyObj<StorageService>('StorageService', ['uploadFile', 'getFileUrl']);
   mock.uploadFile.and.resolveTo();
   return mock;
 }
@@ -269,6 +269,20 @@ describe('PhotoService', () => {
   // uploadPhotos()
   // =========================================================================
 
+  describe('getPhotoUrls()', () => {
+    it('resolves each path through StorageService, keeping the order and nulls', async () => {
+      mockStorage.getFileUrl.and.callFake(async (path: string) => (path === 'missing.jpg' ? null : `https://u/${path}`));
+
+      const urls = await service.getPhotoUrls(['a.jpg', 'missing.jpg', 'b.jpg']);
+
+      expect(urls).toEqual(['https://u/a.jpg', null, 'https://u/b.jpg']);
+    });
+
+    it('returns an empty list for no paths', async () => {
+      expect(await service.getPhotoUrls([])).toEqual([]);
+    });
+  });
+
   describe('uploadPhotos()', () => {
     it('TC-PS14: constructs storage path from the TenantService folder and the file name', async () => {
       mockTenant.getInterventionStorageFolder.and.returnValue('boiler-interventions/SN12345');
@@ -309,6 +323,28 @@ describe('PhotoService', () => {
       expect(storagePath).toContain('custom_type_');
     });
 
+    it('returns the uploaded relative paths in capture order and no failures', async () => {
+      mockTenant.getInterventionStorageFolder.and.returnValue('interventions/SN7');
+      service.setRequirement(makePhotoRequirement({ maxPhotos: 5 }));
+      mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
+      await service.takePhoto();
+      await service.takePhoto();
+
+      const result = await service.uploadPhotos('SN7', 'default', 'commissioning');
+
+      expect(result.failed).toBe(0);
+      expect(result.uploaded).toEqual(mockStorage.uploadFile.calls.allArgs().map(args => args[0]));
+      expect(result.uploaded[0]).toMatch(/^interventions\/SN7\/comm_.*_1\.jpg$/);
+      expect(result.uploaded[1]).toMatch(/^interventions\/SN7\/comm_.*_2\.jpg$/);
+    });
+
+    it('returns an empty result without photos', async () => {
+      const result = await service.uploadPhotos('SN7', 'default', 'commissioning');
+
+      expect(result).toEqual({ uploaded: [], failed: 0 });
+      expect(mockStorage.uploadFile).not.toHaveBeenCalled();
+    });
+
     it('TC-PS17: calls StorageService.uploadFile for each photo', async () => {
       service.setRequirement(makePhotoRequirement({ maxPhotos: 5 }));
       mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
@@ -344,10 +380,17 @@ describe('PhotoService', () => {
         Promise.resolve(),
       );
 
-      await service.uploadPhotos('SN10', 'default', 'interventionRepair');
+      mockTenant.getInterventionStorageFolder.and.returnValue('interventions/SN10');
+
+      const result = await service.uploadPhotos('SN10', 'default', 'interventionRepair');
 
       // All 3 were attempted
       expect(mockStorage.uploadFile).toHaveBeenCalledTimes(3);
+      // Only the uploaded photos are returned (capture order); the failure is counted.
+      expect(result.uploaded.length).toBe(2);
+      expect(result.uploaded[0]).toMatch(/^interventions\/SN10\/repair_.*_2\.jpg$/);
+      expect(result.uploaded[1]).toMatch(/^interventions\/SN10\/repair_.*_3\.jpg$/);
+      expect(result.failed).toBe(1);
       // Error logged for failed upload
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Photo upload failed',
@@ -409,6 +452,18 @@ describe('PhotoService', () => {
 
       const uploadArgs = mockStorage.uploadFile.calls.mostRecent().args;
       expect(uploadArgs[1]).toBe('/native/path.jpg');
+    });
+
+    it('uploads photos as long-cacheable files (names are unique, content never changes)', async () => {
+      service.setRequirement(makePhotoRequirement());
+      mockCamera.takePhoto.and.resolveTo(MOCK_PHOTO_RESULT);
+      await service.takePhoto();
+
+      await service.uploadPhotos('SN-C', 'default', 'interventionRepair');
+
+      const uploadArgs = mockStorage.uploadFile.calls.mostRecent().args;
+      expect(uploadArgs[2]).toBe('image/jpeg');
+      expect(uploadArgs[3]).toBe('private, max-age=31536000');
     });
   });
 

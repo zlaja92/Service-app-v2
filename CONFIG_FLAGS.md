@@ -25,6 +25,8 @@ Koriste se kroz direktivu `*appFeatureFlag="'ime'"`, guard `featureGuard('ime')`
 | `pdfReports` | `false` | Generisanje PDF izveštaja |
 | `emailOrders` | `false` | Slanje narudžbina emailom |
 | `partPhoto` | `false` | Prikaz fotografija rezervnih delova iz Firebase Storage |
+| `interventionPhotos` | `false` | Fotografije uz intervencije (vidi [Fotografije intervencija](#fotografije-intervencija)) |
+| `interventionPhotoPreview` | `false` | Pregled fotografija intervencije u istoriji (detalj intervencije). Nezavisno od `interventionPhotos` — sačuvane slike ostaju vidljive i kada se snimanje isključi |
 
 ### Zaštićene rute po feature flagu
 
@@ -93,15 +95,15 @@ Vizuelna podešavanja aplikacije.
 
 Aktivira se sa `features.deviceCatalog: false`. Uređaj se tada ne prepoznaje po kodu modela iz SN-a, nego:
 
-1. **Registrovan SN** — tip se čita iz registracije (`users/{sn}.deviceType`), a parametri iz `devices/{deviceType}`.
-2. **Neregistrovan SN** — početna strana otvara stranicu uređaja, gde serviser bira tip iz padajućeg menija (vidi `supportedDeviceTypes`), pa dodaje korisnika. Tip se upisuje u registraciju.
-3. **Povezana jedinica** — ne proverava se u katalogu; nasleđuje tip glavnog uređaja. Proverava se samo da nije već registrovana i da SN nije isti kao glavni.
+1. **Registrovan SN** — tip se čita iz registracije (`users/{sn}.deviceType`), a parametri iz `devices/{deviceType}`. Naziv na kartici uređaja je model iz registracije (`users/{sn}.deviceName`; registracije sačuvane pre preimenovanja imaju `deviceModel`, koji se čita kao rezerva).
+2. **Neregistrovan SN** — početna strana otvara stranicu uređaja, gde serviser bira tip iz padajućeg menija (vidi `supportedDeviceTypes`) i unosi model, pa dodaje korisnika. Tip se upisuje u registraciju kao `deviceType`, a model kao `deviceName`.
+3. **Povezana jedinica** — ne proverava se u katalogu; nasleđuje tip glavnog uređaja, a model se unosi posebno (`deviceName` u njenoj registraciji). Proverava se samo da nije već registrovana i da SN nije isti kao glavni. Polje nije obavezno: prazno polje traži potvrdu (npr. monoblok bez povezane jedinice).
 
 Za svaki tip mora postojati dokument `devices/{deviceType}` (npr. `devices/pellet-boiler`), sa istim poljima kao model u katalogu:
 
 | Polje | Opis |
 |-------|------|
-| `deviceName` | Naziv koji se prikazuje na kartici uređaja i u meniju |
+| `deviceName` | Naziv tipa u padajućem meniju (kartica uređaja prikazuje model iz registracije) |
 | `deviceType` | Tip (`heat-pump`, `gas-boiler`, `boiler`, `air-condition`, `pellet-boiler`) |
 | `commissioning` | Da li tip ima puštanje u rad |
 | `annualService` | Da li tip ima godišnji servis |
@@ -122,6 +124,51 @@ Vrednosti su i18n ključevi — prevode se pri prikazu na aktivnom jeziku korisn
 |-------|-----|---------|------|
 | `interventionFaultOptions` | Record&lt;string, string[]&gt; | `{}` | Opisi kvarova po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
 | `interventionErrorOptions` | Record&lt;string, string[]&gt; | `{}` | Kodovi grešaka po tipu uređaja (ključ = DeviceType, vrednost = lista i18n ključeva) |
+
+---
+
+## Fotografije intervencija
+
+Uključuje se sa `features.interventionPhotos: true`. Koje intervencije traže slike određuje `interventionPhotoConfig` (root nivo config dokumenta):
+
+```
+interventionPhotoConfig[{deviceType}][{interventionType}] = PhotoRequirement
+```
+
+`interventionType` je `commissioning`, `annual_service`, `interventionRepair`, `intervention_noise` ili `intervention_replace`. Bez zapisa za kombinaciju tip uređaja + intervencija slike se ne traže.
+
+| Polje (`PhotoRequirement`) | Tip | Default | Opis |
+|-------|-----|---------|------|
+| `requiredPhotos` | number | — | Minimalan broj slika (0 = slike su opcione, ali se pita pre čuvanja bez slika) |
+| `maxPhotos` | number | — | Maksimalan broj slika |
+| `requireSparePartPhotos` | boolean | — | Intervencija: po jedna slika više za svaki rezervni deo |
+| `description` | string | — | Uputstvo prikazano na ekranu za slike (i18n ključ) |
+| `inWarranty` | boolean | `true` | Slike za intervencije **u garanciji** |
+| `outOfWarranty` | boolean | `false` | Slike za intervencije **van garancije** |
+
+Status garancije po stranici:
+
+| Stranica | Intervencija | Garancija |
+|----------|--------------|-----------|
+| Puštanje u rad | `commissioning` | uvek u garanciji |
+| Godišnji servis | `annual_service` | uvek u garanciji |
+| Intervencija | popravka / buka / zamena | bira serviser |
+| Intervencija | `annual_service` (nudi se samo van garancije) | uvek van garancije |
+
+Primer — puštanje u rad sa slikama samo u garanciji, godišnji servis samo van garancije:
+
+```json
+"interventionPhotoConfig": {
+  "gas-boiler": {
+    "commissioning":  { "requiredPhotos": 2, "maxPhotos": 5, "requireSparePartPhotos": false, "description": "", "inWarranty": true,  "outOfWarranty": false },
+    "annual_service": { "requiredPhotos": 1, "maxPhotos": 3, "requireSparePartPhotos": false, "description": "", "inWarranty": false, "outOfWarranty": true }
+  }
+}
+```
+
+U sačuvanoj intervenciji: `photoPaths` (niz relativnih putanja uploadovanih slika, redom snimanja) i `photoUploadFailed` (broj slika čiji upload nije uspeo). Oba polja se upisuju samo kada ima šta da se upiše.
+
+Sa `features.interventionPhotoPreview: true` detalj intervencije u istoriji prikazuje sekciju „Fotografije (N)“: sličice iz `photoPaths` (klik otvara pregled preko celog ekrana sa listanjem i zumiranjem) i napomenu kada je `photoUploadFailed` > 0. Intervencije sačuvane pre uvođenja `photoPaths` nemaju sekciju.
 
 ---
 

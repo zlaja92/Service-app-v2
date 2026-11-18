@@ -486,7 +486,7 @@ describe('DeviceLookupService', () => {
     });
 
     it('resolves a registered SN via users/{sn}.deviceType and devices/{deviceType}', async () => {
-      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
+      users[SN] = { deviceType: 'heat-pump', deviceName: 'NIMBUS 80' };
 
       const result = await service.lookup(SN);
 
@@ -498,12 +498,28 @@ describe('DeviceLookupService', () => {
       expect(mockFirestore.getTenantDocument).toHaveBeenCalledWith('devices', 'heat-pump');
     });
 
-    it('takes the name from the registration model, not from devices/{deviceType}', async () => {
-      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS 80' };
+    it('takes the name from the registration deviceName, not from devices/{deviceType}', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceName: 'NIMBUS 80' };
 
       const result = await service.lookup(SN);
 
       expect(result?.name).toBe('NIMBUS 80');
+    });
+
+    it('falls back to deviceModel for registrations saved before the rename', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceModel: 'NIMBUS OLD' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('NIMBUS OLD');
+    });
+
+    it('prefers deviceName when both fields exist', async () => {
+      users[SN] = { deviceType: 'heat-pump', deviceName: 'NIMBUS NEW', deviceModel: 'NIMBUS OLD' };
+
+      const result = await service.lookup(SN);
+
+      expect(result?.name).toBe('NIMBUS NEW');
     });
 
     it('has an empty name when the registration has no model', async () => {
