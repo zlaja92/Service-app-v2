@@ -1,3 +1,13 @@
+// Material (Android) left-aligns toolbar titles; center the counter on every
+// platform like iOS. Spanning the whole toolbar keeps it centered regardless of
+// the close button; clicks pass through to that button.
+.viewer-counter {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
 .viewer-content {
   --background: #000;
 }

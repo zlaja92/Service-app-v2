@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>{{ current + 1 }} / {{ urls.length }}</ion-title>
+    <ion-title class="viewer-counter">{{ current + 1 }} / {{ urls.length }}</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="close()" [attr.aria-label]="'photo_viewer_close' | transloco">
         <ion-icon slot="icon-only" name="close-outline" />

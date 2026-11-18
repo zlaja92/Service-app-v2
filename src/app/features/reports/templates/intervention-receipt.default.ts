@@ -86,15 +86,32 @@ export function interventionReceiptDefault(
     const name = ctx.company.company.toUpperCase();
     content.push({ text: name, bold: true, italics: true, alignment: 'center', noWrap: true, fontSize: fitFontSize(name, 16, 7, 0.62), margin: [0, 0, 0, 2] });
   }
-  // Address + city on one line: "address, city" — also kept to a single line.
-  const addressLine = [ctx.company.address, ctx.company.city].filter(v => v && v.trim()).join(', ');
-  if (addressLine) content.push({ text: addressLine, alignment: 'center', noWrap: true, fontSize: fitFontSize(addressLine, 8, 6, 0.5) });
-  // Contact on one line: "tel: phone, email: mail" — also kept to a single line.
-  const contactLine = [
-    ctx.company.phone ? `${t('report_phone_short')}: ${ctx.company.phone}` : '',
-    ctx.company.email ? `${t('report_email_short')}: ${ctx.company.email}` : '',
-  ].filter(v => v).join(', ');
-  if (contactLine) content.push({ text: contactLine, alignment: 'center', noWrap: true, fontSize: fitFontSize(contactLine, 8, 5, 0.5) });
+  // Header lines are noWrap (each shrinks to fit one line), and pdfMake drops a
+  // line break inside noWrap text. So the header follows exactly the line breaks
+  // typed in the servicer data — and adds none of its own: parts are joined with
+  // ', ', except where a part ends or starts with a line break; the text is then
+  // split on the breaks and every line becomes its own centered node.
+  const joinParts = (parts: (string | undefined)[]): string =>
+    parts
+      .filter((p): p is string => !!p && p.trim() !== '')
+      .reduce((acc, p) => {
+        if (acc === '') return p;
+        if (/\n[ \t]*$/.test(acc) || /^[ \t]*\r?\n/.test(p)) return acc + p;
+        return `${acc.replace(/[ \t]+$/, '')}, ${p.replace(/^[ \t]+/, '')}`;
+      }, '');
+  const pushHeaderLines = (text: string, minFont: number): void => {
+    text.split(/\r?\n/).map(l => l.trim()).filter(l => l).forEach(line =>
+      content.push({ text: line, alignment: 'center', noWrap: true, fontSize: fitFontSize(line, 8, minFont, 0.5) }));
+  };
+
+  // Address + city: "address, city".
+  pushHeaderLines(joinParts([ctx.company.address, ctx.company.city]), 6);
+
+  // Contact: "tel: phone, email: mail".
+  pushHeaderLines(joinParts([
+    ctx.company.phone?.trim() ? `${t('report_phone_short')}: ${ctx.company.phone}` : undefined,
+    ctx.company.email?.trim() ? `${t('report_email_short')}: ${ctx.company.email}` : undefined,
+  ]), 5);
   content.push(divider());
 
   // ── Customer ──
